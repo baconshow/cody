@@ -8,7 +8,7 @@
 // the answer into a verdict).
 //
 //   createVoice({ api, win, target, onState, onCaption, onAttachment, onImage, onListening, onSide, t }) → { start(), stop(),
-//     volume(), listen(on), listening }
+//     volume(), listen(on), listening, announce({ text, alert }), chime() }
 //     api           { voice(text), voiceReplies(after), voiceAudio(seq) } (api.js)
 //     target        the element that is held (the face's canvas)
 //     onState       (mood | null): 'listening', 'thinking', 'talking'; null hands the face back to the cycle
@@ -17,6 +17,8 @@
 //     onListening   (on) whether the wake word is on (the on-screen button)
 //     onSide        (on) listening sideways: no word within VOICE.lowVoice while listening (speaking softly) or
 //                   "didn't catch that"
+//   announce        the mascot says something on its own (a timer ringing, Claude finished): in the caption and
+//                   out loud, in turn with the replies; alert is the key of /api/voice/alert (the mascot's voice)
 
 import { joinTranscript } from './transcript.js';
 import { createVoiceAudio } from './voice-audio.js';
@@ -32,7 +34,7 @@ export const VOICE = Object.freeze({
 export function createVoice({ api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {}, onSide = () => {}, t }) {
   const Recognizer = win.SpeechRecognition || win.webkitSpeechRecognition;
   const audio = createVoiceAudio({ api, win });
-  const st = { hold: 0, recognition: null, text: '', after: null, waitUntil: 0, poll: 0, clear: 0, on: false, queue: Promise.resolve(), side: 0 };
+  const st = { hold: 0, recognition: null, text: '', after: null, session: null, waitUntil: 0, poll: 0, clear: 0, on: false, queue: Promise.resolve(), side: 0 };
 
   // listening sideways: the count starts when it begins to listen; the first word undoes it; "didn't catch that"
   // turns it for a while
@@ -63,7 +65,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
   function speak(reply) {
     st.queue = st.queue.then(async () => {
       caption(String(reply.text));
-      onAttachment(reply.show ? String(reply.show) : null);
+      if (!reply.alert) onAttachment(reply.show ? String(reply.show) : null);   // an alert leaves the link box alone
       if (reply.image) onImage(String(reply.image));
       wake.pause();
       onState('talking');
@@ -76,16 +78,35 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     return st.queue;
   }
 
+  // a fact Claude saved: in the caption, in turn with the speech (never over a sentence being spoken)
+  function note(text) {
+    st.queue = st.queue.then(() => caption(t('mascot.voice.saved', { text })));
+  }
+
   // the replies that are new since the last one seen; the first poll only marks where the queue is (the past is
   // never spoken)
   async function poll() {
     let wait = VOICE.slow;
     try {
       const r = await api.voiceReplies(st.after ?? 0);
-      const list = Array.isArray(r?.replies) ? r.replies : [];
-      const last = list.reduce((m, x) => Math.max(m, Number(x.seq) || 0), st.after ?? 0);
-      if (st.after !== null) for (const x of list) if (Number(x.seq) > st.after && x.text) { st.waitUntil = 0; speak(x); }
-      st.after = last;
+      const session = typeof r?.session === 'string' ? r.session : null;
+      if (session && st.session && session !== st.session && st.after !== null) {
+        // the voice session restarted on the computer: its replies count from 1 again, so read them all
+        st.session = session;
+        st.after = 0;
+        wait = VOICE.fast;
+      } else {
+        if (session) st.session = session;
+        const list = Array.isArray(r?.replies) ? r.replies : [];
+        const last = list.reduce((m, x) => Math.max(m, Number(x.seq) || 0), st.after ?? 0);
+        if (st.after !== null) {
+          for (const x of list) {
+            if (!(Number(x.seq) > st.after)) continue;
+            if (x.text) { st.waitUntil = 0; speak(x); } else if (x.note) note(String(x.note));
+          }
+        }
+        st.after = last;
+      }
     } catch { /* server offline: signal.js shows it; try again slowly */ }
     if (st.waitUntil) {
       wait = VOICE.fast;
@@ -151,6 +172,8 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
   return {
     volume: () => audio.volume(),
     get listening() { return wake.active; },
+    announce: ({ text, alert }) => (text ? speak({ text: String(text), alert: String(alert || '') || null }) : st.queue),
+    chime: () => audio.chime(),
     listen(on) {
       if (on && Recognizer) wake.start();
       else wake.stop();

@@ -70,6 +70,20 @@ class ServerTest(unittest.TestCase):
         self.assertEqual(response.status, 200)
         self.assertEqual(set(json.loads(body)), {"cursor", "events", "sessions"})
 
+    def test_timers_events_and_alerts(self):
+        token = {"X-Cody-Token": self.token()}
+        response, body = self.request("GET", "/api/timers", token)
+        self.assertEqual(response.status, 200)
+        self.assertEqual(set(json.loads(body)), {"now", "timers"})
+        response, body = self.request("GET", "/api/events?after=0", token)
+        self.assertEqual((response.status, set(json.loads(body))), (200, {"cursor", "events"}))
+        response, _ = self.request("GET", "/api/events?after=x", token)
+        self.assertEqual(response.status, 400)
+        response, _ = self.request("GET", "/api/voice/alert?key=done", token)
+        self.assertEqual(response.status, 404, "no ElevenLabs voice configured: the phone uses its own")
+        response, _ = self.request("GET", "/api/timers")
+        self.assertEqual(response.status, 403)
+
     def test_unknown_host_is_refused(self):
         response, _ = self.request("GET", "/", {"Host": "evil.example:80"})
         self.assertEqual(response.status, 403)

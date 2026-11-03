@@ -15,13 +15,15 @@
 //
 // Served at / (with the token) the face reads Claude's state and activity (signal.js), only while the page is
 // visible, and looks at the computer's mouse (cursor.js, like the Bluey app); holding the face talks to Claude
-// (voice.js, the mascot's voice channel). Opened as /web/index.html it fetches nothing.
+// (voice.js, the mascot's voice channel). Timers set by voice count down in the corner and ring (timers.js), and
+// the Claude Code hooks tell the face when a long task finished or Claude needs you (alerts.js). Opened as
+// /web/index.html it fetches nothing.
 // On a phone the screen stays on (awake.js). With "reduce motion", the face is only redrawn when something changes.
 //
 // The face is the 3D mascot (scene3d.js, three.js through the page's importmap), alone and in the gallery (one
 // canvas per mood); if three.js does not load (offline), or with ?visual=2d, the 2D drawing stays (face2d.js).
 
-import { t, translate } from './i18n.js';
+import { t, translate, locale } from './i18n.js';
 import { api } from './api.js';
 import { createAnimator, TIMINGS } from './animator.js';
 import { createCycle } from './cycle.js';
@@ -29,6 +31,9 @@ import { createSignal } from './signal.js';
 import { keepAwake } from './awake.js';
 import { createCursor } from './cursor.js';
 import { createVoice } from './voice.js';
+import { createTimers } from './timers.js';
+import { createTimerPanel } from './timer-panel.js';
+import { createAlerts } from './alerts.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -39,6 +44,8 @@ const LOOK_REACH = 0.45;              // fraction of the longer screen side: bey
 const MAX_DPR = 3;
 const QUIET_CLOCK_MS = 1000;          // when still, the idle cycle still checks the mood once a second
 const CURSOR_LOOK_Y = 0.8;            // the computer screen is wider than tall: the gaze moves less up and down
+const POINTING_S = 6;                 // the face points along while the mini Cody points on the computer screen
+const NEEDS_YOU_S = 8;                // and points at the computer when Claude is waiting for you
 
 function readOptions(search) {
   const q = new URLSearchParams(search);
@@ -206,12 +213,13 @@ function startSignal() {
 }
 
 // the computer's mouse (cursor.js): the face looks where it is on the screen, like the Bluey app; a finger on the
-// phone's screen takes over
-function wireCursor(faces, request, local) {
+// phone's screen takes over. When the mini Cody points at something there, the face looks and points too
+function wireCursor(faces, cycle, request, local) {
   const cursor = createCursor({
     api,
-    onMove: ({ x, y }) => {
+    onMove: ({ x, y, pointing }) => {
       const now = performance.now() / 1000;
+      if (pointing) cycle?.alert('pointing', POINTING_S, now);
       if (now - local.at < TIMINGS.live) return;
       for (const f of faces) f.animator.lookAt(x, y * CURSOR_LOOK_Y, now);
       request();
@@ -253,6 +261,45 @@ function wireVoice(f, cycle, request) {
   wake.addEventListener('click', () => voice.listen(!voice.listening));
   voice.listen(remembered(PREF_WAKE_WORD, true));
   const sync = () => (document.hidden ? voice.stop() : voice.start());
+  document.addEventListener('visibilitychange', sync);
+  sync();
+  return voice;
+}
+
+// timers set by voice (timers.js): the panel in the corner; when one ends the face hops, the phone buzzes, the
+// mascot says what it was for and chimes until a tap on the panel (or a minute). They keep counting while the page
+// is hidden, so a reminder still rings when the screen comes back
+function wireTimers(voice, cycle, request) {
+  const timers = createTimers({
+    api,
+    onChange: (rows) => panel.render(rows),
+    onRing: (timer) => {
+      cycle.cheer(performance.now() / 1000);
+      request();
+      navigator.vibrate?.([200, 100, 200]);
+      voice.chime();
+      voice.announce({ text: timer.say, alert: `timer:${timer.id}` });
+    },
+    onChime: () => voice.chime(),
+  });
+  const panel = createTimerPanel({ t, locale, onDismiss: () => timers.dismiss() });
+  timers.start();
+}
+
+// heads-up from the Claude Code hooks (alerts.js): a long task done, a hop and "done!"; Claude waiting for
+// permission, the face points at the computer and calls you
+function wireAlerts(voice, cycle, request) {
+  const alerts = createAlerts({
+    api,
+    onAlert: (e) => {
+      const now = performance.now() / 1000;
+      if (e.kind === 'done') cycle.cheer(now);
+      else cycle.alert('pointing', NEEDS_YOU_S, now);
+      request();
+      voice.announce({ text: e.say, alert: e.kind });
+    },
+  });
+  const sync = () => (document.hidden ? alerts.stop() : alerts.start());
   document.addEventListener('visibilitychange', sync);
   sync();
 }
@@ -407,9 +454,13 @@ async function start() {
   if (cycle) setInterval(() => { if (state.quiet) loop.request(); }, QUIET_CLOCK_MS);
   const local = { at: -Infinity };
   wirePointer(faces, cycle, loop.request, local);
-  if (!op.gallery) wireCursor(faces, loop.request, local);
+  if (!op.gallery) wireCursor(faces, cycle, loop.request, local);
   if (!op.gallery) wireShake(faces, loop.request, op.sensor);
-  if (cycle && api.hasToken()) wireVoice(faces[0], cycle, loop.request);
+  if (cycle && api.hasToken()) {
+    const voice = wireVoice(faces[0], cycle, loop.request);
+    wireTimers(voice, cycle, loop.request);
+    wireAlerts(voice, cycle, loop.request);
+  }
   faces.forEach(measureFace);
   loop.request();
 }

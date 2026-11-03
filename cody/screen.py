@@ -2,12 +2,17 @@
 
 capture() returns PNG bytes of all screens together. Nothing is written to disk on Windows (GDI through ctypes, PNG
 encoded with zlib from the standard library); macOS uses the built-in `screencapture` and Linux tries `grim` (Wayland)
-or ImageMagick's `import` (X11), through a temp file that is deleted right away. The image goes to your phone only: it
-is never sent to Claude.
+or ImageMagick's `import` (X11), through a temp file that is deleted right away. That image goes to your phone only.
+
+look() is the other use, for "where is the export button?": a smaller picture that Claude does see (it goes into the
+conversation, so only when you ask), plus where it sits on the screen, so the mini Cody can point at a spot Claude
+names in the picture's pixels. Windows only: elsewhere look() returns the full picture without the geometry.
 """
 from __future__ import annotations
 
 import ctypes
+import math
+import operator
 import os
 import shutil
 import struct
@@ -15,8 +20,12 @@ import subprocess
 import sys
 import tempfile
 import zlib
+from array import array
 
 TIMEOUT_S = 10
+# the largest picture Claude reads without scaling it down itself: then its coordinates match ours
+LOOK_LONG_SIDE = 1568
+LOOK_PIXELS = 1_150_000
 SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN, SM_CXVIRTUALSCREEN, SM_CYVIRTUALSCREEN = 76, 77, 78, 79
 
 
@@ -45,7 +54,29 @@ class _BitmapInfoHeader(ctypes.Structure):
                 ("biYPelsPerMeter", ctypes.c_int32), ("biClrUsed", ctypes.c_uint32), ("biClrImportant", ctypes.c_uint32)]
 
 
-def _capture_windows() -> bytes:
+def fit(width: int, height: int) -> tuple[int, int]:
+    """The size of the look picture: the screen scaled down (never up) to at most LOOK_LONG_SIDE on the long side and
+    LOOK_PIXELS in all."""
+    scale = min(1.0, LOOK_LONG_SIDE / max(width, height), math.sqrt(LOOK_PIXELS / (width * height)))
+    return max(1, int(width * scale)), max(1, int(height * scale))
+
+
+def shrink(bgra: bytes, width: int, height: int, new_width: int, new_height: int) -> bytes:
+    """32-bit pixels scaled to the new size by taking the nearest pixel (fast in pure Python: one pick per row)."""
+    if (new_width, new_height) == (width, height):
+        return bytes(bgra)
+    pixels = memoryview(bgra).cast("I")
+    xs = [min(width - 1, int((i + 0.5) * width / new_width)) for i in range(new_width)]
+    pick = operator.itemgetter(*xs) if new_width > 1 else (lambda row: (row[xs[0]],))
+    out = array("I")
+    for j in range(new_height):
+        y = min(height - 1, int((j + 0.5) * height / new_height))
+        out.extend(pick(pixels[y * width:(y + 1) * width]))
+    return out.tobytes()
+
+
+def _grab_windows() -> tuple[bytes, tuple[int, int, int, int]]:
+    """(BGRA pixels, (left, top, width, height)) of all screens together, in real pixels."""
     user32, gdi32 = ctypes.windll.user32, ctypes.windll.gdi32
     try:
         user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))   # per-monitor: real pixels on scaled screens
@@ -76,7 +107,7 @@ def _capture_windows() -> bytes:
         pixels = ctypes.create_string_buffer(width * height * 4)
         if gdi32.GetDIBits(memory, bitmap, 0, height, pixels, ctypes.byref(info), 0) != height:
             raise ScreenError("the screen pixels could not be read")
-        return encode_png(pixels.raw, width, height)
+        return pixels.raw, (left, top, width, height)
     finally:
         gdi32.DeleteObject(bitmap)
         gdi32.DeleteDC(memory)
@@ -111,11 +142,38 @@ def _capture_with_tool() -> bytes:
             pass
 
 
+def _grab() -> tuple[bytes, tuple[int, int, int, int]]:
+    try:
+        return _grab_windows()
+    except OSError as error:
+        raise ScreenError("the screen could not be captured") from error
+
+
 def capture() -> bytes:
     """PNG bytes of all screens; ScreenError when it cannot be taken."""
     if sys.platform == "win32":
-        try:
-            return _capture_windows()
-        except OSError as error:
-            raise ScreenError("the screen could not be captured") from error
+        pixels, (_, _, width, height) = _grab()
+        return encode_png(pixels, width, height)
     return _capture_with_tool()
+
+
+def look(grab=None) -> tuple[bytes, dict | None]:
+    """(PNG, view) for Claude to see: on Windows the picture is scaled down to fit() and view is {"left", "top",
+    "width", "height"} of the screen area plus {"image_width", "image_height"}; elsewhere view is None."""
+    if grab is None and sys.platform != "win32":
+        return _capture_with_tool(), None
+    pixels, (left, top, width, height) = (grab or _grab)()
+    image_width, image_height = fit(width, height)
+    small = shrink(pixels, width, height, image_width, image_height)
+    view = {"left": left, "top": top, "width": width, "height": height,
+            "image_width": image_width, "image_height": image_height}
+    return encode_png(small, image_width, image_height), view
+
+
+def to_screen(view: dict, x: float, y: float) -> tuple[int, int] | None:
+    """A point in the look picture -> screen pixels; None when it falls outside the picture."""
+    if not (0 <= x <= view["image_width"] and 0 <= y <= view["image_height"]):
+        return None
+    sx = view["left"] + round(x * view["width"] / view["image_width"])
+    sy = view["top"] + round(y * view["height"] / view["image_height"])
+    return (min(sx, view["left"] + view["width"] - 1), min(sy, view["top"] + view["height"] - 1))

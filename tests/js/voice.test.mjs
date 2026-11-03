@@ -1,6 +1,7 @@
 // Tests for the mascot's voice conversation (web/js/voice.js and its mood in cycle.js): holding listens, releasing
 // sends and thinks, the reply is spoken and shown in the caption; a short tap does not listen; a closed channel
-// warns; the voice drives the face. Plus the wake word, in English and in Portuguese.
+// warns; the voice drives the face; a restarted voice session is heard from its first reply; the mascot
+// announces timers and heads-up on its own. Plus the wake word, in English and in Portuguese.
 // Run with: node --test "tests/js/*.test.mjs"
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -32,7 +33,7 @@ function scenario({ failWithStatus = null } = {}) {
       st.sent.push(text);
       return { request_id: '1' };
     },
-    voiceReplies: async () => ({ channel: true, replies: st.replies }),
+    voiceReplies: async (after) => ({ channel: true, session: st.session, replies: st.replies.filter((r) => r.seq > after) }),
   };
   const target = new EventTarget();
   st.attachments = [];
@@ -256,4 +257,45 @@ test('a permission request: the mascot asks, shows the command and opens the mic
   await flush();
   assert.deepEqual(st.sent, ['yes']);
   voice.stop();
+});
+
+test('a voice session restarted on the computer is heard from its first reply', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice } = scenario();
+  st.session = 'aaaa1111';
+  st.replies = [{ seq: 7, request_id: '7', text: 'an old reply' }];
+  voice.start();
+  await flush();
+  st.session = 'bbbb2222';                       // Claude Code restarted: the count starts over
+  st.replies = [{ seq: 1, request_id: '1', text: 'Hello again.' }];
+  t.mock.timers.tick(VOICE.slow + 1);
+  await flush();
+  t.mock.timers.tick(VOICE.fast + 1);
+  await flush();
+  assert.deepEqual(st.spoken.map((u) => u.text), ['Hello again.']);
+  voice.stop();
+});
+
+test('an announcement is spoken and captioned, and leaves the link box alone', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice } = scenario();
+  voice.announce({ text: "Time's up: pizza.", alert: 'timer:1f2e3d4c' });   // resolves when the speech ends
+  await flush();
+  assert.equal(st.captions.at(-1), "Time's up: pizza.");
+  assert.equal(st.spoken.at(-1).text, "Time's up: pizza.");
+  assert.deepEqual(st.attachments, [], 'the link from an earlier reply stays');
+  assert.equal(st.states.at(-1), 'talking');
+});
+
+test('an alert mood holds above a pat for its seconds, below the voice', () => {
+  const cycle = createCycle();
+  cycle.touched(0);
+  cycle.alert('pointing', 6, 0);
+  assert.equal(cycle.mood(1), 'pointing');
+  cycle.setVoice('talking');
+  assert.equal(cycle.mood(2), 'talking');
+  cycle.setVoice(null);
+  assert.notEqual(cycle.mood(7), 'pointing');
+  cycle.cheer(10);
+  assert.equal(cycle.mood(10.5), 'happy');
 });

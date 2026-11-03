@@ -7,6 +7,10 @@
 # Channels are a research preview: a custom channel only loads with --dangerously-load-development-channels, and
 # Claude Code asks for a confirmation at startup (choose "I am using this for local development"). The MCP config goes
 # to a temp file used by this session only: no other session loads the channel.
+#
+# The mascot's harmless tools run without asking (reply, timers, memory, pointing); the two that capture the screen,
+# screenshot and look, still ask for your permission (by voice too). CODY_VOICE=1 tells Cody's hooks (cody/hooks.py)
+# that this is the voice session, where the mascot already does the talking.
 
 $ErrorActionPreference = 'Stop'
 $channel = Join-Path (Split-Path $PSScriptRoot -Parent) 'cody\channel.py'
@@ -17,5 +21,12 @@ $python = if (Get-Command python -ErrorAction SilentlyContinue) { 'python' } els
 $json = @{ mcpServers = @{ cody = @{ command = $python; args = @($channel) } } } | ConvertTo-Json -Depth 5
 [System.IO.File]::WriteAllText($config, $json, (New-Object System.Text.UTF8Encoding $false))   # no BOM
 
+$allowed = 'reply', 'timer', 'remember', 'forget', 'point' | ForEach-Object { "mcp__cody__$_" }
+
 Set-Location $folder
-claude --mcp-config $config --dangerously-load-development-channels server:cody
+$env:CODY_VOICE = '1'                  # only for this session: removed again when Claude Code exits
+try {
+    claude --mcp-config $config --dangerously-load-development-channels server:cody --allowedTools @allowed
+} finally {
+    Remove-Item Env:CODY_VOICE -ErrorAction SilentlyContinue
+}

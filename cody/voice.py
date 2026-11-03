@@ -19,6 +19,7 @@ import urllib.request
 from collections import OrderedDict, deque
 from pathlib import Path
 
+from cody import hooks, timers
 from cody.channel import channel_file
 
 MAX_TEXT = 500
@@ -31,10 +32,12 @@ ELEVEN_TIMEOUT_S = 30
 ELEVEN_LANGUAGE = {"en": "en", "pt-BR": "pt"}
 MAX_AUDIOS = 50                                  # as many as the channel keeps; in memory only, never on disk
 MAX_SYNTHESES_PER_MINUTE = 20                    # a leaked token can not drain your ElevenLabs credits
+MAX_SYNTHESES_PER_DAY = 300                      # nor can a loop that keeps setting timers
 _audios: OrderedDict = OrderedDict()
 _lock = threading.Lock()
 _in_flight: dict = {}                            # key -> Lock: the same reply asked twice is synthesized once
-_recent: deque = deque()                         # monotonic times of the latest syntheses
+_recent: deque = deque()                         # monotonic times of the syntheses of the last minute
+_today: deque = deque()                          # and of the last 24 hours
 
 
 class VoiceError(Exception):
@@ -85,19 +88,22 @@ def say(body: dict, path: Path | None = None) -> dict:
 
 
 def replies(after: str, path: Path | None = None) -> dict:
-    """GET /api/voice/replies?after=N -> {"channel": bool, "replies": [{"seq", "request_id", "text", "show", ...}]}"""
+    """GET /api/voice/replies?after=N -> {"channel": bool, "session", "replies": [{"seq", "request_id", "text",
+    "show", ...}]}. session changes when the voice session restarts (and its reply count starts over)."""
     try:
         n = max(0, int(after or 0))
     except ValueError:
         n = 0
     channel = _channel(path)
     if channel is None:
-        return {"channel": False, "replies": []}
+        return {"channel": False, "session": None, "replies": []}
     try:
-        found = _ask(channel, "GET", f"/replies?after={n}").get("replies") or []
+        answer = _ask(channel, "GET", f"/replies?after={n}")
     except VoiceError:
-        return {"channel": False, "replies": []}
-    return {"channel": True, "replies": [r for r in found if isinstance(r, dict)]}
+        return {"channel": False, "session": None, "replies": []}
+    session = answer.get("session") if isinstance(answer.get("session"), str) else None
+    found = answer.get("replies") or []
+    return {"channel": True, "session": session, "replies": [r for r in found if isinstance(r, dict)]}
 
 
 def image(image_id: str, path: Path | None = None) -> bytes:
@@ -162,8 +168,35 @@ def audio(seq_raw: str, voice: dict | None, language: str = "en", path: Path | N
     reply = next((r for r in replies(str(seq - 1), path)["replies"] if r.get("seq") == seq), None)
     if reply is None or not reply.get("text"):
         raise VoiceError(404, "reply not found")
+    return _spoken(str(reply["text"]), voice, language, synthesize)
+
+
+def alert_text(key: str, language: str = "en", timers_path: Path | None = None) -> str | None:
+    """What the mascot says for an alert key: "done", "needs_you" (cody/hooks.py) or "timer:<id>" of a timer that is
+    running or just rang (cody/timers.py). The phone only names the alert: the words are always made here."""
+    if key in hooks.PHRASES["en"]:
+        return hooks.phrase(key, language)
+    if isinstance(key, str) and key.startswith("timer:") and timers.ID.fullmatch(key[6:]):
+        found = next((t for t in timers.for_phone(timers_path, language)["timers"] if t["id"] == key[6:]), None)
+        return found["say"] if found else None
+    return None
+
+
+def alert_audio(key: str, voice: dict | None, language: str = "en", timers_path: Path | None = None,
+                synthesize=_eleven) -> bytes:
+    """GET /api/voice/alert?key=K -> the mp3 of a timer ringing or a heads-up (404 without a configured voice)."""
+    if voice is None:
+        raise VoiceError(404, "no voice configured")
+    text = alert_text(key, language, timers_path)
+    if text is None:
+        raise VoiceError(404, "unknown alert")
+    return _spoken(text, voice, language, synthesize)
+
+
+def _spoken(text: str, voice: dict, language: str, synthesize) -> bytes:
+    """The mp3 of the text in the voice, synthesized once and kept in memory."""
     # keyed by text and voice, not by seq: a new channel session starts counting from 1 again
-    key = (str(reply["text"]), voice["voice_id"], voice["model"], language)
+    key = (text, voice["voice_id"], voice["model"], language)
     with _lock:
         if key in _audios:
             return _audios[key]
@@ -190,6 +223,11 @@ def _take_synthesis_slot(clock=time.monotonic) -> None:
     now = clock()
     while _recent and now - _recent[0] > 60:
         _recent.popleft()
+    while _today and now - _today[0] > 24 * 3600:
+        _today.popleft()
     if len(_recent) >= MAX_SYNTHESES_PER_MINUTE:
         raise VoiceError(429, "too many spoken replies this minute")
+    if len(_today) >= MAX_SYNTHESES_PER_DAY:
+        raise VoiceError(429, "too many spoken replies today: the phone uses its own voice until tomorrow")
     _recent.append(now)
+    _today.append(now)

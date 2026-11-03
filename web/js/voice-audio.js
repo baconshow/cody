@@ -3,14 +3,17 @@
 // Without it (no voice configured, ElevenLabs down, out of credit), the device's own voice, with the animator's
 // make-believe mouth.
 //
-//   createVoiceAudio({ api, win }) → { unlock(), speak(reply) → Promise, silence(), volume() → 0..1 | null }
+//   createVoiceAudio({ api, win }) → { unlock(), speak(reply) → Promise, chime(), silence(), volume() → 0..1 | null }
 //     unlock   on a tap: the browser only plays sound after a gesture (call it on every pointerdown)
-//     speak    reply { seq, text }: resolves when it finishes speaking
+//     speak    reply { seq, text } or an alert { alert, text } (a timer ringing, a heads-up: /api/voice/alert):
+//              resolves when it finishes speaking
+//     chime    two short beeps, for a timer that is ringing
 //     volume   how loud the speech is right now, for animator.hearVoice; null when nobody is speaking through WebAudio
 
 import { locale } from './i18n.js';
 
 export const AUDIO = Object.freeze({ samples: 512, gain: 4, pitch: 1.25, rate: 1.05 });
+const CHIME = Object.freeze({ notes: [880, 1175], length: 0.14, gap: 0.06, volume: 0.25 });
 
 export function createVoiceAudio({ api, win = window }) {
   const Context = win.AudioContext || win.webkitAudioContext;
@@ -66,12 +69,29 @@ export function createVoiceAudio({ api, win = window }) {
     });
   }
 
+  function chime() {
+    if (!st.ctx || st.ctx.state !== 'running') return;
+    let at = st.ctx.currentTime;
+    for (const frequency of CHIME.notes) {
+      const tone = st.ctx.createOscillator();
+      const level = st.ctx.createGain();
+      tone.frequency.value = frequency;
+      level.gain.setValueAtTime(CHIME.volume, at);
+      level.gain.exponentialRampToValueAtTime(0.001, at + CHIME.length);
+      tone.connect(level).connect(st.ctx.destination);
+      tone.start(at);
+      tone.stop(at + CHIME.length);
+      at += CHIME.length + CHIME.gap;
+    }
+  }
+
   return {
     unlock,
     volume,
+    chime,
     async speak(reply) {
       try {
-        await playMp3(await api.voiceAudio(reply.seq));
+        await playMp3(await (reply.alert ? api.voiceAlert(reply.alert) : api.voiceAudio(reply.seq)));
       } catch (error) {
         console.info('[cody] the mascot voice did not come; using the device voice', error?.status ?? error?.message);
         await speakOnDevice(String(reply.text || ''));

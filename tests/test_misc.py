@@ -12,10 +12,10 @@ class ConfigTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "config.json"
             path.write_text(json.dumps(data), encoding="utf-8")
-            return load_config(path)
+            return load_config(path, system=lambda: "en")
 
     def test_defaults_without_a_file(self):
-        config = load_config(Path("does-not-exist.json"))
+        config = load_config(Path("does-not-exist.json"), system=lambda: "en")
         self.assertEqual(config, {"port": DEFAULT_PORT, "extra_hosts": [], "allowed_logins": [], "language": "en",
                                   "voice": None})
 

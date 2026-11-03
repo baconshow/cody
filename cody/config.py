@@ -9,14 +9,17 @@
     }
 
 extra_hosts: host names allowed in the Host header besides 127.0.0.1/localhost (your Tailscale serve name, so the
-phone can open the mascot). allowed_logins: optional; when set, requests through Tailscale serve must come from one
-of these Tailscale logins (other people and tagged devices in your tailnet are refused). language: "en" or "pt-BR",
-for the spoken replies and the wake word. voice: optional ElevenLabs voice; without it the phone speaks with its own
-built-in voice.
+phone can open the mascot; found by itself when Tailscale runs here, see cody/setup.py). allowed_logins: optional;
+when set, requests through Tailscale serve must come from one of these Tailscale logins (other people and tagged
+devices in your tailnet are refused); by default, this computer's own login. language: "en" or "pt-BR", for the
+spoken replies and the wake word; by default the computer's language. voice: optional ElevenLabs voice; without it
+the phone speaks with its own built-in voice.
 """
 from __future__ import annotations
 
 import json
+import locale
+import os
 import re
 from pathlib import Path
 
@@ -51,7 +54,17 @@ def _voice(value) -> dict | None:
     return {"voice_id": voice_id, "model": model}
 
 
-def load_config(path: Path = ROOT / "config.json") -> dict:
+def system_language(getlocale=locale.getlocale, env=os.environ) -> str:
+    """"pt-BR" when the computer speaks Portuguese ("pt_BR", "Portuguese_Brazil", LANG=pt_PT...), else "en"."""
+    try:
+        name = (getlocale()[0] or "").casefold()
+    except (ValueError, TypeError):
+        name = ""
+    name = name or (env.get("LC_ALL") or env.get("LANG") or "").casefold()
+    return "pt-BR" if name.startswith(("pt", "portuguese")) else "en"
+
+
+def load_config(path: Path = ROOT / "config.json", system=system_language) -> dict:
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -65,6 +78,6 @@ def load_config(path: Path = ROOT / "config.json") -> dict:
         "extra_hosts": _hosts(data.get("extra_hosts")),
         "allowed_logins": [x.strip().casefold() for x in logins if isinstance(x, str) and VALID_LOGIN.match(x.strip())]
                           if isinstance(logins, list) else [],
-        "language": language if language in LANGUAGES else "en",
+        "language": language if language in LANGUAGES else system(),
         "voice": _voice(data.get("voice")),
     }

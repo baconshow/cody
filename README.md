@@ -9,6 +9,10 @@ You can also **talk to it**. Hold Cody (or say "Cody") and ask anything: your wo
 Code session on your computer, and the mascot answers out loud in one or two short sentences. Honestly, it answers
 far better than Alexa, because it *is* Claude Code: your files, your tools, your context.
 
+It also does the desk-buddy things: **timers and reminders** that ring on the phone, a **memory** of your name and
+how you like things, a **mini Cody that flies across your computer screen** to point at the button you asked about,
+and a **heads-up** when one of your Claude Code sessions finishes a long task or is waiting for your permission.
+
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are
 > trademarks of Anthropic, PBC. Cody is fan art. Not related to Sourcegraph's Cody either.
 
@@ -53,39 +57,44 @@ python cody.py --open
 
 That opens the mascot at `http://127.0.0.1:7420`. Use Claude Code as usual and watch it react.
 
-To change the port or the language, copy `config.example.json` to `config.json` and edit it.
+**It sets itself up.** The first time, Cody asks two questions in the terminal (Enter means yes):
+
+- *Open Cody on your phone through Tailscale?* If Tailscale runs on the computer, Cody shares itself in your private
+  tailnet (`tailscale serve`, never Funnel), on a free HTTPS port so anything you already serve stays as it is, and
+  prints the address to open on the phone. Only your own Tailscale login gets in.
+- *Tell you on the phone when Claude finishes a long task or needs you?* Adds three Claude Code hooks (see
+  [Heads-up](#heads-up-from-your-other-claude-code-sessions)).
+
+A "no" is remembered. `python cody.py --setup` asks again; `--no-setup` skips all of it. The language follows the
+computer's (Portuguese or English) unless you set it.
+
+Nothing else to configure. To change something, copy `config.example.json` to `config.json` and edit it:
 
 | Key | Default | What it does |
 |---|---|---|
 | `port` | `7420` | Local port |
-| `language` | `"en"` | `"en"` or `"pt-BR"`: spoken replies, wake word and screen text |
-| `extra_hosts` | `[]` | Host names allowed besides localhost (your Tailscale name, see below) |
-| `allowed_logins` | `[]` | Optional: only these Tailscale logins may use it from the phone (recommended) |
+| `language` | the computer's | `"en"` or `"pt-BR"`: spoken replies, wake word and screen text |
+| `extra_hosts` | found by itself | More host names allowed besides localhost (Tailscale addresses that forward to Cody are found at start) |
+| `allowed_logins` | your own login | The Tailscale logins that may use it from the phone |
 | `voice` | `null` | Optional ElevenLabs voice: `{"voice_id": "...", "model": "eleven_flash_v2_5"}` |
 
 ## Put it on your phone
 
-The server only listens on `127.0.0.1`. To reach it from your phone, use Tailscale **serve**, which keeps it inside
-your private tailnet. Never use `tailscale funnel`: that would put your mascot (and its voice channel into Claude) on
-the public internet.
+The server only listens on `127.0.0.1`. To reach it from your phone, Cody uses Tailscale **serve**, which keeps it
+inside your private tailnet. Never use `tailscale funnel`: that would put your mascot (and its voice channel into
+Claude) on the public internet. Cody refuses Funnel requests and never trusts a Funnel address.
 
 1. Install [Tailscale](https://tailscale.com/download) on your computer and your phone, and sign in to the same
    account on both.
 2. In the Tailscale admin console, under **DNS**, enable **MagicDNS** and **HTTPS certificates**.
-3. On the computer, share the port:
-   ```bash
-   tailscale serve --bg 7420
-   ```
-   `tailscale serve status` shows your address, for example `https://my-pc.tail1234.ts.net`.
-4. Put that host name and your Tailscale login in `config.json` and restart Cody:
-   ```json
-   { "extra_hosts": ["my-pc.tail1234.ts.net"], "allowed_logins": ["you@example.com"] }
-   ```
-   With `allowed_logins` set, only you get in, even if other people or shared devices are in your tailnet.
-   Without it, **every device in your tailnet that can reach this computer is trusted**: it could talk to your
-   Claude session.
-5. Open the address on your phone and use **Add to Home screen**. It runs full screen, landscape, and keeps the
+3. Start Cody and answer yes to the phone question. It prints the address, for example
+   `https://my-pc.tail1234.ts.net`. (By hand: `tailscale serve --bg 7420`, then restart Cody: it finds the address.)
+4. Open the address on your phone and use **Add to Home screen**. It runs full screen, landscape, and keeps the
    screen awake.
+
+Only your own Tailscale login gets in, even if other people or shared devices are in your tailnet. To let someone
+else in, list their logins in `allowed_logins`. A tagged Tailscale machine has no login of its own: then Cody warns
+you and trusts every device in your tailnet until you set `allowed_logins`.
 
 Shake the phone and the mascot holds on to the edges of the screen for dear life.
 
@@ -114,8 +123,64 @@ plans an admin has to enable them first.
    pick WhatsApp, or any other app. Claude only gets an id, never the picture, and nothing is uploaded anywhere
    except where you share it. Screenshots happen only when you ask: there is no periodic capture.
 
+The voice scripts let Cody's harmless tools run without asking (reply, timers, memory, pointing). The two that
+capture your screen, `screenshot` and `look`, always ask first, by voice too.
+
+### Timers and reminders
+
+*"Cody, set a timer for ten minutes for the pizza"*, *"a 25 minute focus timer"*, *"remind me at 3:30 to call
+Ana"*, *"cancel the pizza timer"*, *"what timers are running?"*
+
+The countdown shows in the corner of the phone. When it ends, Cody hops, the phone buzzes and chimes, and the mascot
+says what it was for, until you tap the timer (or a minute goes by). Reminders more than an hour away show the time
+of day instead of a countdown. Timers live on your computer (`timers.json` in Cody's data folder, see below), so they
+keep running after you close the voice session or reload the phone. The phone has to be on to ring, like any desk
+clock.
+
+### Memory
+
+*"My name is Ana"*, *"remember that I like short answers"*, *"forget my address"*
+
+Claude saves short facts with Cody's `remember` tool and gets them back at the start of every voice session, so Cody
+doesn't forget your name. They stay in `memory.json` in Cody's data folder, on your computer only: no account, no
+cloud, no sync. Delete the file to make Cody forget everything. At most 40 facts.
+
+### Cody on your computer screen (Windows)
+
+*"Cody, where is the export button?"*
+
+Claude takes a look at your screen (the `look` tool, which asks your permission), finds the spot, and a mini Cody
+flies there and points at it with a little speech bubble: *"Right here! Click Export"*. Meanwhile the mascot on the
+phone turns and points the same way. The mini Cody is a see-through window you can click through; it never takes
+the focus and leaves after eight seconds.
+
+Unlike `screenshot`, **`look` does send the picture to Claude**, scaled down, as part of the conversation: that is
+how Claude finds the button. It only happens when you ask about something on the screen. To forbid it, deny
+`mcp__cody__look` in Claude Code's permissions. Pointing is Windows only for now (macOS and Linux: PRs welcome).
+
 Speech recognition uses your browser's Web Speech API. Chrome on Android and on the desktop works best. In Chrome,
 the audio is transcribed by Google's speech service.
+
+## Heads-up from your other Claude Code sessions
+
+Cody can tell you when Claude finishes a long task in any session (*"Done! Claude finished."*) or is waiting for
+your permission (*"Claude needs you at the computer."*), so you can leave the desk while it works. It uses Claude
+Code [hooks](https://code.claude.com/docs/en/hooks). Add them with:
+
+```bash
+python cody.py --install-hooks
+```
+
+That adds three small hooks (`UserPromptSubmit`, `Stop` and `Notification`) to your Claude Code user settings,
+`~/.claude/settings.json`, keeping a backup at `settings.json.cody-backup` and everything else you have there. New
+sessions pick them up. `python cody.py --uninstall-hooks` removes them.
+
+Each hook writes one line to `events.jsonl` in Cody's data folder: the time, the kind of event and the first
+characters of the session id. Never your prompt, Claude's reply or a command. A turn shorter than 20 seconds ends
+without a word (the face already showed the work), and the voice session is skipped, since there Cody already does
+the talking.
+
+Prefer to add them by hand? Each one is a command hook running `"<python>" "<path to>/cody.py" --hook`.
 
 ### A nicer voice with ElevenLabs
 
@@ -130,6 +195,9 @@ the audio is transcribed by Google's speech service.
 
 Never commit your key. `config.json` and `.elevenlabs-key` are already in `.gitignore`.
 
+With a voice configured, timers and heads-up are spoken in it too. Their words are always made on the computer
+from a fixed list (and the timer's label), never sent in by the phone.
+
 ## How it works
 
 ```
@@ -143,17 +211,25 @@ mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool)
 - **Activity**: the server reads the tail of Claude Code's own transcripts. Only the tool name (and whether it
   edited a source file) reaches the page: never commands, file paths or conversation text.
 - **Voice channel**: `cody/channel.py` is a tiny MCP server that Claude Code starts. It pushes what you said into
-  the session and keeps Claude's short reply for the mascot.
+  the session and keeps Claude's short reply for the mascot. Its other tools (`cody/abilities.py`) set timers,
+  save facts, look at the screen and send the mini Cody (`cody/overlay.py`, plain tkinter) to point.
+- **Data folder**: `%LOCALAPPDATA%\cody` on Windows, `~/.local/state/cody` elsewhere. Small JSON files shared by
+  the server, the channel and the hooks: timers, memory, hook events. Readable only by you.
 - **Mascot**: three.js (loaded from esm.sh), with a pixel-art 2D fallback. The face motion (springs, blinks, glances)
   is ported from the face animator of the public-domain Bluey app.
 - **Cursor follow**: on Windows the mascot looks at your mouse pointer. Other systems: PRs welcome.
 
 ## Privacy and security
 
-- No telemetry. Cody never sends anything to its author.
+- No telemetry. Cody never sends anything to its author. Timers, memory and hook events stay in the data folder on
+  your computer. What does leave it, as part of using Claude and the voice you chose: the saved facts reach Claude
+  with the first thing you say in each voice session, and with an ElevenLabs voice the timer labels are spoken by
+  ElevenLabs when they ring.
 - Screenshots are taken only on request, kept in memory (the latest three) and never written to disk on Windows
-  (macOS and Linux use a temp file that is deleted right away). If your screen may show things that must not leave
-  the computer, deny the screenshot tool in Claude Code's permissions.
+  (macOS and Linux use a temp file that is deleted right away). The `screenshot` picture goes to your phone only;
+  the `look` picture goes to Claude, so it travels like anything else in your Claude Code conversation. Both ask
+  first. If your screen may show things that must not leave the computer, deny `mcp__cody__screenshot` and
+  `mcp__cody__look` in Claude Code's permissions.
 - The server binds to `127.0.0.1`. Every request needs an allowed `Host` header, every `/api` route needs a random
   token that changes on each start, and cross-site requests are refused. Requests through Tailscale Funnel are
   always refused; set `allowed_logins` to keep the rest of your tailnet out.

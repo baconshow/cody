@@ -17,6 +17,8 @@ export const en = {
   'api.timeout': "the server didn't answer in time", 'api.offline': 'no connection to the server',
   'mascot.shot.alt': 'Screenshot of your computer', 'mascot.shot.share': 'Share', 'mascot.shot.save': 'Save',
   'mascot.shot.close': 'Close', 'mascot.shot.failed': 'the screenshot did not arrive',
+  'mascot.voice.saved': 'saved: {text}',
+  'mascot.timer.panel': 'Timers', 'mascot.timer.ringing': 'time!', 'mascot.timer.dismiss': 'Tap to stop',
   'api.error': 'error {status}',
 };
 
@@ -35,5 +37,7 @@ export const pt = {
   'api.timeout': 'o servidor não respondeu a tempo', 'api.offline': 'sem conexão com o servidor',
   'mascot.shot.alt': 'Print da tela do computador', 'mascot.shot.share': 'Compartilhar', 'mascot.shot.save': 'Salvar',
   'mascot.shot.close': 'Fechar', 'mascot.shot.failed': 'o print não chegou',
+  'mascot.voice.saved': 'guardei: {text}',
+  'mascot.timer.panel': 'Cronômetros', 'mascot.timer.ringing': 'acabou!', 'mascot.timer.dismiss': 'Toque para parar',
   'api.error': 'erro {status}',
 };

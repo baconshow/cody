@@ -96,6 +96,26 @@ body.with-gallery { overflow-y: auto; }
 .shot-button[hidden] { display: none; }
 .shot-button:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
 
+/* the timers set by voice, top left: a big countdown, the label under it; a ringing one glows and a tap stops it */
+.timers {
+  position: fixed; left: max(12px, env(safe-area-inset-left)); top: max(12px, env(safe-area-inset-top));
+  display: none; flex-direction: column; gap: 6px; max-width: min(40vw, 320px); z-index: 4;
+}
+.timers.visible { display: flex; }
+.timer {
+  display: flex; flex-direction: column; padding: 4px 12px 6px; border: 1px solid #3a3346; border-radius: 10px;
+  background: rgba(0, 0, 0, .55); color: var(--mascot-ink);
+}
+.timer-time { font-size: 46px; line-height: 1; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.timer.reminder .timer-time { font-size: 30px; }
+.timer-label { font-size: 18px; line-height: 1.1; color: var(--mascot-ink-2); overflow-wrap: anywhere; }
+.timer-label:empty { display: none; }
+.timer.ringing { border-color: #e8762d; box-shadow: 0 0 0 1px #e8762d inset; cursor: pointer; animation: timer-ring 1s ease-in-out infinite; }
+.timer.ringing .timer-time { color: #ffb070; }
+.timer.ringing:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+@keyframes timer-ring { 50% { background: rgba(232, 118, 45, .28); } }
+@media (prefers-reduced-motion: reduce) { .timer.ringing { animation: none; background: rgba(232, 118, 45, .28); } }
+
 /* ?sensor=1: the accelerometer diagnostics, bottom left */
 .sensor {
   position: fixed; left: max(10px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom)); margin: 0;

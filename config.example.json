@@ -1,6 +1,5 @@
 {
   "port": 7420,
-  "language": "en",
   "extra_hosts": [],
   "allowed_logins": [],
   "voice": null

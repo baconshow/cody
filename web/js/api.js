@@ -67,5 +67,8 @@ export const api = {
   voiceReplies: (after) => call('GET', `/api/voice/replies?after=${encodeURIComponent(after)}`),
   voiceAudio: (seq) => bytes(`/api/voice/audio?seq=${encodeURIComponent(seq)}`),
   voiceImage: (id) => bytes(`/api/voice/image?id=${encodeURIComponent(id)}`),
+  voiceAlert: (key) => bytes(`/api/voice/alert?key=${encodeURIComponent(key)}`),
+  timers: () => call('GET', '/api/timers'),
+  events: (after) => call('GET', `/api/events?after=${encodeURIComponent(after)}`),
   hasToken: () => TOKEN.length > 0,
 };

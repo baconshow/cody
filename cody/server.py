@@ -5,10 +5,13 @@ Routes:
   GET  /web/<file>             static files (no token needed: they hold no data)
   GET  /api/state              {"claude_open"}
   GET  /api/activity?cursor=N  tool events and recent sessions (cody/activity.py)
-  GET  /api/cursor             the mouse position, -1..1 (Windows only)
+  GET  /api/cursor             the mouse position, -1..1 (Windows only), or the spot the mini Cody points at
+  GET  /api/timers             timers and reminders set by voice (cody/timers.py)
+  GET  /api/events?after=N     heads-up from the Claude Code hooks: done, needs you (cody/hooks.py)
   POST /api/voice              {"text"}: what you said, into the voice channel
   GET  /api/voice/replies?after=N
   GET  /api/voice/audio?seq=N  the reply in the ElevenLabs voice, when one is configured
+  GET  /api/voice/alert?key=K  a timer ringing or a heads-up, in that voice (the text is made here, never sent in)
   GET  /api/voice/image?id=X   a screenshot the channel took because you asked for one
 
 Security: the server listens on 127.0.0.1 only; reach it from a phone through Tailscale serve (inside your tailnet,
@@ -30,10 +33,11 @@ from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, page, voice
+from cody import cursor, page, pointer, setup, timers, voice
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
+from cody.hooks import HookFeed
 
 LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
@@ -77,6 +81,7 @@ class App:
         self.activity = ActivityMonitor()
         self.claude = ClaudeWatcher(self.activity.last_signal)
         self.voice_limit = RateLimit(VOICE_MESSAGES_PER_MINUTE)
+        self.hooks = HookFeed(language=config["language"])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -250,9 +255,12 @@ class Handler(BaseHTTPRequestHandler):
             "/": self._index,
             "/api/state": lambda: self._json(200, {"claude_open": self.app.claude.is_open()}),
             "/api/activity": lambda: self._activity(param("cursor")),
-            "/api/cursor": lambda: self._json(200, cursor.position() or {"x": None, "y": None}),
+            "/api/cursor": lambda: self._json(200, pointer.pointed() or cursor.position() or {"x": None, "y": None}),
+            "/api/timers": lambda: self._json(200, timers.for_phone(language=self.app.config["language"])),
+            "/api/events": lambda: self._events(param("after")),
             "/api/voice/replies": lambda: self._json(200, voice.replies(param("after"))),
             "/api/voice/audio": lambda: self._voice_audio(param("seq")),
+            "/api/voice/alert": lambda: self._voice_alert(param("key")),
             "/api/voice/image": lambda: self._voice_image(param("id")),
         }
         if path in routes:
@@ -279,9 +287,25 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(200, self.app.activity.state(position))
 
+    def _events(self, raw: str) -> None:
+        try:
+            after = max(0, int(raw or 0))
+        except ValueError:
+            self._error(400, "invalid after")
+            return
+        self._json(200, self.app.hooks.read(after))
+
     def _voice_audio(self, seq: str) -> None:
         try:
             body = voice.audio(seq, self.app.config["voice"], self.app.config["language"])
+        except voice.VoiceError as error:
+            self._error(error.status, error.message)
+            return
+        self._send(200, body, "audio/mpeg", {"Cache-Control": "no-store"})
+
+    def _voice_alert(self, key: str) -> None:
+        try:
+            body = voice.alert_audio(key, self.app.config["voice"], self.app.config["language"])
         except voice.VoiceError as error:
             self._error(error.status, error.message)
             return
@@ -336,6 +360,8 @@ def _arguments(argv):
     parser.add_argument("--open", action="store_true", help="open the mascot in the browser once it is up")
     parser.add_argument("--port", type=int, default=None, help="port (default: config.json, or 7420)")
     parser.add_argument("--verbose", action="store_true", help="log every request")
+    parser.add_argument("--setup", action="store_true", help="ask the setup questions again (phone, heads-up)")
+    parser.add_argument("--no-setup", action="store_true", help="no questions and no Tailscale detection")
     return parser.parse_args(argv)
 
 
@@ -348,6 +374,11 @@ def main(argv=None) -> int:
     config = load_config()
     if args.port and 1024 <= args.port <= 65535:
         config["port"] = args.port
+    if not args.no_setup:
+        ask = setup.terminal_ask if sys.stdin.isatty() else None
+        config, notes = setup.prepare(config, ask=ask, again=args.setup)
+        for note in notes:
+            LOG.info("%s", note)
     app = App(config)
     url = f"http://127.0.0.1:{config['port']}/"
     try:

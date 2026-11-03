@@ -10,15 +10,31 @@ import unittest
 from pathlib import Path
 
 from cody import voice
+from cody.abilities import Abilities
 from cody.channel import Channel, channel_file, create_http, spoken_verdict
+from cody.memory import Memory
+from cody.pointer import Pointer
+from cody.timers import TimerStore
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def isolated(folder: str, lang: str = "en") -> Abilities:
+    """The channel's extra tools with their files in a temp folder, never the real data folder."""
+    base = Path(folder)
+    return Abilities(lang, store=TimerStore(base / "timers.json"), memory=Memory(base / "memory.json"),
+                     pointer=Pointer(look=lambda: (b"\x89PNG", None), start=None, path=base / "pointer.json"))
 
 
 class ChannelTest(unittest.TestCase):
     def setUp(self):
         self.sent = []
-        self.channel = Channel(lambda line: self.sent.append(json.loads(line)))
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.channel = self.make(lambda line: self.sent.append(json.loads(line)))
+
+    def make(self, write=lambda line: None, **options) -> Channel:
+        return Channel(write, abilities=isolated(self.tmp.name), **options)
 
     def test_initialize_declares_the_channel_and_the_permission_relay(self):
         answer = self.channel.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}})
@@ -92,9 +108,10 @@ class ChannelTest(unittest.TestCase):
                                     "params": {"name": name, "arguments": arguments or {}}})["result"]
 
     def test_screenshot_goes_to_the_phone_and_claude_only_gets_an_id(self):
-        channel = Channel(lambda line: None, capture=lambda: b"\x89PNG fake")
+        channel = self.make(capture=lambda: b"\x89PNG fake")
         tools = channel.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})["result"]["tools"]
-        self.assertEqual([tool["name"] for tool in tools], ["reply", "screenshot"])
+        self.assertEqual([tool["name"] for tool in tools],
+                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point"])
         self.channel = channel
         result = self.call("screenshot")
         text = result["content"][0]["text"]
@@ -113,11 +130,11 @@ class ChannelTest(unittest.TestCase):
     def test_failed_screenshot_is_a_tool_error(self):
         def broken():
             raise OSError("locked")
-        self.channel = Channel(lambda line: None, capture=broken)
+        self.channel = self.make(capture=broken)
         self.assertTrue(self.call("screenshot")["isError"])
 
     def test_only_the_latest_screenshots_are_kept(self):
-        self.channel = Channel(lambda line: None, capture=lambda: b"\x89PNG")
+        self.channel = self.make(capture=lambda: b"\x89PNG")
         ids = [re.search(r'image="([^"]+)"', self.call("screenshot")["content"][0]["text"]).group(1) for _ in range(5)]
         self.assertIsNone(self.channel.image(ids[0]))
         self.assertIsNotNone(self.channel.image(ids[-1]))
@@ -129,6 +146,39 @@ class ChannelTest(unittest.TestCase):
     def test_unknown_method(self):
         answer = self.channel.handle({"jsonrpc": "2.0", "id": 9, "method": "nope"})
         self.assertEqual(answer["error"]["code"], -32601)
+
+    def test_saved_facts_ride_on_the_first_utterance_only(self):
+        self.channel.abilities.memory.remember('The user\'s name is Ana, "Aninha".')
+        self.channel.abilities.memory.remember("Ana likes tea.")
+        request = self.channel.utterance("hi")
+        self.assertEqual(len(self.sent), 1, "one message: no extra turn for the memory")
+        meta = self.sent[-1]["params"]["meta"]
+        self.assertEqual(meta["request_id"], request)
+        self.assertEqual(meta["memory"], "The user's name is Ana, 'Aninha'. | Ana likes tea.")
+        self.assertEqual(self.sent[-1]["params"]["content"], "hi")
+        self.channel.utterance("and again")
+        self.assertNotIn("memory", self.sent[-1]["params"]["meta"])
+
+    def test_no_memory_without_saved_facts(self):
+        self.channel.utterance("hi")
+        self.assertNotIn("memory", self.sent[-1]["params"]["meta"])
+
+    def test_a_saved_fact_shows_on_the_phone(self):
+        self.call("remember", {"fact": "Ana likes tea."})
+        self.assertEqual(self.channel.replies(0)[-1]["note"], "Ana likes tea.")
+        self.assertEqual(self.channel.replies(0)[-1]["text"], "")
+
+    def test_remember_through_the_channel(self):
+        self.assertNotIn("isError", self.call("remember", {"fact": "Ana likes short answers."}))
+        self.assertEqual(self.channel.abilities.memory.facts(), ["Ana likes short answers."])
+
+    def test_timer_through_the_channel(self):
+        result = self.call("timer", {"action": "set", "minutes": 10, "label": "pizza"})
+        self.assertNotIn("isError", result)
+        self.assertIn("pizza", self.call("timer", {"action": "list"})["content"][0]["text"])
+
+    def test_each_channel_has_its_own_session_id(self):
+        self.assertNotEqual(self.channel.session, self.make().session)
 
 
 class EndToEndTest(unittest.TestCase):
@@ -169,6 +219,7 @@ class EndToEndTest(unittest.TestCase):
         self.assertEqual(self.read()["id"], 2)
         replies = voice.replies("0", self.path)
         self.assertTrue(replies["channel"])
+        self.assertRegex(replies["session"], r"^[0-9a-f]{8}$")
         self.assertEqual(replies["replies"][0]["text"], "Hi there.")
 
     def test_channel_file_is_removed_on_close(self):
@@ -193,7 +244,8 @@ class ImageRouteTest(unittest.TestCase):
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.channel = Channel(lambda line: None, capture=lambda: b"\x89PNG\r\n\x1a\nfake")
+        self.channel = Channel(lambda line: None, capture=lambda: b"\x89PNG\r\n\x1a\nfake",
+                               abilities=isolated(self.tmp.name))
         self.http = create_http(self.channel, "s3cret")
         threading.Thread(target=self.http.serve_forever, daemon=True).start()
         self.path = Path(self.tmp.name) / "channel.json"
@@ -231,7 +283,7 @@ class VoiceTest(unittest.TestCase):
         with self.assertRaises(voice.VoiceError) as caught:
             voice.say({"text": "hi"}, missing)
         self.assertEqual(caught.exception.status, 503)
-        self.assertEqual(voice.replies("0", missing), {"channel": False, "replies": []})
+        self.assertEqual(voice.replies("0", missing), {"channel": False, "session": None, "replies": []})
 
     def test_text_is_validated(self):
         for bad in (None, 3, "   ", "\x00\x01"):

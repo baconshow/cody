@@ -6,7 +6,11 @@
 //   3. the idle cycle, driven only by the pointer: it moved, the face listens (and follows it with its eyes); it
 //      stopped, the face thinks for a bit, then gets sleepy and rests. The pointer coming back wakes it up happy.
 //
-//   createCycle({ fast, signal }) → { mood(now), prop(), moved(now), touched(now), setVoice(mood | null) }
+//   createCycle({ fast, signal }) → { mood(now), prop(), moved(now), touched(now), setVoice(mood | null),
+//     cheer(now), alert(mood, seconds, now) }
+//     cheer    happy for a moment (a timer rang, a long task finished)
+//     alert    a mood for a few seconds, above Claude's activity (pointing: Claude needs you, or the mini Cody on the
+//              computer screen is pointing at something)
 //     fast     the whole idle cycle in 1/6 of the time (?cycle=fast), to check it without waiting
 //     signal   { read() → reading | null } (signal.js); without it, or with read() null, only the pointer counts
 
@@ -19,7 +23,7 @@ const FAST = 1 / 6;
 
 export function createCycle({ fast = false, signal = null } = {}) {
   const k = fast ? FAST : 1;
-  const st = { activity: null, happyUntil: -Infinity, finished: null, voice: null, reading: null };
+  const st = { activity: null, happyUntil: -Infinity, finished: null, voice: null, reading: null, alert: null };
 
   function idle(now) {
     const still = now - st.activity;
@@ -39,6 +43,7 @@ export function createCycle({ fast = false, signal = null } = {}) {
       st.finished = reading.finished;
     }
     if (st.voice) return st.voice;
+    if (st.alert && now < st.alert.until) return st.alert.mood;
     if (now < st.happyUntil) return 'happy';
     return (reading && claudeMood(reading)) || idle(now);
   }
@@ -59,5 +64,7 @@ export function createCycle({ fast = false, signal = null } = {}) {
       st.happyUntil = now + CYCLE.celebrate;
       st.activity = now;
     },
+    cheer(now) { st.happyUntil = now + CYCLE.celebrate; },
+    alert(mood, seconds, now) { st.alert = { mood, until: now + seconds }; },
   };
 }
