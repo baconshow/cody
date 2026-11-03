@@ -1,0 +1,371 @@
+"""The Cody server: standard library only, bound to 127.0.0.1.
+
+Routes:
+  GET  /                       the mascot page, with this run's token
+  GET  /web/<file>             static files (no token needed: they hold no data)
+  GET  /api/state              {"claude_open"}
+  GET  /api/activity?cursor=N  tool events and recent sessions (cody/activity.py)
+  GET  /api/cursor             the mouse position, -1..1 (Windows only)
+  POST /api/voice              {"text"}: what you said, into the voice channel
+  GET  /api/voice/replies?after=N
+  GET  /api/voice/audio?seq=N  the reply in the ElevenLabs voice, when one is configured
+  GET  /api/voice/image?id=X   a screenshot the channel took because you asked for one
+
+Security: the server listens on 127.0.0.1 only; reach it from a phone through Tailscale serve (inside your tailnet,
+never Funnel). Every request must carry an allowed Host header (blocks DNS rebinding), every /api route the token
+that only the page served at "/" knows, and the browser's Sec-Fetch-Site must say the request came from this page.
+"""
+from __future__ import annotations
+
+import argparse
+import hmac
+import json
+import logging
+import secrets
+import sys
+import threading
+import time
+import webbrowser
+from collections import deque
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, unquote, urlsplit
+
+from cody import cursor, page, voice
+from cody.activity import ActivityMonitor
+from cody.claude_process import ClaudeWatcher
+from cody.config import load_config
+
+LOG = logging.getLogger("cody")
+MAX_POST_BODY = 4096
+SOCKET_TIMEOUT_S = 15       # a stalled connection (headers dripping in) is dropped
+MAX_CONNECTIONS = 48        # concurrent connections; beyond that they are closed right away
+SAME_SITE = ("", "same-origin", "none")     # accepted Sec-Fetch-Site values (empty = not a browser)
+ENTRY_PAGES = ("/",)        # the only route a link from elsewhere may open (top-level GET navigation)
+VOICE_MESSAGES_PER_MINUTE = 20
+
+
+class RateLimit:
+    """At most `count` events per sliding minute."""
+
+    def __init__(self, count: int, clock=time.monotonic):
+        self._count = count
+        self._clock = clock
+        self._times: deque = deque()
+        self._lock = threading.Lock()
+
+    def allow(self) -> bool:
+        with self._lock:
+            now = self._clock()
+            while self._times and now - self._times[0] > 60:
+                self._times.popleft()
+            if len(self._times) >= self._count:
+                return False
+            self._times.append(now)
+            return True
+
+
+class App:
+    """State shared by all requests."""
+
+    def __init__(self, config: dict):
+        self.config = config
+        self.port = config["port"]
+        self.token = secrets.token_urlsafe(32)
+        extra = set(config["extra_hosts"])                 # e.g. your Tailscale serve host name
+        self.hosts = {f"127.0.0.1:{self.port}", f"localhost:{self.port}"} | extra
+        self.origins = {f"http://{h}" for h in self.hosts} | {f"https://{h}" for h in extra}
+        self.activity = ActivityMonitor()
+        self.claude = ClaudeWatcher(self.activity.last_signal)
+        self.voice_limit = RateLimit(VOICE_MESSAGES_PER_MINUTE)
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "cody"
+    sys_version = ""
+    protocol_version = "HTTP/1.1"
+    timeout = SOCKET_TIMEOUT_S
+
+    @property
+    def app(self) -> App:
+        return self.server.app
+
+    # ---- responses -------------------------------------------------------
+    def _send(self, status: int, body: bytes, kind: str, extra: dict | None = None) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", kind)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        for key, value in (extra or {}).items():
+            self.send_header(key, value)
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def _json(self, status: int, data) -> None:
+        body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        self._send(status, body, "application/json; charset=utf-8", {"Cache-Control": "no-store"})
+
+    def _error(self, status: int, message: str) -> None:
+        self._json(status, {"error": message})
+
+    def send_error(self, code, message=None, explain=None):  # noqa: N802 - stdlib API
+        """Errors raised by the stdlib itself (bad request line, unsupported method) also go out as JSON."""
+        try:
+            self.close_connection = True
+            self._error(code, "bad request" if code < 500 else "internal error")
+        except OSError:
+            pass
+
+    def log_request(self, code="-", size="-"):
+        LOG.debug("%s %s -> %s", self.command, urlsplit(self.path or "").path[:120], code)
+
+    def log_message(self, format, *args):  # noqa: A002 - stdlib signature
+        LOG.debug("http: request refused before routing")
+
+    # ---- checks ----------------------------------------------------------
+    def _host_ok(self) -> bool:
+        return (self.headers.get("Host") or "").strip().casefold() in self.app.hosts
+
+    def _tailnet_refusal(self) -> str | None:
+        """Refuses Tailscale Funnel (the public internet) always, and, when allowed_logins is set, anyone else coming
+        through Tailscale serve. Serve sets Tailscale-User-Login itself; tagged devices carry none and are refused."""
+        if self.headers.get("Tailscale-Funnel-Request") is not None:
+            return "Tailscale Funnel is not allowed: use tailscale serve"
+        host = (self.headers.get("Host") or "").strip().casefold()
+        allowed = self.app.config["allowed_logins"]
+        if allowed and host in self.app.config["extra_hosts"]:
+            login = (self.headers.get("Tailscale-User-Login") or "").strip().casefold()
+            if login not in allowed:
+                return "this Tailscale login is not allowed"
+        return None
+
+    def _token_ok(self) -> bool:
+        token = self.headers.get("X-Cody-Token") or ""
+        return hmac.compare_digest(token.encode("utf-8"), self.app.token.encode("utf-8"))
+
+    def _cross_site(self, path: str) -> bool:
+        """True if the browser says the request came from another site. Only a top-level navigation to an entry page
+        passes (a link elsewhere opening the mascot): the other site can open the page but never read from it."""
+        site = (self.headers.get("Sec-Fetch-Site") or "").strip().casefold()
+        if site in SAME_SITE:
+            return False
+        navigation = (self.headers.get("Sec-Fetch-Mode") or "").strip().casefold() == "navigate"
+        return not (path in ENTRY_PAGES and self.command == "GET" and navigation)
+
+    def _post_refusal(self) -> str | None:
+        origin = self.headers.get("Origin")
+        if origin is not None and origin.casefold() not in self.app.origins:
+            return "origin not allowed"
+        if not self._token_ok():
+            return "missing or invalid token"
+        return None
+
+    def _json_body(self):
+        """The body as a dict, or (status, message) when refused."""
+        try:
+            length = int(self.headers.get("Content-Length", ""))
+        except ValueError:
+            return 411, "Content-Length required"
+        if length < 0 or length > MAX_POST_BODY:
+            return 413, "body too large"
+        if "application/json" not in (self.headers.get("Content-Type") or "").casefold():
+            return 415, "use Content-Type: application/json"
+        try:
+            data = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return 400, "invalid JSON"
+        return data if isinstance(data, dict) else (400, "the body must be a JSON object")
+
+    # ---- methods ---------------------------------------------------------
+    def do_GET(self):  # noqa: N802
+        self._dispatch(self._route_get)
+
+    def do_POST(self):  # noqa: N802
+        self._dispatch(self._route_post)
+
+    def do_HEAD(self):  # noqa: N802
+        self._dispatch(lambda _p, _q: self._error(405, "method not allowed"))
+
+    def do_OPTIONS(self):  # noqa: N802
+        """CORS preflight refused on purpose: the server never answers another origin."""
+        self._dispatch(lambda _p, _q: self._error(405, "method not allowed"))
+
+    def _dispatch(self, route) -> None:
+        if not self._host_ok():
+            self.close_connection = True
+            self._error(403, "host not allowed")
+            return
+        refusal = self._tailnet_refusal()
+        if refusal:
+            self.close_connection = True
+            self._error(403, refusal)
+            return
+        try:
+            parts = urlsplit(self.path)
+            query = parse_qs(parts.query, max_num_fields=10)
+        except ValueError:
+            self._error(400, "invalid parameters")
+            return
+        path = unquote(parts.path)
+        if self._cross_site(path):
+            self.close_connection = True
+            self._error(403, "cross-site request")
+            return
+        try:
+            route(path, query)
+        except Exception:  # noqa: BLE001 - never a stack trace to the client
+            LOG.exception("error serving %s", path[:120])
+            self._error(500, "internal error")
+
+    def _route_post(self, path: str, _query: dict) -> None:
+        self.close_connection = True     # a refused body must not linger on the connection
+        refusal = self._post_refusal()
+        if refusal:
+            self._error(403, refusal)
+            return
+        if path != "/api/voice":
+            self._error(404, "not found")
+            return
+        body = self._json_body()
+        if isinstance(body, tuple):
+            self._error(*body)
+            return
+        if not self.app.voice_limit.allow():
+            self._error(429, "too many voice messages this minute")
+            return
+        try:
+            self._json(202, voice.say(body))
+        except voice.VoiceError as error:
+            self._error(error.status, error.message)
+
+    def _route_get(self, path: str, query: dict) -> None:
+        def param(name: str) -> str:
+            return (query.get(name) or [""])[0]
+
+        if path.startswith("/api/") and not self._token_ok():
+            self._error(403, "missing or invalid token")
+            return
+        routes = {
+            "/": self._index,
+            "/api/state": lambda: self._json(200, {"claude_open": self.app.claude.is_open()}),
+            "/api/activity": lambda: self._activity(param("cursor")),
+            "/api/cursor": lambda: self._json(200, cursor.position() or {"x": None, "y": None}),
+            "/api/voice/replies": lambda: self._json(200, voice.replies(param("after"))),
+            "/api/voice/audio": lambda: self._voice_audio(param("seq")),
+            "/api/voice/image": lambda: self._voice_image(param("id")),
+        }
+        if path in routes:
+            routes[path]()
+        elif path.startswith("/web/"):
+            self._static(path[len("/web/"):])
+        else:
+            self._error(404, "not found")
+
+    # ---- routes ----------------------------------------------------------
+    def _index(self) -> None:
+        body = page.index_page(self.app.token)
+        if body is None:
+            self._error(404, "web/index.html is missing")
+            return
+        self._send(200, body, "text/html; charset=utf-8",
+                   {"Cache-Control": "no-store", "Content-Security-Policy": page.policy(body)})
+
+    def _activity(self, raw: str) -> None:
+        try:
+            position = int(raw or 0)
+        except ValueError:
+            self._error(400, "invalid cursor")
+            return
+        self._json(200, self.app.activity.state(position))
+
+    def _voice_audio(self, seq: str) -> None:
+        try:
+            body = voice.audio(seq, self.app.config["voice"], self.app.config["language"])
+        except voice.VoiceError as error:
+            self._error(error.status, error.message)
+            return
+        self._send(200, body, "audio/mpeg", {"Cache-Control": "no-store"})
+
+    def _voice_image(self, image_id: str) -> None:
+        try:
+            body = voice.image(image_id)
+        except voice.VoiceError as error:
+            self._error(error.status, error.message)
+            return
+        self._send(200, body, "image/png", {"Cache-Control": "no-store"})
+
+    def _static(self, relative: str) -> None:
+        found = page.static_file(relative)
+        if found is None:
+            self._error(404, "file not found")
+            return
+        self._send(200, found[0], found[1], {"Cache-Control": "no-cache"})
+
+
+class Server(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = False      # on Windows it would let a second server share the port
+
+    def __init__(self, app: App):
+        self.app = app
+        self._slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
+        super().__init__(("127.0.0.1", app.port), Handler)
+
+    def process_request(self, request, client_address):
+        """One thread per connection, up to MAX_CONNECTIONS; extra ones are closed without an answer."""
+        if not self._slots.acquire(blocking=False):
+            LOG.warning("%s concurrent connections reached; connection refused", MAX_CONNECTIONS)
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._slots.release()
+
+
+def _arguments(argv):
+    parser = argparse.ArgumentParser(prog="cody", description="A desk mascot for Claude Code.")
+    parser.add_argument("--open", action="store_true", help="open the mascot in the browser once it is up")
+    parser.add_argument("--port", type=int, default=None, help="port (default: config.json, or 7420)")
+    parser.add_argument("--verbose", action="store_true", help="log every request")
+    return parser.parse_args(argv)
+
+
+def main(argv=None) -> int:
+    args = _arguments(argv)
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(errors="backslashreplace")
+    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
+                        format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
+    config = load_config()
+    if args.port and 1024 <= args.port <= 65535:
+        config["port"] = args.port
+    app = App(config)
+    url = f"http://127.0.0.1:{config['port']}/"
+    try:
+        server = Server(app)
+    except OSError:
+        LOG.error("port %s is already in use: is Cody already running?", config["port"])
+        return 1
+    app.activity.start()
+    LOG.info("Cody is up at %s (watching %s)", url, app.activity.projects_dir)
+    for host in config["extra_hosts"]:
+        LOG.info("phone: https://%s/ (through Tailscale serve)", host)
+    if args.open:
+        threading.Timer(0.8, webbrowser.open, args=(url,)).start()
+    try:
+        server.serve_forever(poll_interval=0.5)
+    except KeyboardInterrupt:
+        LOG.info("bye")
+    finally:
+        app.activity.stop()
+        server.server_close()
+    return 0

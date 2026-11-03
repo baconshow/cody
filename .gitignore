@@ -1,0 +1,14 @@
+# your local settings (Tailscale host name, voice id)
+config.json
+
+# never commit an API key
+.env
+*.key
+.elevenlabs-key
+
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+.DS_Store
+Thumbs.db

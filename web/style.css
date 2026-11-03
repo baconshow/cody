@@ -1,0 +1,104 @@
+/* style.css — the mascot page: pure black background, the face filling the screen; in the gallery, the grid of the
+   seven moods with captions in the block font (Jersey 10). */
+
+:root {
+  color-scheme: dark;
+  --mascot-bg: #000000;
+  --mascot-ink: #f7f4ee;
+  --mascot-ink-2: #9c96a8;
+  --mascot-border: #1b1722;
+  --mascot-font: 'Jersey 10', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--mascot-bg);
+  color: var(--mascot-ink);
+  font-family: var(--mascot-font);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body { overflow: hidden; }
+body.with-gallery { overflow-y: auto; }
+
+.face { margin: 0; }
+.face canvas { display: block; width: 100%; background: var(--mascot-bg); }
+
+/* the face alone: the whole screen; a dragging finger moves the gaze, it does not scroll the page */
+.full { position: fixed; inset: 0; }
+.full .face, .full canvas { height: 100%; }
+.full canvas { touch-action: none; }
+
+.with-gallery .mascot { max-width: 1680px; margin: 0 auto; padding: 16px; }
+.mascot h1 { margin: 4px 0 14px; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: .06em; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.grid canvas { aspect-ratio: 3 / 2; outline: 2px solid var(--mascot-border); touch-action: manipulation; }
+.grid figcaption {
+  padding-top: 6px; font-size: 22px; line-height: 1; letter-spacing: .06em; text-align: center;
+  text-transform: uppercase; color: var(--mascot-ink-2);
+}
+.hint { margin: 16px 0 0; font-size: 18px; letter-spacing: .04em; color: var(--mascot-ink-2); }
+
+@media (max-width: 900px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* the voice conversation caption: what you said and what the mascot answered, at the top, without covering the face */
+.caption {
+  position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%);
+  max-width: min(92vw, 900px); margin: 0; padding: 6px 14px; border-radius: 8px;
+  background: rgba(0, 0, 0, .62); color: var(--mascot-ink); font-size: 26px; line-height: 1.1; letter-spacing: .03em;
+  text-align: center; pointer-events: none; opacity: 0; transition: opacity .25s ease;
+}
+.caption.visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .caption { transition: none; } }
+
+/* the box at the bottom: the link, command or path Claude asked to show (not to speak); a tap copies it */
+.attachment {
+  position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  max-width: min(92vw, 900px); padding: 8px 14px; border: 1px solid #3a3346; border-radius: 8px;
+  background: rgba(10, 8, 14, .82); color: var(--mascot-ink); font: 15px/1.3 ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  overflow-wrap: anywhere; text-align: left; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s ease;
+}
+.attachment.visible { opacity: 1; pointer-events: auto; }
+.attachment:focus-visible, .wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+
+/* the wake word button, in the corner: lit while the phone is listening for "mascot" */
+.wake {
+  position: fixed; right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top));
+  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .55);
+  color: var(--mascot-ink-2); font-family: var(--mascot-font); font-size: 18px; letter-spacing: .04em; cursor: pointer;
+}
+.wake[aria-pressed="true"] { color: var(--mascot-ink); border-color: #e8762d; box-shadow: 0 0 0 1px #e8762d inset; }
+@media (prefers-reduced-motion: reduce) { .attachment { transition: none; } }
+
+/* a screenshot Claude took on request: the picture over the face, with Share, Save and Close below it */
+.shot {
+  position: fixed; inset: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  margin: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: rgba(0, 0, 0, .86); border-radius: 12px; z-index: 5;
+}
+.shot.visible { display: flex; }
+.shot-image { max-width: 100%; max-height: calc(100% - 64px); object-fit: contain; border: 1px solid #3a3346; border-radius: 6px; }
+.shot-bar { display: flex; gap: 10px; }
+.shot-button {
+  min-height: 44px; padding: 6px 18px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(10, 8, 14, .9);
+  color: var(--mascot-ink); font-family: var(--mascot-font); font-size: 20px; letter-spacing: .04em; cursor: pointer;
+}
+.shot-button:first-child { border-color: #e8762d; box-shadow: 0 0 0 1px #e8762d inset; }
+.shot-button[hidden] { display: none; }
+.shot-button:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+
+/* ?sensor=1: the accelerometer diagnostics, bottom left */
+.sensor {
+  position: fixed; left: max(10px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom)); margin: 0;
+  padding: 4px 8px; border-radius: 6px; background: rgba(0, 0, 0, .7); color: #9fe39f;
+  font: 13px/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace; pointer-events: none;
+}

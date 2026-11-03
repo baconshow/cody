@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Scripts and styles from here only; nothing inline. The block font stylesheet (Jersey 10) comes after the
+       script so the face never waits for it: offline, the captions fall back to a monospace font and the face is
+       unchanged. Served at / the server swaps the cody-token marker for the token and the face reads Claude's
+       state and activity (connect-src 'self'); opened as /web/index.html the marker stays as it is and the face
+       fetches nothing. three.js for the 3D mascot comes from esm.sh through the importmap: the only inline script,
+       allowed by its hash in the CSP (the hash must match the importmap byte for byte). darkreader-lock: the
+       browser's dark mode does not repaint the face. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://esm.sh 'sha256-0R9+pLEyZfbjVl+8ZRXGZ1YyhGHewIHl34SvSsUZszA='; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob:; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="cody-token" content="{{CODY_TOKEN}}">
+  <meta name="color-scheme" content="dark">
+  <meta name="darkreader-lock">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="A desk mascot for Claude Code.">
+  <!-- on the phone's home screen: opens without the browser bar, like an app -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cody">
+  <title>Cody</title>
+  <link rel="icon" href="/web/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="/web/icon-180.png">
+  <link rel="manifest" href="/web/app.webmanifest">
+  <link rel="stylesheet" href="/web/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://esm.sh/three@0.186.1",
+      "three/": "https://esm.sh/three@0.186.1/"
+    }
+  }
+  </script>
+  <script type="module" src="/web/js/main.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap">
+</head>
+<body>
+  <main id="mascot" class="mascot"></main>
+</body>
+</html>
