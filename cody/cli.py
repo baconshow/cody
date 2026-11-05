@@ -4,6 +4,8 @@
     --hook                      what the Claude Code hooks run (reads the hook's JSON on stdin, always exits 0)
     --install-hooks             adds those hooks to Claude Code's user settings (--uninstall-hooks removes them)
     --voice [folder]            the voice session: Claude Code with Cody's voice channel, in this terminal
+    --voice-window [folder]     the same, in a new terminal window (what /cody:voice runs)
+    --start                     starts the mascot server in the background and opens it (what /cody:setup runs)
     --channel                   the voice channel itself (Claude Code starts it)
     --tray [--background]       the tray icon app (what Cody.exe runs; needs pystray and Pillow)
     --version                   prints the version
@@ -40,8 +42,25 @@ def main(argv: list[str] | None = None) -> int:
         from cody.config import load_config
         from cody.launcher import run_voice, voice_folder
         return run_voice(voice_folder(argv[1] if len(argv) == 2 else None, load_config()))
+    if argv[:1] == ["--voice-window"] and len(argv) <= 2:
+        return _voice_window(argv[1] if len(argv) == 2 else None)
+    if argv == ["--start"]:
+        from cody.launcher import start_server
+        print(start_server())
+        return 0
     if argv[:1] == ["--tray"] or windowed_app():
         from cody.tray import main as tray
         return tray(argv)
     from cody.server import main as server
     return server(argv)
+
+
+def _voice_window(folder: str | None) -> int:
+    from cody.config import load_config
+    from cody.launcher import open_voice_window, voice_folder, voice_session_running
+    if voice_session_running():
+        print("A Cody voice session is already running: use that one.")
+        return 0
+    problem = open_voice_window(voice_folder(folder, load_config()))
+    print(problem or "The voice session is opening in a new terminal window.")
+    return 1 if problem else 0

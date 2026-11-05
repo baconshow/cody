@@ -62,6 +62,30 @@ No Python needed, no admin rights: it installs for your user only.
 - Uninstalling (Settings, Apps) also takes Cody's hooks out of Claude Code's settings. Your timers and memory stay
   in `%LOCALAPPDATA%\cody` until you delete that folder.
 
+## Claude Code plugin
+
+Cody is also a Claude Code plugin, from the marketplace in this repository. In Claude Code:
+
+```
+/plugin marketplace add baconshow/cody
+/plugin install cody@cody
+```
+
+(Claude Code 2.1.275 or later can do it in one step: `/plugin install cody --marketplace baconshow/cody`.)
+
+The plugin brings Cody's heads-up hooks and three commands:
+
+| Command | What it does |
+|---|---|
+| `/cody:setup` | Checks everything, starts the mascot server if it is off and walks you through what is missing |
+| `/cody:status` | What is on and off: server, voice session, hooks, Tailscale, phone, voice |
+| `/cody:voice` | Opens the voice session in a new terminal window |
+
+Nothing to edit by hand. With the plugin on, `--install-hooks` does nothing (the plugin already has the hooks), so
+they never run twice. The plugin does not load the voice channel into every session: a plugin's MCP server would
+start in all of them, and the channel only belongs in the voice session, which `/cody:voice` opens. The hooks and
+commands need Python 3 (`python3`, `python` or `py`), or the Windows app.
+
 ## Quick start (from source, any system)
 
 You need **Python 3.10+** and **Claude Code**. Nothing to `pip install`: the server uses only the standard library.

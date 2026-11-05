@@ -45,6 +45,9 @@ jobs:
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:7420/ -o page.html && break; sleep 1; done
           grep -q '<title>' page.html
           curl -sf http://127.0.0.1:7420/web/vendor/three/build/three.module.js -o /dev/null
+          sleep 5                                # the tray icon is up by now: the app must still be running
+          tasklist //FI "IMAGENAME eq Cody.exe" | grep -q Cody.exe || { cat "$LOCALAPPDATA/cody/cody.log"; exit 1; }
+          cat "$LOCALAPPDATA/cody/cody.log"
           taskkill //IM Cody.exe //F
       - name: Installer
         shell: pwsh

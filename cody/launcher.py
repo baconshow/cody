@@ -112,14 +112,34 @@ def _quote(part: str) -> str:
 
 def voice_session_running(read=None, connect=None) -> bool:
     """True when a voice channel is up: channel.json names a port and something answers on it."""
-    import socket
     from cody.store import read_json
     data = (read or read_json)(data_dir() / "channel.json")
     port = data.get("port") if isinstance(data, dict) else None
     if not isinstance(port, int) or not 0 < port < 65536:
         return False
+    return server_running(port, connect)
+
+
+def server_running(port: int, connect=None) -> bool:
+    import socket
     try:
         (connect or socket.create_connection)(("127.0.0.1", port), timeout=0.5).close()
     except OSError:
         return False
     return True
+
+
+def start_server(popen=subprocess.Popen, config: dict | None = None, opener=None, platform=sys.platform) -> str:
+    """Starts the mascot server in the background (output to server.log in the data folder) and opens the mascot."""
+    import webbrowser
+    from cody.config import load_config
+    config = config or load_config()
+    url = f"http://127.0.0.1:{config['port']}/"
+    if not server_running(config["port"]):
+        folder = data_dir()
+        folder.mkdir(parents=True, exist_ok=True)
+        log = (folder / "server.log").open("ab")
+        detach = {"creationflags": 0x08000000 | 0x00000200} if platform == "win32" else {"start_new_session": True}
+        popen(cli_command(), stdin=subprocess.DEVNULL, stdout=log, stderr=log, **detach)
+    (opener or webbrowser.open)(url)
+    return f"Cody is running at {url}"

@@ -43,3 +43,14 @@ jobs:
           coverage report --fail-under=65
       - name: JavaScript tests with coverage
         run: node --test --experimental-test-coverage --test-coverage-lines=90 "tests/js/*.test.mjs"
+
+  plugin:
+    name: Claude Code plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate the plugin and its marketplace
+        run: npx --yes @anthropic-ai/claude-code@2.1.318 plugin validate .

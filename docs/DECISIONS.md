@@ -43,3 +43,25 @@ both scripts now call `python cody.py --voice`.
 
 The package said 0.1.0 while the README history calls the current release v1.1. The launch build is 1.2.0, in
 `cody/__init__.py`, shown by `--version` and sent as the MCP server version.
+
+## 2026-11-05 · The plugin brings hooks and commands, not the channel's MCP server
+
+The plugin (`.claude-plugin/`, `hooks/hooks.json`, `commands/`) installs with two commands from this repository's
+marketplace. It does not declare the voice channel as an MCP server, for three reasons from the current plugin and
+channel docs: a plugin's MCP servers start in every Claude Code session, while the channel belongs only in the voice
+session (in other sessions it would take over `channel.json` and offer tools that do nothing); a channel from our
+own marketplace still needs `--dangerously-load-development-channels` ("A channel published to your own marketplace
+still needs `--dangerously-load-development-channels` to run, since it isn't on the approved allowlist"), so the
+plugin would not save that step; and an MCP server is started without a shell, so there is no command that finds
+Python on every system (`python3` is missing on most Windows machines). `/cody:voice` opens the voice session, which
+loads the channel from the plugin's own folder with the absolute path of the Python that runs it.
+
+A plugin cannot pre-approve tools for every session (the docs list only per-command `allowedTools`), so the list of
+harmless tools stays in the voice session's command line (`cody/launcher.py`, `SAFE_TOOLS`).
+
+## 2026-11-05 · No double hooks
+
+With the plugin enabled (`enabledPlugins` in Claude Code's user settings), `--install-hooks` adds nothing and the
+first-run question about hooks is not asked. If both copies are there anyway (the plugin enabled after
+`--install-hooks`), the server counts a repeated "needs you" from the same session within 3 seconds once; a repeated
+"done" is already ignored, since the first one consumes the turn's start.

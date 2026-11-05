@@ -34,6 +34,7 @@ MARKER = "--hook"
 OURS = re.compile(r'(?:cody\.py|cody-cli(?:\.exe)?)"?\s+--hook\b')   # how our own hooks are recognized in settings.json
 EVENTS = ("UserPromptSubmit", "Stop", "Notification")
 TIMEOUT_S = 10
+DUPLICATE_S = 3               # the same "needs you" twice within this is one event (hooks installed twice)
 
 PHRASES = {
     "en": {"done": "Done! Claude finished.", "needs_you": "Claude needs you at the computer."},
@@ -106,6 +107,7 @@ class HookFeed:
         except OSError:
             self._offset = 0
         self._starts: dict[str, float] = {}
+        self._recent: dict[str, float] = {}           # the last "needs you" per session
         self._events: deque = deque(maxlen=MAX_EVENTS)
         self._seq = 0
         self._lock = threading.Lock()
@@ -146,6 +148,10 @@ class HookFeed:
             seconds = round(when - start)
         elif kind != "needs_you":
             return
+        elif self._recent.get(session, -DUPLICATE_S) > when - DUPLICATE_S:
+            return                                    # two copies of the hooks (plugin and settings): one call
+        else:
+            self._recent[session] = when
         self._seq += 1
         self._events.append({"seq": self._seq, "kind": kind, "seconds": seconds,
                              "say": phrase(kind, self._language)})
@@ -203,13 +209,25 @@ def without_hooks(settings: dict) -> dict:
     return result
 
 
+PLUGIN = re.compile(r"^cody@")                      # the Cody plugin, from whichever marketplace
+
+
+def plugin_enabled(path: Path | None = None) -> bool:
+    """True when the Cody plugin is enabled in Claude Code's user settings: it brings its own copy of the hooks."""
+    settings = read_json(path or settings_file())
+    enabled = settings.get("enabledPlugins") if isinstance(settings, dict) else None
+    return isinstance(enabled, dict) and any(PLUGIN.match(str(k)) and v is True for k, v in enabled.items())
+
+
 def install(remove: bool = False, path: Path | None = None, command: str | None = None) -> str:
     """Adds Cody's hooks to Claude Code's user settings (or removes them), after a backup next to the file. Returns
-    what happened, for the terminal."""
+    what happened, for the terminal. With the Cody plugin enabled, adding is skipped: the plugin has the hooks."""
     path = (path or settings_file()).resolve()             # a symlinked settings file is updated where it lives
     settings = read_json(path) if path.exists() else {}
     if not isinstance(settings, dict) or not isinstance(settings.get("hooks", {}), dict):
         return f"{path} is not valid JSON: nothing changed. Fix it, or add the hooks by hand (see the README)."
+    if not remove and plugin_enabled(path):
+        return "The Cody plugin is enabled and already brings the hooks: nothing to add."
     updated = without_hooks(settings) if remove else with_hooks(settings, command or hook_command())
     if updated == settings:
         return "Nothing to change."

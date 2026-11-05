@@ -80,6 +80,9 @@ def serve_status(run=subprocess.run) -> dict:
 
 
 def hooks_installed(path: Path | None = None) -> bool:
+    """Cody's hooks are in Claude Code's user settings, or the Cody plugin brings them."""
+    if hooks.plugin_enabled(path):
+        return True
     settings = read_json(path or hooks.settings_file())
     groups = (settings.get("hooks") or {}).get("Stop") if isinstance(settings, dict) else None
     return isinstance(groups, list) and any(hooks._ours(g) for g in groups)
