@@ -254,12 +254,25 @@ the talking.
 
 Prefer to add them by hand? Each one is a command hook running `"<python>" "<path to>/cody.py" --hook`.
 
+### Four ways to sound
+
+Settings > Voice picks the first one to try; when it fails, the next one speaks and the screen says so (for example
+"ElevenLabs didn't work (payment pending): This device's voice instead"):
+
+1. **ElevenLabs**, with your own key (below);
+2. **Cody's hosted voice**, opt-in, not offered yet;
+3. **this device's voice** (the browser's speech);
+4. **Cody's sounds**: no words, little chirps in the rhythm of the text while it shows on screen. They always work.
+
+Cody's sounds also mark what happens: thinking, done, an error, calling you, a timer ringing, a pet, a startle.
+They are made from scratch by `tools/make_sounds.py` (only the Python standard library, no samples), live in
+`web/sounds`, and are MIT like the rest. The mouth follows their volume.
+
 ### A nicer voice with ElevenLabs
 
 1. Create an [ElevenLabs](https://elevenlabs.io) account (the free tier is enough to start).
-2. Create an API key and make it available to Cody in **one** of these ways:
-   - the `ELEVENLABS_API_KEY` environment variable, or
-   - a file named `.elevenlabs-key` in your home folder, holding only the key.
+2. Create an API key and paste it in **Settings > Voice** (saved on this computer only, in Cody's data folder). The
+   `ELEVENLABS_API_KEY` environment variable and a `.elevenlabs-key` file in your home folder still work too.
 3. Pick a voice in the ElevenLabs voice library, copy its voice ID, and add it to `config.json`:
    ```json
    { "voice": { "voice_id": "YOUR_VOICE_ID", "model": "eleven_flash_v2_5" } }

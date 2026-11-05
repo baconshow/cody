@@ -31,9 +31,16 @@ export const VOICE = Object.freeze({
   hold: 350, wait: 180000, caption: 9000, fast: 1200, slow: 4000, lowVoice: 2200, didntCatch: 3000,
 });
 
-export function createVoice({ api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {}, onSide = () => {}, t }) {
+export function createVoice({ api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {}, onSide = () => {}, onNotice = () => {}, t }) {
   const Recognizer = win.SpeechRecognition || win.webkitSpeechRecognition;
-  const audio = createVoiceAudio({ api, win });
+  const said = new Set();                             // each fallback is told once per visit, not on every reply
+  const audio = createVoiceAudio({ api, win, onFallback: ({ from, to, reason }) => {
+    const key = `${from}>${to}:${reason}`;
+    if (said.has(key)) return;
+    said.add(key);
+    onNotice(t('mascot.voice.fallback', { from: t(`settings.voice.${from}`), to: t(`settings.voice.${to}`),
+      reason: reason || t('mascot.voice.unavailable') }));
+  } });
   const st = { hold: 0, recognition: null, text: '', after: null, session: null, waitUntil: 0, poll: 0, clear: 0, on: false, queue: Promise.resolve(), side: 0 };
 
   // listening sideways: the count starts when it begins to listen; the first word undoes it; "didn't catch that"
@@ -128,6 +135,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     try {
       await api.voice(text);
       onState('thinking');
+      audio.play('thinking');
       caption(t('mascot.voice.you', { text }), false);
       st.waitUntil = Date.now() + VOICE.wait;
       clearTimeout(st.poll);
@@ -135,6 +143,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     } catch (error) {
       onState(null);
       caption(error?.status === 503 ? t('mascot.voice.noChannel') : String(error?.message || error));
+      audio.play('error');
     }
   }
 
@@ -172,6 +181,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
   return {
     volume: () => audio.volume(),
     sound: { unlock: () => audio.unlock(), state: () => audio.state() },
+    play: (name) => audio.play(name),
     get listening() { return wake.active; },
     announce: ({ text, alert }) => (text ? speak({ text: String(text), alert: String(alert || '') || null }) : st.queue),
     chime: () => audio.chime(),

@@ -16,7 +16,7 @@ WEB_TYPES = {
     ".css": "text/css; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml",
     ".json": "application/json; charset=utf-8",
     ".webmanifest": "application/manifest+json; charset=utf-8",
-    ".woff2": "font/woff2",
+    ".woff2": "font/woff2", ".wav": "audio/wav",
 }
 _RE_INLINE_SCRIPT = re.compile(rb"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", re.S | re.I)
 # everything from here (three.js in web/vendor, the font in web/fonts): the page works offline and only talks to this

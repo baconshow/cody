@@ -204,3 +204,12 @@ body.with-gallery { overflow-y: auto; }
 .network-steps .done { color: var(--status-ok); }
 .network-steps .now { color: var(--mascot-ink); }
 .network-say { font-size: 22px; }
+
+/* a voice that failed and the next one that took over (voice-audio.js) */
+.voice-notice {
+  position: fixed; left: 50%; top: 12px; z-index: 25; transform: translateX(-50%); max-width: min(92vw, 640px);
+  margin: 0; padding: 6px 12px; border-radius: 8px; background: rgba(40, 30, 10, 0.92); color: var(--status-warn);
+  font: 18px var(--mascot-font); text-align: center; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.voice-notice.visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .voice-notice { transition: none; } }

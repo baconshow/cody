@@ -90,3 +90,14 @@ The Settings screen reads everything from anywhere it is allowed to load, but ev
 `/api/settings/key`, `/api/settings/test`) is refused through Tailscale: the phone is trusted to talk to Claude, not
 to change the computer. The ElevenLabs key goes to `elevenlabs.key` in the data folder (mode 600) and is never
 returned; the environment variable and `~/.elevenlabs-key` still work and win in that order.
+
+## 2026-11-05 · Cody's sounds and the voice fallback
+
+The sounds are synthesized by `tools/make_sounds.py` with a fixed seed (a soft odd-harmonic voice through two
+vowel-like resonances, plus vibrato), 16 kHz mono WAV, 22 files, 236 KB. A test remakes them and compares the bytes,
+so the committed files are provably ours. The chatter picks one syllable per vowel group of the text, with pauses at
+spaces and punctuation and a rise at a question, so the same reply always sounds the same.
+
+The page tries the outputs from the chosen one down to Cody's sounds (`order()` in `web/js/sounds.js`). The hosted
+voice is listed but returns "not available" until P1.6 exists. A fallback is announced once per visit per reason, not
+on every reply. Timers now ring with the alarm sound (the old two-note chime still repeats while ringing).

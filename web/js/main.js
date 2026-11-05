@@ -50,6 +50,10 @@ const CURSOR_LOOK_Y = 0.8;            // the computer screen is wider than tall:
 const POINTING_S = 6;                 // the face points along while the mini Cody points on the computer screen
 const NEEDS_YOU_S = 8;                // and points at the computer when Claude is waiting for you
 
+// Cody's sounds for things that happen to the face (a poke, a shake): set once the voice exists
+const reactions = { play: () => {} };
+const VOICE_NOTICE_MS = 9000;
+
 function readOptions(search) {
   const q = new URLSearchParams(search);
   const seed = Number.parseInt(q.get('seed'), 10);
@@ -183,6 +187,7 @@ function touchSide(f, x) {
 function wirePointer(faces, cycle, request, local) {
   const now = () => performance.now() / 1000;
   const poke = (x = null) => {
+    reactions.play('pet');
     for (const f of faces) f.animator.poke(x === null ? 0 : touchSide(f, x));
     cycle?.touched(now());
     request();
@@ -244,7 +249,9 @@ function wireVoice(f, cycle, request) {
   attachment.type = 'button';
   const wake = make('button', 'wake');
   wake.type = 'button';
-  document.body.append(caption, attachment, wake);
+  const notice = make('p', 'voice-notice');
+  notice.setAttribute('role', 'status');
+  document.body.append(caption, attachment, wake, notice);
   const shot = createShot();
   const voice = createVoice({
     api, target: f.canvas, t,
@@ -253,6 +260,12 @@ function wireVoice(f, cycle, request) {
     onCaption: (text) => { if (text) caption.textContent = text; caption.classList.toggle('visible', !!text); },
     onAttachment: (text) => { if (text) attachment.textContent = text; attachment.classList.toggle('visible', !!text); },
     onSide: (on) => { f.animator.setListening(on); request(); },
+    onNotice: (text) => {
+      notice.textContent = text;
+      notice.classList.add('visible');
+      clearTimeout(notice.timer);
+      notice.timer = setTimeout(() => notice.classList.remove('visible'), VOICE_NOTICE_MS);
+    },
     onListening: (on) => {
       wake.setAttribute('aria-pressed', String(on));
       wake.textContent = t(on ? 'mascot.voice.wakeWord' : 'mascot.voice.wakeWordOff');
@@ -280,7 +293,7 @@ function wireTimers(voice, cycle, request) {
       cycle.cheer(performance.now() / 1000);
       request();
       navigator.vibrate?.([200, 100, 200]);
-      voice.chime();
+      voice.play('alarm');
       voice.announce({ text: timer.say, alert: `timer:${timer.id}` });
     },
     onChime: () => voice.chime(),
@@ -299,6 +312,7 @@ function wireAlerts(voice, cycle, request) {
       if (e.kind === 'done') cycle.cheer(now);
       else cycle.alert('pointing', NEEDS_YOU_S, now);
       request();
+      voice.play(e.kind === 'done' ? 'done' : 'calling');
       voice.announce({ text: e.say, alert: e.kind });
     },
   });
@@ -383,7 +397,12 @@ function remember(key, on) {
 function wireShake(faces, request, showSensor) {
   const panel = showSensor ? createSensorPanel() : null;
   const shake = createShake({
-    onChange: (grabbing) => { for (const f of faces) f.animator.setGrab(grabbing); request(); panel?.grabbed(grabbing); },
+    onChange: (grabbing) => {
+      for (const f of faces) f.animator.setGrab(grabbing);
+      if (grabbing) reactions.play('startle');
+      request();
+      panel?.grabbed(grabbing);
+    },
   });
   const Motion = window.DeviceMotionEvent;
   panel?.status(Motion ? 'sensor: waiting for the first event' : 'sensor: this browser has none');
@@ -461,6 +480,7 @@ async function start() {
   if (!op.gallery) wireShake(faces, loop.request, op.sensor);
   if (cycle && api.hasToken()) {
     const voice = wireVoice(faces[0], cycle, loop.request);
+    reactions.play = (name) => voice.play(name);
     wireTimers(voice, cycle, loop.request);
     wireAlerts(voice, cycle, loop.request);
     createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request });
