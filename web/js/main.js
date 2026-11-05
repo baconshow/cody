@@ -37,6 +37,7 @@ import { createAlerts } from './alerts.js';
 import { createStatus } from './status.js';
 import { createSettings } from './settings.js';
 import { createNetwork } from './network.js';
+import { validScenes, pickScene } from './scenes.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -51,7 +52,7 @@ const POINTING_S = 6;                 // the face points along while the mini Co
 const NEEDS_YOU_S = 8;                // and points at the computer when Claude is waiting for you
 
 // Cody's sounds for things that happen to the face (a poke, a shake): set once the voice exists
-const reactions = { play: () => {} };
+const reactions = { play: () => {} };   // name → sound; an unknown or empty name plays nothing
 const VOICE_NOTICE_MS = 9000;
 
 function readOptions(search) {
@@ -66,6 +67,7 @@ function readOptions(search) {
     side: q.get('side') === '1',
     prop: ['magnifier', 'keyboard'].includes(q.get('prop')) ? q.get('prop') : null,
     grab: q.get('grab') === '1',
+    scene: q.get('scene'),
     sensor: q.get('sensor') === '1',
     seed: Number.isFinite(seed) ? seed : Math.floor(Math.random() * 2 ** 31),
   };
@@ -136,10 +138,14 @@ function announceMood(f, mood) {
 }
 
 function paint(f, q) {
-  if (f.scene) f.scene.draw(q);
-  else drawFace(f.ctx, q, f.size, f.geo);
+  if (f.scene) {
+    if (f.scene.draw(q) && q.scene) reactions.play(scenes.list.find((s) => s.id === q.scene)?.sound);
+  } else drawFace(f.ctx, q, f.size, f.geo);
   announceMood(f, q.mood);
 }
+
+// the scenes (scenes.js, web/scenes/scenes.json): loaded once; ?scene=<id> shows one all the time
+const scenes = { list: [], forced: null };
 
 function drawOne(f, now, cycle) {
   if (!f.size) return;
@@ -147,7 +153,21 @@ function drawOne(f, now, cycle) {
     f.animator.setMood(cycle.mood(now));
     f.animator.setProp(cycle.prop());
   }
-  paint(f, f.animator.step(now));
+  const q = f.animator.step(now);
+  if (f.scenes) q.scene = scenes.forced || (cycle ? pickScene(scenes.list, cycle.situation(now))?.id : null) || null;
+  paint(f, q);
+}
+
+async function loadScenes(face, forced) {
+  try {
+    const resp = await fetch('/web/scenes/scenes.json', { cache: 'no-cache' });
+    scenes.list = validScenes(await resp.json());
+  } catch { scenes.list = []; }
+  scenes.forced = scenes.list.some((s) => s.id === forced) ? forced : null;
+  if (face?.scene?.setScenes && scenes.list.length) {
+    face.scene.setScenes(scenes.list);
+    face.scenes = true;
+  }
 }
 
 // every frame while there is movement; when quiet, only when something asks for it
@@ -487,6 +507,7 @@ async function start() {
     createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m) }).firstRun();
     createNetwork({ api, t });
   }
+  if (!op.gallery) await loadScenes(faces[0], op.scene);
   faces.forEach(measureFace);
   loop.request();
 }

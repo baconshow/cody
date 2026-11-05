@@ -21,12 +21,13 @@ import { createLife } from './life.js';
 
 export const PERIOD = Object.freeze({ activity: 3000, state: 15000, max: 60000 });   // ms; doubles on error
 const AWAY_WINDOW = 5000;                                // ms: a call that leaves the machine counts as "away" this long
-const SEARCH_WINDOW = 6000;                              // ms: the magnifier stays in hand this long after the last search
+const SEARCH_WINDOW = 6000;
+const FAILED_WINDOW = 8000;                             // ms: the debug scene stays this long after a failure                              // ms: the magnifier stays in hand this long after the last search
 const SEARCH = new Set(['Grep', 'Glob', 'WebSearch', 'WebFetch']);
 
 export function createSignal({ api, clock = () => performance.now() }) {
   const life = createLife(clock());
-  const st = { cursor: 0, first: true, lastSignal: '', agents: null, external: 0, awaySince: -Infinity, searchSince: -Infinity, read: false };
+  const st = { cursor: 0, first: true, lastSignal: '', agents: null, external: 0, awaySince: -Infinity, searchSince: -Infinity, failedSince: -Infinity, read: false };
   const timers = new Map();                              // route → the setTimeout of its next read
   const out = {};
   const reading = {};
@@ -53,6 +54,7 @@ export function createSignal({ api, clock = () => performance.now() }) {
     // the first read brings recent history: it sets the cursor, it is not news
     if (!st.first) {
       for (const e of events) {
+        if (e.tool === '!failed') { st.failedSince = now; continue; }
         life.register(e.tool, e.code === true, now);
         if (SEARCH.has(e.tool)) st.searchSince = now;
       }
@@ -100,6 +102,7 @@ export function createSignal({ api, clock = () => performance.now() }) {
     reading.code = out.code;
     reading.away = now - st.awaySince <= AWAY_WINDOW;
     reading.search = now - st.searchSince <= SEARCH_WINDOW;
+    reading.failed = now - st.failedSince <= FAILED_WINDOW;
     reading.idleSeconds = out.idleSeconds;
     reading.finished = out.finished;
     return reading;

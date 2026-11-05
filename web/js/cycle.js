@@ -50,6 +50,12 @@ export function createCycle({ fast = false, signal = null } = {}) {
 
   return {
     mood,
+    // what the scenes need (scenes.js): the mood, Claude's reading, how long nothing happened, a celebration on
+    situation(now) {
+      const mood = this.mood(now);
+      const idleSeconds = st.reading?.idleSeconds ?? (now - (st.activity ?? now));
+      return { mood, reading: st.reading, idleSeconds, happy: now < st.happyUntil };
+    },
     // the prop in hand (magnifier, keyboard) for what Claude is doing; during a voice conversation, hands free
     prop() { return st.voice || !st.reading ? null : claudeProp(st.reading); },
     // the voice conversation drives the face while it lasts; null hands it back to the cycle

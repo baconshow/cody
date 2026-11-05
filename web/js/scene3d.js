@@ -13,6 +13,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { createMascot } from './mascot3d.js';
 import { createDecorations } from './decorations3d.js';
+import { createScenes3d } from './scenes3d.js';
 
 const PEEK_FROM_ASPECT = 1.8;                            // width / height
 const FRAME = Object.freeze({
@@ -104,6 +105,8 @@ export function createScene3d(canvas) {
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 50);
   const size = { width: 1, height: 1 };
   const point = new THREE.Vector3();
+  let scenes = null;
+  let lastTime = null;
 
   return {
     measure(width, height, dpr) {
@@ -116,7 +119,16 @@ export function createScene3d(canvas) {
     draw(q) {
       mascot.pose(q);
       decorations.update(q);
+      const dt = lastTime === null ? 0 : Math.min(0.1, Math.max(0, q.time - lastTime));
+      lastTime = q.time;
+      const changed = scenes ? scenes.update(q, q.scene, dt) : false;
       renderer.render(scene, camera);
+      return changed;
+    },
+    // the scenes of web/scenes/scenes.json (only the main face has them, not the gallery)
+    setScenes(list) {
+      scenes = createScenes3d(THREE, list);
+      scene.add(scenes.group);
     },
     eyeCenter() {
       point.copy(mascot.eyes).project(camera);

@@ -143,7 +143,7 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
         }
       }
     },
-    play: (name) => sounds.play(name).catch(() => {}),
+    play: (name) => (name ? sounds.play(name).catch(() => {}) : Promise.resolve()),
     silence() {
       sounds.stop();
       try { st.source?.stop(); } catch { /* already stopped */ }

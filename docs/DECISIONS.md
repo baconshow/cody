@@ -101,3 +101,14 @@ spaces and punctuation and a rise at a question, so the same reply always sounds
 The page tries the outputs from the chosen one down to Cody's sounds (`order()` in `web/js/sounds.js`). The hosted
 voice is listed but returns "not available" until P1.6 exists. A fallback is announced once per visit per reason, not
 on every reply. Timers now ring with the alarm sound (the old two-note chime still repeats while ringing).
+
+## 2026-11-05 · Scenes as data
+
+A scene is an entry in `web/scenes/scenes.json`: parts made of boxes in voxel units, an optional clip per part, an
+optional sound when it starts, a trigger name and a priority. Triggers are a fixed list in `web/js/scenes.js`, so a
+community scene can only use known conditions; an entry with an unknown trigger is dropped instead of breaking the
+page. The 3D renderer shares one box geometry and one material per color, grows a scene in and out in about 0.2 s,
+and stops all clips with "reduce motion". The 2D fallback shows no scenes. The debug scene needs a failure signal:
+the activity reader now emits a content-free `!failed` event for a `tool_result` marked `is_error`. The headphones
+scene is ready, but its trigger (music) only fires once P1.3 reads what is playing. Everything is drawn from
+scratch; the reference figures were used only as a list of accessory ideas.

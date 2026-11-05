@@ -121,6 +121,16 @@ Windows app keeps its `config.json` in `%LOCALAPPDATA%\cody`):
 | `voice` | `null` | Optional ElevenLabs voice: `{"voice_id": "...", "model": "eleven_flash_v2_5"}` |
 | `voice_folder` | current folder | Folder the voice session works in (the Windows app's default is your home folder) |
 
+## Scenes
+
+What Cody does around itself follows what Claude really does: a monitor full of code while Claude edits files, a
+speech bubble with "..." while a command runs, a black bug and a `> DEBUG MODE` sign when a command or a test fails,
+confetti when a long task finishes, a coffee mug after a quiet while, a nightcap when it sleeps, and headphones for
+music (once music detection lands). Scenes are data, in `web/scenes/scenes.json`: voxel boxes, a trigger, simple
+clips, a sound and a priority (the highest one whose trigger is on wins), so new scenes and skins are a JSON edit.
+Try one with `?scene=debug` (or `coding`, `thinking`, `coffee`, `party`, `headphones`, `sleeping`). With "reduce
+motion" on, scenes appear without moving. Only the failure itself is read from the transcripts, never its output.
+
 ## Is everything on?
 
 The light in the corner of the mascot says it at a glance (green: all good; red: something to fix, for example
