@@ -3,7 +3,7 @@
 // Without it (no voice configured, ElevenLabs down, out of credit), the device's own voice, with the animator's
 // make-believe mouth.
 //
-//   createVoiceAudio({ api, win }) → { unlock(), speak(reply) → Promise, chime(), silence(), volume() → 0..1 | null }
+//   createVoiceAudio({ api, win }) → { unlock(), state(), speak(reply) → Promise, chime(), silence(), volume() → 0..1 | null }
 //     unlock   on a tap: the browser only plays sound after a gesture (call it on every pointerdown)
 //     speak    reply { seq, text } or an alert { alert, text } (a timer ringing, a heads-up: /api/voice/alert):
 //              resolves when it finishes speaking
@@ -87,6 +87,7 @@ export function createVoiceAudio({ api, win = window }) {
 
   return {
     unlock,
+    state: () => st.ctx?.state ?? (Context ? 'suspended' : null),
     volume,
     chime,
     async speak(reply) {

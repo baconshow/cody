@@ -20,6 +20,17 @@ export const en = {
   'mascot.voice.saved': 'saved: {text}',
   'mascot.timer.panel': 'Timers', 'mascot.timer.ringing': 'time!', 'mascot.timer.dismiss': 'Tap to stop',
   'api.error': 'error {status}',
+  'status.title': 'Status', 'status.close': 'Close', 'status.server': 'Mascot server',
+  'status.chip.ok': 'all good', 'status.chip.voiceOff': 'voice session closed',
+  'status.state.ok': 'working', 'status.state.warn': 'needs a look', 'status.state.fail': 'not working',
+  'status.secure': 'Secure connection', 'status.secure.no': 'This page is not on HTTPS: the microphone is blocked.',
+  'status.secure.fix': 'On the phone, open the private https:// address (Tailscale), not http://.',
+  'status.mic': 'Microphone', 'status.mic.ok': 'Allowed.', 'status.mic.ask': 'Not allowed yet: the browser will ask.',
+  'status.mic.denied': 'Blocked in this browser.', 'status.mic.deniedFix': "Allow the microphone in the browser's site settings.",
+  'status.mic.noRecognition': 'This browser has no speech recognition.', 'status.mic.browser': 'Use Chrome (Android or desktop).',
+  'status.sound': 'Sound', 'status.sound.ok': 'On.', 'status.sound.locked': 'Locked until you tap the screen.',
+  'status.do.voice': 'Open voice session', 'status.do.hooks': 'Add the hooks', 'status.do.network': 'Set it up',
+  'status.do.mic': 'Allow microphone', 'status.do.sound': 'Turn sound on',
 };
 
 export const pt = {
@@ -40,4 +51,15 @@ export const pt = {
   'mascot.voice.saved': 'guardei: {text}',
   'mascot.timer.panel': 'Cronômetros', 'mascot.timer.ringing': 'acabou!', 'mascot.timer.dismiss': 'Toque para parar',
   'api.error': 'erro {status}',
+  'status.title': 'Estado', 'status.close': 'Fechar', 'status.server': 'Servidor do mascote',
+  'status.chip.ok': 'tudo certo', 'status.chip.voiceOff': 'sessão de voz fechada',
+  'status.state.ok': 'funcionando', 'status.state.warn': 'merece atenção', 'status.state.fail': 'não funciona',
+  'status.secure': 'Conexão segura', 'status.secure.no': 'Esta página não está em HTTPS: o microfone fica bloqueado.',
+  'status.secure.fix': 'No celular, abra o endereço privado https:// (Tailscale), não o http://.',
+  'status.mic': 'Microfone', 'status.mic.ok': 'Liberado.', 'status.mic.ask': 'Ainda não liberado: o navegador vai perguntar.',
+  'status.mic.denied': 'Bloqueado neste navegador.', 'status.mic.deniedFix': 'Libere o microfone nas configurações do site, no navegador.',
+  'status.mic.noRecognition': 'Este navegador não tem reconhecimento de fala.', 'status.mic.browser': 'Use o Chrome (Android ou computador).',
+  'status.sound': 'Som', 'status.sound.ok': 'Ligado.', 'status.sound.locked': 'Travado até você tocar na tela.',
+  'status.do.voice': 'Abrir sessão de voz', 'status.do.hooks': 'Pôr os hooks', 'status.do.network': 'Configurar',
+  'status.do.mic': 'Liberar microfone', 'status.do.sound': 'Ligar o som',
 };

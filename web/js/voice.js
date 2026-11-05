@@ -171,6 +171,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
 
   return {
     volume: () => audio.volume(),
+    sound: { unlock: () => audio.unlock(), state: () => audio.state() },
     get listening() { return wake.active; },
     announce: ({ text, alert }) => (text ? speak({ text: String(text), alert: String(alert || '') || null }) : st.queue),
     chime: () => audio.chime(),

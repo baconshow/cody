@@ -65,3 +65,18 @@ With the plugin enabled (`enabledPlugins` in Claude Code's user settings), `--in
 first-run question about hooks is not asked. If both copies are there anyway (the plugin enabled after
 `--install-hooks`), the server counts a repeated "needs you" from the same session within 3 seconds once; a repeated
 "done" is already ignored, since the first one consumes the turn's start.
+
+## 2026-11-05 · One doctor for the terminal, the API and the screen
+
+`cody/doctor.py` holds the checks once: `--doctor` prints them, `GET /api/status` returns them in the page's
+language (cached 10 s, since it runs `tailscale`), and the Status screen adds what only the browser knows
+(microphone, speech recognition, sound, HTTPS). Buttons that change the computer (`POST /api/action`: open the voice
+session, add the hooks) are refused through Tailscale: from the phone the screen shows the advice without the
+button. Each voice channel registers itself in `voice-sessions/<pid>.json`; the doctor counts the ones whose port
+answers (more than one is a warning) and deletes the rest. The channel marks `channel.json` as loaded when Claude
+Code sends `notifications/initialized`. The known false alarm (`no MCP server configured with that name`) is
+explained next to the channel item.
+
+`channel.log` not being written by real sessions could not be reproduced here (the same `data_dir()` writes
+`channel.json`, which works). The doctor now shows whether the channel loaded without relying on that log; the check
+on a real machine is in `docs/MANUAL-TESTS.md`.

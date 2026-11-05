@@ -142,3 +142,33 @@ body.with-gallery { overflow-y: auto; }
   padding: 4px 8px; border-radius: 6px; background: rgba(0, 0, 0, .7); color: #9fe39f;
   font: 13px/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace; pointer-events: none;
 }
+
+/* the Status light in the corner and the Status screen (status.js) */
+.status-chip {
+  position: fixed; left: 12px; bottom: 12px; z-index: 30;
+  display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px);
+  padding: 6px 12px; border: 1px solid var(--mascot-border); border-radius: 999px;
+  background: rgba(10, 8, 14, 0.82); color: var(--mascot-ink-2); font: 18px var(--mascot-font); cursor: pointer;
+}
+.status-chip::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--status-ok); }
+.status-chip[data-state="warn"]::before { background: var(--status-warn); }
+.status-chip[data-state="fail"]::before { background: var(--status-fail); }
+.status-chip[data-state="fail"] { color: var(--mascot-ink); }
+:root { --status-ok: #4ccf72; --status-warn: #f2b33d; --status-fail: #ef5350; }
+.status-panel {
+  position: fixed; inset: 0; z-index: 40; overflow-y: auto; padding: 20px 16px 72px;
+  background: rgba(0, 0, 0, 0.94); font: 20px/1.25 var(--mascot-font);
+}
+.status-panel h2 { margin: 0 0 12px; font-size: 32px; font-weight: 400; }
+.status-list { list-style: none; margin: 0 auto; padding: 0; max-width: 720px; display: grid; gap: 10px; }
+.status-row { display: grid; grid-template-columns: 14px 1fr; gap: 12px; padding: 10px 12px;
+  border: 1px solid var(--mascot-border); border-radius: 10px; }
+.status-row p { margin: 2px 0 0; color: var(--mascot-ink-2); overflow-wrap: anywhere; }
+.status-row .status-fix { color: var(--mascot-ink); }
+.status-row strong { font-weight: 400; }
+.status-dot { width: 14px; height: 14px; margin-top: 4px; border-radius: 50%; background: var(--status-ok); }
+.status-warn .status-dot { background: var(--status-warn); }
+.status-fail .status-dot { background: var(--status-fail); }
+.status-panel button { margin-top: 8px; padding: 6px 14px; border: 0; border-radius: 8px; cursor: pointer;
+  background: var(--mascot-ink); color: #000; font: 18px var(--mascot-font); }
+.status-panel .status-close { position: fixed; right: 16px; bottom: 16px; }

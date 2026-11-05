@@ -70,5 +70,7 @@ export const api = {
   voiceAlert: (key) => bytes(`/api/voice/alert?key=${encodeURIComponent(key)}`),
   timers: () => call('GET', '/api/timers'),
   events: (after) => call('GET', `/api/events?after=${encodeURIComponent(after)}`),
+  status: (lang) => call('GET', `/api/status?lang=${encodeURIComponent(lang)}`, undefined, { timeout: 15000 }),
+  action: (what) => call('POST', '/api/action', { do: what }, { timeout: 15000 }),
   hasToken: () => TOKEN.length > 0,
 };

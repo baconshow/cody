@@ -121,6 +121,17 @@ Windows app keeps its `config.json` in `%LOCALAPPDATA%\cody`):
 | `voice` | `null` | Optional ElevenLabs voice: `{"voice_id": "...", "model": "eleven_flash_v2_5"}` |
 | `voice_folder` | current folder | Folder the voice session works in (the Windows app's default is your home folder) |
 
+## Is everything on?
+
+The light in the corner of the mascot says it at a glance (green: all good; red: something to fix, for example
+"voice session closed"). Tap it for the **Status** screen: server, voice session, voice channel, hooks, Tailscale,
+phone, microphone, sound and voice, each with one plain sentence, what to do and, where Cody can do it, a button.
+Buttons that change the computer (open the voice session, add the hooks) only work on the computer itself, not
+from the phone. Errors show their real reason, for example `ElevenLabs: payment pending`.
+
+The same checks in the terminal: `python cody.py --doctor` (or `/cody:status` in Claude Code). If two voice
+sessions are open, Cody says so: only the newest one hears you.
+
 ## Put it on your phone
 
 The server only listens on `127.0.0.1`. To reach it from your phone, Cody uses Tailscale **serve**, which keeps it

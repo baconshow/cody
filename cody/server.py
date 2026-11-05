@@ -30,10 +30,11 @@ import threading
 import time
 import webbrowser
 from collections import deque
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, page, pointer, setup, timers, voice
+from cody import cursor, doctor, hooks, launcher, page, pointer, setup, timers, voice
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
@@ -46,6 +47,9 @@ MAX_CONNECTIONS = 48        # concurrent connections; beyond that they are close
 SAME_SITE = ("", "same-origin", "none")     # accepted Sec-Fetch-Site values (empty = not a browser)
 ENTRY_PAGES = ("/",)        # the only route a link from elsewhere may open (top-level GET navigation)
 VOICE_MESSAGES_PER_MINUTE = 20
+STATUS_CACHE_S = 10
+PHONE_NOTE_S = 30
+ACTIONS = ("voice", "hooks")
 
 
 class RateLimit:
@@ -82,6 +86,46 @@ class App:
         self.claude = ClaudeWatcher(self.activity.last_signal)
         self.voice_limit = RateLimit(VOICE_MESSAGES_PER_MINUTE)
         self.hooks = HookFeed(language=config["language"])
+        self._status: dict[str, tuple[float, list]] = {}
+        self._status_lock = threading.Lock()
+        self._phone_noted = 0.0
+
+    def status(self, language: str = "", clock=time.monotonic) -> list[dict]:
+        """The doctor's report in the page's language, at most every STATUS_CACHE_S (it runs tailscale)."""
+        language = language if language in doctor.TEXT else self.config["language"]
+        with self._status_lock:
+            when, items = self._status.get(language, (0.0, []))
+            if not items or clock() - when > STATUS_CACHE_S:
+                items = doctor.report(self.config, server_running=True, language=language)
+                self._status[language] = (clock(), items)
+            return items
+
+    def forget_status(self) -> None:
+        with self._status_lock:
+            self._status = {}
+
+    def phone_seen(self, clock=time.monotonic) -> None:
+        if clock() - self._phone_noted > PHONE_NOTE_S:
+            self._phone_noted = clock()
+            try:
+                doctor.note_phone()
+            except OSError:
+                pass
+
+    def act(self, what: str) -> dict:
+        """A button on the Status screen (from this computer only)."""
+        if what == "voice":
+            if launcher.voice_session_running():
+                return {"ok": True, "message": ""}
+            folder = Path(self.config["voice_folder"]) if self.config.get("voice_folder") else Path.home()
+            problem = launcher.open_voice_window(folder)
+            result = {"ok": problem is None, "message": problem or ""}
+        elif what == "hooks":
+            result = {"ok": True, "message": hooks.install()}
+        else:
+            return {"ok": False, "message": "unknown action"}
+        self.forget_status()
+        return result
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -229,12 +273,15 @@ class Handler(BaseHTTPRequestHandler):
         if refusal:
             self._error(403, refusal)
             return
-        if path != "/api/voice":
+        if path not in ("/api/voice", "/api/action"):
             self._error(404, "not found")
             return
         body = self._json_body()
         if isinstance(body, tuple):
             self._error(*body)
+            return
+        if path == "/api/action":
+            self._action(body)
             return
         if not self.app.voice_limit.allow():
             self._error(429, "too many voice messages this minute")
@@ -251,9 +298,12 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/api/") and not self._token_ok():
             self._error(403, "missing or invalid token")
             return
+        if path.startswith("/api/") and not self._local():
+            self.app.phone_seen()
         routes = {
             "/": self._index,
             "/api/state": lambda: self._json(200, {"claude_open": self.app.claude.is_open()}),
+            "/api/status": lambda: self._json(200, {"items": self.app.status(param("lang")), "local": self._local()}),
             "/api/activity": lambda: self._activity(param("cursor")),
             "/api/cursor": lambda: self._json(200, pointer.pointed() or cursor.position() or {"x": None, "y": None}),
             "/api/timers": lambda: self._json(200, timers.for_phone(language=self.app.config["language"])),
@@ -271,6 +321,19 @@ class Handler(BaseHTTPRequestHandler):
             self._error(404, "not found")
 
     # ---- routes ----------------------------------------------------------
+    def _local(self) -> bool:
+        """The request came from this computer, not through Tailscale."""
+        return (self.headers.get("Host") or "").strip().casefold() not in self.app.config["extra_hosts"]
+
+    def _action(self, body: dict) -> None:
+        what = body.get("do") if isinstance(body, dict) else None
+        if what not in ACTIONS:
+            self._error(400, "unknown action")
+        elif not self._local():
+            self._error(403, "only from the computer itself")
+        else:
+            self._json(200, self.app.act(what))
+
     def _index(self) -> None:
         body = page.index_page(self.app.token)
         if body is None:

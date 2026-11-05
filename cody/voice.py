@@ -150,9 +150,48 @@ def _eleven(text: str, voice: dict, language: str) -> bytes:
                                               "Accept": "audio/mpeg"})
     try:
         with urllib.request.urlopen(request, timeout=ELEVEN_TIMEOUT_S) as response:
-            return response.read()
+            audio = response.read()
+    except urllib.error.HTTPError as error:
+        reason = eleven_reason(error.code, _error_body(error))
+        _note(reason)
+        raise VoiceError(502, f"ElevenLabs: {reason}") from error
     except (urllib.error.URLError, OSError) as error:
         raise VoiceError(502, "ElevenLabs did not answer") from error
+    _note(None)
+    return audio
+
+
+ELEVEN_REASONS = {
+    "payment_required": "payment pending", "quota_exceeded": "monthly characters used up",
+    "invalid_api_key": "the key is not valid", "missing_permissions": "the key lacks text-to-speech permission",
+    "voice_not_found": "the voice id does not exist", "too_many_concurrent_requests": "too many requests at once",
+    "system_busy": "ElevenLabs is busy",
+}
+ELEVEN_BY_STATUS = {401: "the key is not valid", 402: "payment pending", 404: "the voice id does not exist",
+                    429: "too many requests"}
+
+
+def _error_body(error) -> dict:
+    try:
+        data = json.loads(error.read(4096) or b"{}")
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def eleven_reason(status: int, body: dict) -> str:
+    """ElevenLabs' error in plain words: its detail.status when it is a known one, else by HTTP status."""
+    detail = body.get("detail")
+    code = detail.get("status") if isinstance(detail, dict) else None
+    return ELEVEN_REASONS.get(str(code), ELEVEN_BY_STATUS.get(status, f"error {status}"))
+
+
+def _note(reason: str | None) -> None:
+    from cody import doctor
+    try:
+        doctor.note_voice_error(reason)
+    except OSError:
+        pass
 
 
 def audio(seq_raw: str, voice: dict | None, language: str = "en", path: Path | None = None,

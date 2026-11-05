@@ -8,6 +8,7 @@
     --start                     starts the mascot server in the background and opens it (what /cody:setup runs)
     --channel                   the voice channel itself (Claude Code starts it)
     --tray [--background]       the tray icon app (what Cody.exe runs; needs pystray and Pillow)
+    --doctor                    what is on and off, with what to do (exit code 1 when something is broken)
     --version                   prints the version
 """
 from __future__ import annotations
@@ -34,6 +35,10 @@ def main(argv: list[str] | None = None) -> int:
         from cody import __version__
         print(__version__)
         return 0
+    if argv == ["--doctor"]:
+        from cody import doctor
+        from cody.config import load_config
+        return doctor.main(load_config())
     if argv == ["--channel"]:
         from cody.channel import main as channel
         channel()

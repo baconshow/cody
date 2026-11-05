@@ -225,6 +225,7 @@ class Channel:
         self._seq = 0
         self._requests = 0
         self._permissions: dict[str, float] = {}    # request_id -> arrival time, the open permission prompts
+        self.on_loaded = None                         # called once Claude Code has finished the handshake
 
     def send(self, message: dict) -> None:
         line = (json.dumps(message, ensure_ascii=False) + "\n").encode("utf-8")
@@ -344,6 +345,8 @@ class Channel:
         if method in ("initialize", "notifications/initialized", "tools/list"):
             log(method)
         if ident is None:
+            if method == "notifications/initialized" and self.on_loaded:
+                self.on_loaded()                      # Claude Code finished the handshake: the channel is in
             if method == "notifications/claude/channel/permission_request":
                 self.ask_permission(message.get("params") or {})
             return None
@@ -448,7 +451,18 @@ def main() -> None:
     secret = secrets.token_urlsafe(24)
     http = create_http(channel, secret)
     path = channel_file()
-    write_private(path, json.dumps({"port": http.server_address[1], "secret": secret}))
+    entry = {"port": http.server_address[1], "secret": secret}
+    write_private(path, json.dumps(entry))
+    session = data_dir() / "voice-sessions" / f"{os.getpid()}.json"     # the doctor counts these (duplicates)
+    write_private(session, json.dumps({"port": entry["port"]}))
+
+    def loaded() -> None:
+        try:
+            if secret in path.read_text(encoding="utf-8"):        # still ours: a newer session may have taken over
+                write_private(path, json.dumps({**entry, "loaded": True}))
+        except OSError:
+            pass
+    channel.on_loaded = loaded
     threading.Thread(target=http.serve_forever, daemon=True).start()
     log(f"open on port {http.server_address[1]}")
     try:
@@ -469,6 +483,7 @@ def main() -> None:
     finally:
         http.shutdown()
         channel.abilities.close()
+        session.unlink(missing_ok=True)
         try:
             if secret in path.read_text(encoding="utf-8"):     # a newer session may have taken over the file
                 path.unlink()
