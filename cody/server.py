@@ -34,7 +34,7 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, doctor, hooks, launcher, page, pointer, setup, timers, voice
+from cody import cursor, doctor, hooks, launcher, page, pointer, qr, settings, setup, timers, voice
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
@@ -50,6 +50,7 @@ VOICE_MESSAGES_PER_MINUTE = 20
 STATUS_CACHE_S = 10
 PHONE_NOTE_S = 30
 ACTIONS = ("voice", "hooks")
+SETTINGS_POSTS = ("/api/settings", "/api/settings/key", "/api/settings/test")
 
 
 class RateLimit:
@@ -111,6 +112,18 @@ class App:
                 doctor.note_phone()
             except OSError:
                 pass
+
+    def change_settings(self, body: dict) -> dict:
+        """Saves what changed and applies it now where it can (the voice channel reads the language at its start)."""
+        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder"}
+        changed = {k: v for k, v in body.items() if k in keys}
+        if changed:
+            fresh = settings.save(changed)
+            self.config.update({k: fresh[k] for k in (*keys - {"voice_id"}, "voice")})
+            self.hooks._language = self.config["language"]
+        notes = settings.apply_switches(body)
+        self.forget_status()
+        return {**settings.public(self.config), "notes": notes}
 
     def act(self, what: str) -> dict:
         """A button on the Status screen (from this computer only)."""
@@ -273,7 +286,7 @@ class Handler(BaseHTTPRequestHandler):
         if refusal:
             self._error(403, refusal)
             return
-        if path not in ("/api/voice", "/api/action"):
+        if path not in ("/api/voice", "/api/action") and path not in SETTINGS_POSTS:
             self._error(404, "not found")
             return
         body = self._json_body()
@@ -282,6 +295,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/action":
             self._action(body)
+            return
+        if path in SETTINGS_POSTS:
+            self._settings_post(path, body if isinstance(body, dict) else {})
             return
         if not self.app.voice_limit.allow():
             self._error(429, "too many voice messages this minute")
@@ -304,6 +320,8 @@ class Handler(BaseHTTPRequestHandler):
             "/": self._index,
             "/api/state": lambda: self._json(200, {"claude_open": self.app.claude.is_open()}),
             "/api/status": lambda: self._json(200, {"items": self.app.status(param("lang")), "local": self._local()}),
+            "/api/settings": lambda: self._json(200, {**settings.public(self.app.config), "local": self._local()}),
+            "/api/qr": lambda: self._qr(param("for")),
             "/api/activity": lambda: self._activity(param("cursor")),
             "/api/cursor": lambda: self._json(200, pointer.pointed() or cursor.position() or {"x": None, "y": None}),
             "/api/timers": lambda: self._json(200, timers.for_phone(language=self.app.config["language"])),
@@ -324,6 +342,27 @@ class Handler(BaseHTTPRequestHandler):
     def _local(self) -> bool:
         """The request came from this computer, not through Tailscale."""
         return (self.headers.get("Host") or "").strip().casefold() not in self.app.config["extra_hosts"]
+
+    def _settings_post(self, path: str, body: dict) -> None:
+        if not self._local():
+            self._error(403, "settings change only on the computer itself")
+            return
+        try:
+            if path == "/api/settings":
+                self._json(200, self.app.change_settings(body))
+            elif path == "/api/settings/key":
+                self._json(200, {"has_key": settings.set_key(str(body.get("key") or ""))})
+            else:
+                self._json(200, settings.test_voice(self.app.config))
+        except settings.SettingsError as error:
+            self._error(400, str(error))
+
+    def _qr(self, which: str) -> None:
+        target = {"phone": settings.phone_url(self.app.config), "tailscale": settings.TAILSCALE_APP}.get(which)
+        if not target:
+            self._error(404, "nothing to show")
+            return
+        self._send(200, qr.svg(target).encode("utf-8"), "image/svg+xml")
 
     def _action(self, body: dict) -> None:
         what = body.get("do") if isinstance(body, dict) else None

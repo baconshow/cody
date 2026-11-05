@@ -23,7 +23,7 @@
 // The face is the 3D mascot (scene3d.js, three.js through the page's importmap), alone and in the gallery (one
 // canvas per mood); if three.js does not load (offline), or with ?visual=2d, the 2D drawing stays (face2d.js).
 
-import { t, translate, locale, language } from './i18n.js';
+import { t, translate, locale, language, setLanguage } from './i18n.js';
 import { api } from './api.js';
 import { createAnimator, TIMINGS } from './animator.js';
 import { createCycle } from './cycle.js';
@@ -35,6 +35,7 @@ import { createTimers } from './timers.js';
 import { createTimerPanel } from './timer-panel.js';
 import { createAlerts } from './alerts.js';
 import { createStatus } from './status.js';
+import { createSettings } from './settings.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -462,6 +463,7 @@ async function start() {
     wireTimers(voice, cycle, loop.request);
     wireAlerts(voice, cycle, loop.request);
     createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request });
+    createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m) }).firstRun();
   }
   faces.forEach(measureFace);
   loop.request();

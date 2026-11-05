@@ -72,5 +72,10 @@ export const api = {
   events: (after) => call('GET', `/api/events?after=${encodeURIComponent(after)}`),
   status: (lang) => call('GET', `/api/status?lang=${encodeURIComponent(lang)}`, undefined, { timeout: 15000 }),
   action: (what) => call('POST', '/api/action', { do: what }, { timeout: 15000 }),
+  settings: () => call('GET', '/api/settings'),
+  saveSettings: (updates) => call('POST', '/api/settings', updates, { timeout: 15000 }),
+  saveKey: (key) => call('POST', '/api/settings/key', { key }),
+  testVoice: () => call('POST', '/api/settings/test', {}, { timeout: 15000 }),
+  qr: (which) => bytes(`/api/qr?for=${encodeURIComponent(which)}`),
   hasToken: () => TOKEN.length > 0,
 };

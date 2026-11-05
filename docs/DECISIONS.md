@@ -80,3 +80,13 @@ explained next to the channel item.
 `channel.log` not being written by real sessions could not be reproduced here (the same `data_dir()` writes
 `channel.json`, which works). The doctor now shows whether the channel loaded without relying on that log; the check
 on a real machine is in `docs/MANUAL-TESTS.md`.
+
+## 2026-11-05 · QR codes made in Cody, and settings only from the computer
+
+`cody/qr.py` encodes QR codes itself (byte mode, level M, versions 1 to 10, standard mask scoring), so no QR service
+sees the phone's address. It was checked by decoding seven samples (versions 2 to 10, including version 7 with
+version bits and version 10 with a 16-bit count) with OpenCV; the test pins the output of the one that was checked.
+The Settings screen reads everything from anywhere it is allowed to load, but every change (`POST /api/settings`,
+`/api/settings/key`, `/api/settings/test`) is refused through Tailscale: the phone is trusted to talk to Claude, not
+to change the computer. The ElevenLabs key goes to `elevenlabs.key` in the data folder (mode 600) and is never
+returned; the environment variable and `~/.elevenlabs-key` still work and win in that order.

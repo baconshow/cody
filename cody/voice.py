@@ -128,14 +128,24 @@ def image(image_id: str, path: Path | None = None) -> bytes:
     return data
 
 
+def saved_key_file() -> Path:
+    """Where the Settings screen keeps the key: the data folder, readable only by you."""
+    from cody.store import data_dir
+    return data_dir() / "elevenlabs.key"
+
+
 def _api_key() -> str | None:
     key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if key:
         return key
-    try:
-        return KEY_FILE.read_text(encoding="utf-8").strip() or None
-    except OSError:
-        return None
+    for path in (saved_key_file(), KEY_FILE):
+        try:
+            found = path.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if found:
+            return found
+    return None
 
 
 def _eleven(text: str, voice: dict, language: str) -> bytes:

@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PORT = 7420
 DEFAULT_MODEL = "eleven_flash_v2_5"    # the fastest ElevenLabs model: a short reply comes back in under a second
 LANGUAGES = ("en", "pt-BR")
+PROVIDERS = ("elevenlabs", "hosted", "device", "sounds")   # the voice outputs, best first (see cody/settings.py)
 VALID_HOST = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::\d{1,5})?$")
 VALID_LOGIN = re.compile(r"^[^\s,;]{1,254}$")
 VALID_VOICE = re.compile(r"^[A-Za-z0-9]{10,40}$")
@@ -78,6 +79,13 @@ def _folder(value) -> str | None:
     return value if isinstance(value, str) and value.strip() and Path(value).expanduser().is_dir() else None
 
 
+def _provider(value, voice) -> str:
+    """The chosen voice output; without a choice, ElevenLabs when a voice is configured, else the device's voice."""
+    if value in PROVIDERS:
+        return value
+    return "elevenlabs" if _voice(voice) else "device"
+
+
 def load_config(path: Path | None = None, system=system_language) -> dict:
     try:
         data = json.loads(Path(path or config_file()).read_text(encoding="utf-8"))
@@ -95,4 +103,6 @@ def load_config(path: Path | None = None, system=system_language) -> dict:
         "language": language if language in LANGUAGES else system(),
         "voice": _voice(data.get("voice")),
         "voice_folder": _folder(data.get("voice_folder")),
+        "voice_provider": _provider(data.get("voice_provider"), data.get("voice")),
+        "update_check": data.get("update_check") is True,
     }

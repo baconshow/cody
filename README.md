@@ -132,6 +132,18 @@ from the phone. Errors show their real reason, for example `ElevenLabs: payment 
 The same checks in the terminal: `python cody.py --doctor` (or `/cody:status` in Claude Code). If two voice
 sessions are open, Cody says so: only the newest one hears you.
 
+## Settings and the first run
+
+The first time you open Cody on the computer, it walks you through three steps, out loud: language and voice, the
+phone (a QR code to scan), and the voice session, ending in "say hi". **Settings** (tray menu, or the page's
+`#settings`) has the rest: language, voice (ElevenLabs with your own key, Cody's hosted voice, the device's voice or
+Cody's sounds), the ElevenLabs key with a **Test** button, privacy, the hooks and starting with Windows.
+
+- The key is typed in Settings, saved in Cody's data folder on this computer only (readable only by you), and never
+  shown again: the page only learns that a key is there.
+- Settings change only on the computer itself; from the phone you can switch the language of that phone's screen.
+- The QR codes are drawn on your computer (`cody/qr.py`): no web service ever sees your address.
+
 ## Put it on your phone
 
 The server only listens on `127.0.0.1`. To reach it from your phone, Cody uses Tailscale **serve**, which keeps it
