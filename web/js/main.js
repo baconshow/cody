@@ -11,6 +11,7 @@
 //   ?lang=en|pt-BR   the language of the texts (i18n.js)
 //   ?visual=2d       the flat 2D drawing, for comparison · ?side=1 listening sideways (the soft-speech pose)
 //   ?prop=magnifier|keyboard   holding a prop (Claude searching or writing code) · ?grab=1 the startle
+//   ?curse=1   the swearing at the end of a shake, again and again
 //   ?sensor=1        shows what the accelerometer measures in a corner (to tune the shake on a phone)
 //
 // Served at / (with the token) the face reads Claude's state and activity (signal.js), only while the page is
@@ -67,13 +68,16 @@ function readOptions(search) {
     side: q.get('side') === '1',
     prop: ['magnifier', 'keyboard'].includes(q.get('prop')) ? q.get('prop') : null,
     grab: q.get('grab') === '1',
+    curse: q.get('curse') === '1',
     scene: q.get('scene'),
     sensor: q.get('sensor') === '1',
     seed: Number.isFinite(seed) ? seed : Math.floor(Math.random() * 2 ** 31),
   };
 }
 
-function createFace(parent, { mood, seed, quiet, caption, scene3d, side = false, prop = null, grab = false }) {
+function createFace(parent, {
+  mood, seed, quiet, caption, scene3d, side = false, prop = null, grab = false, curse = false,
+}) {
   const figure = document.createElement('figure');
   figure.className = 'face';
   const canvas = document.createElement('canvas');
@@ -91,6 +95,7 @@ function createFace(parent, { mood, seed, quiet, caption, scene3d, side = false,
   if (side) animator.setListening(true);
   if (prop) animator.setProp(prop);
   if (grab) animator.setGrab(true);
+  if (curse) setInterval(() => animator.curse(), 2500);    // developer option: swears again and again
   return {
     canvas, ctx: scene ? null : canvas.getContext('2d', { alpha: false }), scene, animator, fixed: mood,
     size: null, dpr: 1, geo: createGeometry(), said: null,
@@ -100,7 +105,8 @@ function createFace(parent, { mood, seed, quiet, caption, scene3d, side = false,
 function mount(root, op, quiet, scene3d) {
   if (!op.gallery) {
     root.classList.add('full');
-    return [createFace(root, { mood: op.mood, seed: op.seed, quiet, scene3d, side: op.side, prop: op.prop, grab: op.grab })];
+    return [createFace(root, { mood: op.mood, seed: op.seed, quiet, scene3d, side: op.side, prop: op.prop, grab: op.grab,
+      curse: op.curse })];
   }
   document.body.classList.add('with-gallery');
   const title = document.createElement('h1');

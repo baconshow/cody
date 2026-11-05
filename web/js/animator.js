@@ -11,7 +11,9 @@
 //   animator.setMood(name) · lookAt(x, y, now) · releaseLook() · poke(side) · setQuiet(on)
 //   animator.setListening(on)   listening sideways: turns the body and offers an ear (quiet speech, "didn't catch that")
 //   animator.setProp(name)      the prop in hand ('magnifier', 'keyboard' or null): the hold spring goes 0 to 1 (in hand)
-//   animator.setGrab(on)        the phone shaking: it clings to the screen edges (the grab spring, 0 to 1)
+//   animator.setGrab(on)        the phone shaking: it clings to the screen edges (the grab spring, 0 to 1); when the
+//                               shaking stops, it curses (q.curse runs 0 to 1 for TIMINGS.curse seconds, then is 0)
+//   animator.curse()            the cursing alone (the end of a shake; ?curse=1 shows it)
 //   animator.hearVoice(fn)      fn() → volume of the phrase playing (0 to 1) or null; the mouth follows it
 //
 // The gaze runs from −1 to 1 on both axes, with y pointing down, as in the original.
@@ -37,6 +39,7 @@ export const TIMINGS = Object.freeze({
   hop: [7, 14], firstHop: 6,
   blink: [2, 5], sleepyBlink: [1.6, 3], firstBlink: 2,
   close: 0.15, sleepyClose: 0.7, double: 0.25,
+  curse: 1.8,                  // the &#$*%@! in the mouth after a shake
 });
 
 export const IMPULSE = Object.freeze({ moodChange: 260, pupil: 3, hop: [180, 320], poke: 300, recoil: 9 });
@@ -72,7 +75,7 @@ export function createAnimator({ random = Math.random, quiet = false, mood = 'li
     mood: 'listening', requested: validMood(mood) ?? 'listening', changedAt: 0, quiet,
     last: null, blinkedAt: -Infinity, double: false, nextBlink: 0, nextSaccade: 0, nextHop: 0,
     wander: { x: 0, y: -0.3 }, jitter: { x: 0, y: 0 }, nextJitter: 0, talk: 0, side: 1, pointer: null, voice: null,
-    listening: false, touch: 0, prop: null, lastProp: null, grab: false,
+    listening: false, touch: 0, prop: null, lastProp: null, grab: false, cursedAt: null, cursing: false,
   };
   const q = {};
   const step = (now) => advance({ m, st, q, between, random }, now);
@@ -92,7 +95,12 @@ export function createAnimator({ random = Math.random, quiet = false, mood = 'li
       st.blinkedAt = st.last ?? 0;
     },
     setListening(on) { st.listening = !!on; },
-    setGrab(on) { st.grab = !!on && !st.quiet; },
+    setGrab(on) {
+      const next = !!on && !st.quiet;
+      if (st.grab && !next) st.cursing = true;         // the shaking stopped: now it swears about it
+      st.grab = next;
+    },
+    curse() { if (!st.quiet) st.cursing = true; },
     setProp(name) {
       st.prop = PROPS.has(name) ? name : null;
       if (st.prop) st.lastProp = st.prop;             // while leaving, it is still this one that fades out
@@ -123,6 +131,7 @@ function advance(ctx, now) {
   drive(st, m.turn, st.listening ? TURN_TO_LISTEN * st.side : 0, dt);
   drive(st, m.hold, st.prop ? 1 : 0, dt);
   drive(st, m.grab, st.grab ? 1 : 0, dt);
+  if (st.cursing) { st.cursedAt = now; st.cursing = false; }
   return fill(q, st, m, now, blink(ctx, now));
 }
 
@@ -275,5 +284,7 @@ function fill(q, st, m, now, closed) {
   q.hold = clamp(m.hold.value, 0, 1.2);
   q.prop = q.hold > 0.02 ? st.lastProp : null;
   q.grab = clamp(m.grab.value, 0, 1.3);
+  const cursed = st.cursedAt === null ? 1 : (now - st.cursedAt) / TIMINGS.curse;
+  q.curse = cursed > 0 && cursed < 1 && !st.quiet ? cursed : 0;
   return q;
 }

@@ -240,3 +240,20 @@ test('the prop in hand: the magnifier comes in (hold reaches 1) and leaves witho
   animator.setProp('hammer');
   assert.equal(animator.step(5.1).prop, null, 'an unknown prop does not come in');
 });
+
+test('when the shaking stops it swears for TIMINGS.curse seconds; quiet never swears', () => {
+  const a = createAnimator({ random: seededRandom(3) });
+  a.step(0);
+  a.setGrab(true);
+  assert.equal(a.step(0.5).curse, 0, 'no swearing while it clings');
+  a.setGrab(false);
+  a.step(1);
+  assert.ok(a.step(1 + TIMINGS.curse / 2).curse > 0.4);
+  assert.equal(a.step(1 + TIMINGS.curse + 0.1).curse, 0, 'and then it is over');
+  a.setGrab(false);
+  assert.equal(a.step(5).curse, 0, 'no shake, no swearing');
+  const calm = createAnimator({ random: seededRandom(3), quiet: true });
+  calm.step(0);
+  calm.curse();
+  assert.equal(calm.step(0.5).curse, 0);
+});

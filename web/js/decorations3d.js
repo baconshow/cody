@@ -1,34 +1,36 @@
 // decorations3d.js — what comes out of the 3D mascot's head: block Z letters rising while it sleeps (resting) and
-// the three thought bubbles, smallest to largest, while it thinks.
+// the thought bubbles, smallest to largest, while it thinks.
 //
 //   createDecorations(THREE, RoundedBoxGeometry, top) → { group, update(q) }   top: y of the top of the head
 //     update(q)   q.mood and q.time from the animator; with q.quiet, the letters stop halfway up
 
-const ZZZ = Object.freeze({ letters: 3, rise: 0.75, period: 3.6, size: 0.2, color: 0xf4f1ff });
-const BUBBLES = Object.freeze([[0.12, 0.08], [0.32, 0.3], [0.58, 0.58]]);   // [offset, radius × 0.1]
+const ZZZ = Object.freeze({ letters: 3, rise: 0.75, period: 3.6, size: 0.2, stroke: 0.05, depth: 0.03,
+  color: 0xf4f1ff });
+// [offset, radius × 0.1]: the first one starts behind the head; the last and largest floats above the others
+const BUBBLES = Object.freeze([[0.12, 0.08], [0.32, 0.3], [0.58, 0.58], [0.95, 0.95]]);
 
-// the block Z: the top bar, the diagonal and the bottom bar
-function letterZ(THREE, Rounded, mat) {
-  const z = new THREE.Group();
-  const bar = (width, height, xx, yy, turn = 0) => {
-    const b = new THREE.Mesh(new Rounded(width, height, 0.05, 2, 0.015), mat);
-    b.position.set(xx, yy, 0);
-    b.rotation.z = turn;
-    z.add(b);
-  };
-  const l = ZZZ.size;
-  bar(l, 0.045, 0, l / 2);
-  bar(l, 0.045, 0, -l / 2);
-  bar(l * 1.25, 0.045, 0, 0, Math.atan2(l, l));
-  return z;
+// the Z in one piece: its outline (top bar, diagonal, bottom bar) extruded with rounded edges, one geometry shared
+// by all the letters
+function letterZ(THREE) {
+  const h = ZZZ.size / 2;
+  const t = ZZZ.stroke;
+  const d = t * 1.45;                                  // how wide the diagonal is where it meets a bar
+  const outline = [[-h, h], [h, h], [h, h - t], [-h + d, -h + t], [h, -h + t], [h, -h], [-h, -h], [-h, -h + t],
+    [h - d, h - t], [-h, h - t]];
+  const shape = new THREE.Shape(outline.map(([px, py]) => new THREE.Vector2(px, py)));
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: ZZZ.depth, bevelEnabled: true, bevelThickness: 0.012,
+    bevelSize: 0.01, bevelSegments: 3, curveSegments: 4 });
+  geometry.translate(0, 0, -ZZZ.depth / 2);
+  return geometry;
 }
 
 export function createDecorations(THREE, Rounded, top) {
   const group = new THREE.Group();
   const matZ = new THREE.MeshBasicMaterial({ color: ZZZ.color, transparent: true });
+  const shapeZ = letterZ(THREE);
   const letters = Array.from({ length: ZZZ.letters }, () => {
     const material = matZ.clone();
-    const z = letterZ(THREE, Rounded, material);
+    const z = new THREE.Mesh(shapeZ, material);
     group.add(z);
     return { z, material };
   });

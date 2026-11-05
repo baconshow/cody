@@ -349,7 +349,8 @@ node --test "tests/js/*.test.mjs"
 ## URL options
 
 Handy for tinkering: `?lang=pt-BR`, `?visual=2d`, `?gallery=1` (all moods side by side), `?mood=sleepy`,
-`?prop=keyboard`, `?grab=1`, `?sensor=1` (shows the accelerometer readings).
+`?prop=keyboard`, `?grab=1` (the shake startle), `?curse=1` (the swearing after it),
+`?sensor=1` (shows the accelerometer readings).
 
 ## More
 

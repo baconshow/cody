@@ -14,6 +14,7 @@
 - **Voice with four outputs**: ElevenLabs, Cody's hosted voice (not offered yet), the device's voice, and **Cody's own
   sounds**, which always work.
 - **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping.
+- The sleeping Z is one piece, the thought bubbles grow to four, and after a shake Cody swears (`&#$*%@!`).
 - Opt-in update check (off by default). three.js and the font ship with Cody: the page works offline.
 - CI on Windows, macOS and Linux.
 

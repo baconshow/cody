@@ -26,6 +26,9 @@ const SLEEPY_LID = 0.5;                                  // when sleepy, the eye
 const RECOIL = Object.freeze({ move: 0.8, tip: 0.5, side: 0.45 });   // per unit of the recoil spring
 const TYPING = Object.freeze({ forward: 1.25, stretch: 1.3, tap: 0.09, rhythm: 21 });   // arms on the keyboard
 const GRAB = Object.freeze({ stretch: 1.9, spread: 0.4, eye: 0.28, shake: 0.05, rhythm: 27 }); // the shake startle
+// the swearing after a shake: the symbols come out one by one in the open mouth and jump about, comic-strip style
+const CURSE = Object.freeze({ text: '&#$*%@!', colors: ['#ffd23f', '#ff6b5b', '#7ee081', '#6ec3ff', '#ff9de2'],
+  width: 0.8, height: 0.3, typed: 0.4, fps: 12, fade: 0.85 });
 const MAGNIFIER = Object.freeze({ radius: 0.42, rim: 0.05, forward: 0.17, eye: 0.6, rise: 0.8, arm: 0.12 });
 
 const x = (vx) => (vx - BODY.width / 2) * V;            // drawing voxel → figure x
@@ -152,6 +155,8 @@ export function createMascot(THREE, Rounded) {
   const mouth = box(THREE, Rounded, [0.34, 0.2, 0.06], 0.05, m.mouth, false);
   mouth.position.set(0, -0.42, DEPTH / 2 + 0.002);
   face.add(mouth);
+  const curse = cursePlate(THREE, mouth.position);
+  face.add(curse.mesh);
   const arms = [-1, 1].map((s) => arm(THREE, Rounded, m, s));
   body.add(...arms);
   const leaves = sprout(THREE, Rounded, m);
@@ -161,7 +166,7 @@ export function createMascot(THREE, Rounded) {
   face.add(lens);
   const keyboard = createKeyboard(THREE, Rounded);
   body.add(keyboard.group);
-  const parts = { spring, body, face, eyes, cheeks, mouth, arms, leaves, lens, keyboard, legs, m };
+  const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, legs, m };
   return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q) };
 }
 
@@ -198,6 +203,7 @@ function applyPose(p, q) {
   p.mouth.scale.set(1, 0.3 + Math.min(1, q.talk * 1.6), 1);
   poseArms(p, q);
   poseGrab(p, q);
+  p.curse.pose(q, p.mouth);
   poseMagnifier(p, q);
   p.keyboard.pose(q);
   p.leaves.rotation.z = -q.sproutX * 0.5;
@@ -250,4 +256,58 @@ function poseGrab(p, q) {
   }
   p.mouth.visible = true;
   p.mouth.scale.set(0.8, 0.6 + 0.6 * Math.min(1, grab), 1);
+}
+
+// the open mouth full of &#$*%@!: a canvas drawn again only when a symbol appears or the jumping moves on (12 times a
+// second), never per frame
+function cursePlate(THREE, at) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 194;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(CURSE.width, CURSE.height), material);
+  mesh.position.set(at.x, at.y - 0.02, at.z + 0.04);
+  mesh.visible = false;
+  let drawn = '';
+
+  function draw(shown, frame) {
+    const g = canvas.getContext('2d');
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.fillStyle = `#${COLOR.mouth.toString(16).padStart(6, '0')}`;
+    g.beginPath();
+    g.roundRect(6, 6, canvas.width - 12, canvas.height - 12, 70);
+    g.fill();
+    g.font = "bold 104px 'Varela Round', system-ui, sans-serif";
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    const step = (canvas.width - 90) / CURSE.text.length;
+    [...CURSE.text].slice(0, shown).forEach((ch, i) => {
+      const jump = ((frame + i * 3) % 4) - 1.5;
+      g.save();
+      g.translate(45 + step * (i + 0.5), canvas.height / 2 + jump * 7);
+      g.rotate(jump * 0.07);
+      g.fillStyle = CURSE.colors[i % CURSE.colors.length];
+      g.fillText(ch, 0, 0);
+      g.restore();
+    });
+    texture.needsUpdate = true;
+  }
+
+  function pose(q, mouth) {
+    const t = q.curse || 0;
+    mesh.visible = t > 0;
+    if (!mesh.visible) return;
+    mouth.visible = false;
+    const shown = Math.min(CURSE.text.length, Math.ceil((t / CURSE.typed) * CURSE.text.length));
+    const frame = Math.floor(t * CURSE.fps * 1.8);
+    const key = `${shown}:${frame}`;
+    if (key !== drawn) { draw(shown, frame); drawn = key; }
+    const pop = Math.min(1, t * 8);
+    mesh.scale.set(0.6 + 0.4 * pop, 0.4 + 0.6 * pop, 1);
+    material.opacity = t < CURSE.fade ? 1 : 1 - (t - CURSE.fade) / (1 - CURSE.fade);
+  }
+
+  return { mesh, pose };
 }
