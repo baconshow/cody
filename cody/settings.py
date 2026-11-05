@@ -113,6 +113,7 @@ def test_voice(config: dict) -> dict:
     if not config.get("voice"):
         return {"ok": False, "reason": "no voice id yet"}
     try:
+        voice._take_synthesis_slot()                  # the same per-minute and per-day limits as spoken replies
         voice._eleven(TEST_TEXT.get(config["language"], TEST_TEXT["en"]), config["voice"], config["language"])
     except voice.VoiceError as error:
         return {"ok": False, "reason": error.message.removeprefix("ElevenLabs: ")}

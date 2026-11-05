@@ -134,3 +134,48 @@ class StatusRoutesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SpoofedHostTest(unittest.TestCase):
+    """Tailscale serve passes the client's Host through: a tailnet device can send Host: 127.0.0.1. The forwarding
+    headers serve always adds must still mark the request as coming from the tailnet."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.port = free_port()
+        cls.app = App({**CONFIG, "port": cls.port, "extra_hosts": ["pc.example.ts.net"],
+                       "allowed_logins": ["me@example.com"]})
+        cls.server = Server(cls.app)
+        threading.Thread(target=cls.server.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.server.shutdown()
+        cls.server.server_close()
+
+    def post(self, headers):
+        connection = http.client.HTTPConnection("127.0.0.1", self.port, timeout=5)
+        connection.request("GET", "/", headers={"Host": f"127.0.0.1:{self.port}"})
+        token = re.search(rb'name="cody-token" content="([^"]+)"', connection.getresponse().read()).group(1).decode()
+        connection.request("POST", "/api/action", body=b'{"do": "hooks"}',
+                           headers={"Host": f"127.0.0.1:{self.port}", "X-Cody-Token": token,
+                                    "Content-Type": "application/json", **headers})
+        response = connection.getresponse()
+        response.read()
+        connection.close()
+        return response.status
+
+    def test_a_tailnet_request_with_a_local_host_is_not_local(self):
+        with mock.patch.object(doctor, "note_phone"), mock.patch.object(self.app, "act") as act:
+            stranger = self.post({"X-Forwarded-For": "100.64.0.9", "X-Forwarded-Proto": "https",
+                                  "Tailscale-User-Login": "someone@else.example"})
+            owner = self.post({"X-Forwarded-For": "100.64.0.9", "Tailscale-User-Login": "me@example.com"})
+            tagged = self.post({"X-Forwarded-For": "100.64.0.9"})
+        self.assertEqual(stranger, 403)          # not an allowed login, even with Host: 127.0.0.1
+        self.assertEqual(owner, 403)             # allowed in, but not "this computer": no settings, no actions
+        self.assertEqual(tagged, 403)
+        act.assert_not_called()
+
+    def test_the_computer_itself_still_works(self):
+        with mock.patch.object(self.app, "act", return_value={"ok": True, "message": ""}):
+            self.assertEqual(self.post({}), 200)

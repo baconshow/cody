@@ -1,7 +1,6 @@
 ---
 description: Open Cody's voice session in a new terminal window, in this folder or the one given
 argument-hint: "[folder]"
-allowed-tools: Bash(python3:*), Bash(python:*), Bash(py:*)
 ---
 
 Open Cody's voice session (a Claude Code session that listens to the mascot) in a new terminal window:

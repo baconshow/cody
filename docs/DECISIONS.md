@@ -114,3 +114,18 @@ and stops all clips with "reduce motion". The 2D fallback shows no scenes. The d
 the activity reader now emits a content-free `!failed` event for a `tool_result` marked `is_error`. The headphones
 scene is ready, but its trigger (music) only fires once P1.3 reads what is playing. Everything is drawn from
 scratch; the reference figures were used only as a list of accessory ideas.
+
+## 2026-11-05 · Security review of P0: what changed
+
+- **Tailscale requests are recognized by the headers serve adds, not by the Host.** Serve passes the client's Host
+  header through, so a tailnet device could send `Host: 127.0.0.1:7420`, look local, change settings and skip
+  `allowed_logins` (that last part was already possible on main). A request with `X-Forwarded-For`,
+  `X-Forwarded-Proto`, `X-Forwarded-Host` or a `Tailscale-*` header, or with a Tailscale host name, now counts as
+  coming through Tailscale; "this computer" also requires Host `127.0.0.1:port` or `localhost:port`. Tests send the
+  spoofed request.
+- The slash commands no longer pre-approve `Bash(python3:*)`: that allowed any Python for the turn. Claude Code asks.
+- The installer no longer shows the folder page, and uninstall only removes the folder if it is empty.
+- The voice test in Settings goes through the same per-minute and per-day limits as spoken replies.
+- `tailscale login` output is read by a thread with a timeout, so a silent process cannot hold a request forever.
+- A Tailscale address added with no known login (a tagged device) is logged as open to the whole tailnet.
+- Known and unchanged: another user account on the same computer can load the page from 127.0.0.1.

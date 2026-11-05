@@ -1,6 +1,5 @@
 ---
 description: Check Cody and set up what is missing, step by step (server, hooks, phone through Tailscale)
-allowed-tools: Bash(python3:*), Bash(python:*), Bash(py:*)
 ---
 
 Help the user get Cody working. Use `python3` below; if it is not found, try `python`, then `py -3`.

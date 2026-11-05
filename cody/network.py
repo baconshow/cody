@@ -18,7 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
-import time
+import threading
 
 from cody import setup
 
@@ -80,21 +80,28 @@ def install(popen=subprocess.Popen, which=shutil.which, platform=sys.platform) -
     return {"started": False, "open": DOWNLOAD_URL}
 
 
-def login(popen=subprocess.Popen, clock=time.monotonic) -> dict:
-    """Runs `tailscale login` in the background and returns the sign-in link it prints (or None)."""
+def login(popen=subprocess.Popen, wait: float = LOGIN_WAIT_S) -> dict:
+    """Runs `tailscale login` in the background and returns the sign-in link it prints (or None after `wait`). A
+    reader thread keeps draining the output while the process waits for the sign-in, so it never blocks."""
     try:
         process = popen(["tailscale", "login"], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT, text=True)
     except OSError:
         return {"open": None}
-    deadline = clock() + LOGIN_WAIT_S
-    for line in process.stdout:
-        found = LOGIN_URL.search(line)
-        if found:
-            return {"open": found.group(0)}           # the process keeps waiting for the sign-in, in the background
-        if clock() > deadline:
-            break
-    return {"open": None}
+    found: dict = {}
+    seen = threading.Event()
+
+    def read() -> None:
+        for line in process.stdout:
+            match = LOGIN_URL.search(line)
+            if match and not seen.is_set():
+                found["url"] = match.group(0)
+                seen.set()
+        seen.set()                                    # the process ended without a link
+
+    threading.Thread(target=read, daemon=True).start()
+    seen.wait(wait)
+    return {"open": found.get("url")}
 
 
 def serve(port: int, run=subprocess.run) -> dict:

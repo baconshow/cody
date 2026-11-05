@@ -48,6 +48,9 @@ SAME_SITE = ("", "same-origin", "none")     # accepted Sec-Fetch-Site values (em
 ENTRY_PAGES = ("/",)        # the only route a link from elsewhere may open (top-level GET navigation)
 VOICE_MESSAGES_PER_MINUTE = 20
 STATUS_CACHE_S = 10
+# headers Tailscale serve always sets on what it forwards (and overwrites when a client sends them)
+PROXY_HEADERS = ("X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Host", "Tailscale-User-Login",
+                 "Tailscale-User-Name", "Tailscale-Funnel-Request")
 PHONE_NOTE_S = 30
 ACTIONS = ("voice", "hooks")
 SETTINGS_POSTS = ("/api/settings", "/api/settings/key", "/api/settings/test", "/api/network")
@@ -159,6 +162,9 @@ class App:
             login = network.identity_login()
             if login:
                 self.config["allowed_logins"] = [login]
+            else:
+                LOG.warning("no Tailscale login found (tagged device?): every device in the tailnet can use Cody; "
+                            "set allowed_logins in config.json")
 
     def act(self, what: str) -> dict:
         """A button on the Status screen (from this computer only)."""
@@ -224,14 +230,21 @@ class Handler(BaseHTTPRequestHandler):
     def _host_ok(self) -> bool:
         return (self.headers.get("Host") or "").strip().casefold() in self.app.hosts
 
+    def _via_tailnet(self) -> bool:
+        """The request came through Tailscale serve. Serve passes the client's Host header through unchanged, so the
+        Host alone cannot tell: serve always adds forwarding headers (and the login headers), which a browser on this
+        computer never sends. Either sign, or a Tailscale host name, counts."""
+        if any(self.headers.get(name) is not None for name in PROXY_HEADERS):
+            return True
+        return (self.headers.get("Host") or "").strip().casefold() in self.app.config["extra_hosts"]
+
     def _tailnet_refusal(self) -> str | None:
         """Refuses Tailscale Funnel (the public internet) always, and, when allowed_logins is set, anyone else coming
         through Tailscale serve. Serve sets Tailscale-User-Login itself; tagged devices carry none and are refused."""
         if self.headers.get("Tailscale-Funnel-Request") is not None:
             return "Tailscale Funnel is not allowed: use tailscale serve"
-        host = (self.headers.get("Host") or "").strip().casefold()
         allowed = self.app.config["allowed_logins"]
-        if allowed and host in self.app.config["extra_hosts"]:
+        if allowed and self._via_tailnet():
             login = (self.headers.get("Tailscale-User-Login") or "").strip().casefold()
             if login not in allowed:
                 return "this Tailscale login is not allowed"
@@ -378,8 +391,9 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---- routes ----------------------------------------------------------
     def _local(self) -> bool:
-        """The request came from this computer, not through Tailscale."""
-        return (self.headers.get("Host") or "").strip().casefold() not in self.app.config["extra_hosts"]
+        """The request came from this computer, not through Tailscale (see _via_tailnet)."""
+        host = (self.headers.get("Host") or "").strip().casefold()
+        return not self._via_tailnet() and host in (f"127.0.0.1:{self.app.port}", f"localhost:{self.app.port}")
 
     def _settings_post(self, path: str, body: dict) -> None:
         if not self._local():

@@ -16,6 +16,7 @@ AppSupportURL=https://github.com/baconshow/cody/issues
 DefaultDirName={localappdata}\Programs\Cody
 DefaultGroupName=Cody
 DisableProgramGroupPage=yes
+DisableDirPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
 OutputBaseFilename=CodySetup
@@ -64,4 +65,5 @@ Filename: "{app}\Cody.exe"; Description: "{cm:RunNow}"; Flags: postinstall nowai
 Filename: "{app}\cody-cli.exe"; Parameters: "--uninstall-hooks"; Flags: runhidden; RunOnceId: "RemoveHooks"
 
 [UninstallDelete]
-Type: filesandordirs; Name: "{app}"
+; only the folder itself, if it is empty (the uninstaller already removed every file it installed)
+Type: dirifempty; Name: "{app}"

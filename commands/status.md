@@ -1,6 +1,5 @@
 ---
 description: Show what is on and off in Cody (server, voice session, hooks, Tailscale, phone, voice provider)
-allowed-tools: Bash(python3:*), Bash(python:*), Bash(py:*)
 ---
 
 Run Cody's doctor and report the result to the user:
