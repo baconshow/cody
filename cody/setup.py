@@ -11,7 +11,10 @@ setup.json in the data folder, so it is not asked again; `python cody.py --setup
 from __future__ import annotations
 
 import json
+import os
+import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 from cody import hooks
@@ -26,10 +29,23 @@ def state_file() -> Path:
     return data_dir() / "setup.json"
 
 
+def tailscale_exe(which=shutil.which, env=os.environ) -> str:
+    """tailscale on the PATH, or where the Windows installer puts it (a just-installed copy is not on Cody's PATH)."""
+    found = which("tailscale")
+    if found:
+        return found
+    default = Path(env.get("ProgramFiles") or r"C:\Program Files") / "Tailscale" / "tailscale.exe"
+    return str(default) if sys.platform == "win32" and default.is_file() else "tailscale"
+
+
+NO_WINDOW = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if sys.platform == "win32" else {}
+
+
 def tailscale(args: list[str], run=subprocess.run) -> str | None:
-    """The output of a tailscale command, or None (not installed, not running, refused)."""
+    """The output of a tailscale command, or None (not installed, not running, refused). No console window."""
     try:
-        done = run(["tailscale", *args], capture_output=True, text=True, timeout=TIMEOUT_S, check=False)
+        done = run([tailscale_exe(), *args], capture_output=True, text=True, timeout=TIMEOUT_S, check=False,
+                   **NO_WINDOW)
     except (OSError, subprocess.SubprocessError):
         return None
     return done.stdout if done.returncode == 0 else None

@@ -12,7 +12,7 @@ from pathlib import Path
 
 from cody import autostart, hooks, voice
 from cody.config import LANGUAGES, PROVIDERS, VALID_MODEL, VALID_VOICE, config_file, load_config
-from cody.store import data_dir, read_json, write_atomic, write_private
+from cody.store import Unreadable, data_dir, read_for_update, read_json, write_atomic, write_private
 
 VALID_KEY = re.compile(r"^[A-Za-z0-9_\-]{20,128}$")
 FIRST_RUN_FILE = "first-run.json"
@@ -49,8 +49,16 @@ def public(config: dict, settings_path: Path | None = None) -> dict:
 
 
 def _raw(path: Path) -> dict:
-    data = read_json(path)
-    return data if isinstance(data, dict) else {}
+    """config.json as it is; refuses (instead of starting over) when it exists but cannot be read."""
+    try:
+        data = read_for_update(path)
+    except Unreadable as error:
+        raise SettingsError("config.json could not be read (a typo in it?): fix it first, nothing was changed") from error
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise SettingsError("config.json is not a JSON object: fix it first, nothing was changed")
+    return data
 
 
 def save(updates: dict, path: Path | None = None) -> dict:
@@ -78,7 +86,7 @@ def save(updates: dict, path: Path | None = None) -> dict:
         folder = str(updates["voice_folder"] or "").strip()
         if folder and not Path(folder).expanduser().is_dir():
             raise SettingsError("that folder does not exist")
-        data["voice_folder"] = folder or None
+        data["voice_folder"] = str(Path(folder).expanduser().resolve()) if folder else None
     write_atomic(path, json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     return load_config(path)
 

@@ -48,6 +48,12 @@ class SettingsTest(unittest.TestCase):
         self.assertIn('"has_key": true', shown)
         self.assertFalse(settings.set_key(""))
 
+    def test_an_unreadable_config_is_never_overwritten(self):
+        self.config_path.write_text('{"port": 7420, "allowed_logins": ["me@example.com"],}')     # a trailing comma
+        with self.assertRaises(settings.SettingsError):
+            settings.save({"language": "pt-BR"}, self.config_path)
+        self.assertIn("allowed_logins", self.config_path.read_text())
+
     def test_first_run_is_remembered(self):
         self.assertFalse(settings.first_run_done(self.folder))
         settings.apply_switches({"first_run_done": True})

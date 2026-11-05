@@ -43,7 +43,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
 
   async function change(updates, note) {
     try {
-      st.info = await api.saveSettings(updates);
+      st.info = { ...st.info, ...(await api.saveSettings(updates)) };   // keeps what the answer leaves out
       note.textContent = (st.info.notes || []).join(' ') || t('settings.saved');
     } catch (e) { note.textContent = String(e?.message || e); }
   }

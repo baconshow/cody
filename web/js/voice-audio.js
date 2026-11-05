@@ -54,9 +54,12 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
     return Math.min(1, Math.sqrt(sum / st.data.length) * AUDIO.gain);
   }
 
+  const running = () => st.ctx?.state === 'running';
+
   async function playMp3(bytes) {
     unlock();
     if (!st.ctx) throw new Error('no WebAudio');
+    if (!running()) throw new Error('sound locked until a tap');
     const buffer = await st.ctx.decodeAudioData(bytes);
     const source = st.ctx.createBufferSource();
     source.buffer = buffer;
@@ -111,15 +114,15 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
 
   const OUTPUT = {
     async elevenlabs(reply) {
-      if (!reply.alert && reply.seq === undefined) return false;
+      if (!reply.alert && reply.seq === undefined) return null;
       await playMp3(await (reply.alert ? api.voiceAlert(reply.alert) : api.voiceAudio(reply.seq)));
       return true;
     },
-    hosted: async () => false,                        // Cody's hosted voice is not offered yet
+    hosted: async () => null,                         // Cody's hosted voice is not offered yet
     device: (reply) => speakOnDevice(String(reply.text || '')),
     async sounds(reply) {
       unlock();
-      if (!st.ctx) return false;
+      if (!running()) return false;                   // locked until a tap: a sound would wait and pile up
       st.talking = true;
       try { await sounds.babble(String(reply.text || '')); } finally { st.talking = false; }
       return true;
@@ -131,19 +134,24 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
     state: () => st.ctx?.state ?? (Context ? 'suspended' : null),
     volume,
     chime,
+    // each output answers true (spoke), false (failed: the next one tries) or null (not for this message, like a
+    // text-only announcement for ElevenLabs): only a real failure of the first one tried is announced
     async speak(reply) {
-      const chain = order(await provider());
+      let first = null;
       let reason = null;
-      for (const out of chain) {
+      for (const out of order(await provider())) {
         let spoken = false;
-        try { spoken = await OUTPUT[out](reply); } catch (error) { reason = error?.message || String(error); }
+        try { spoken = await OUTPUT[out](reply); } catch (error) { spoken = false; reason = error?.message || String(error); }
+        if (spoken === null) continue;
+        first ??= out;
         if (spoken) {
-          if (out !== chain[0]) onFallback({ from: chain[0], to: out, reason });
+          if (out !== first) onFallback({ from: first, to: out, reason });
           return;
         }
       }
     },
-    play: (name) => (name ? sounds.play(name).catch(() => {}) : Promise.resolve()),
+    // a reaction sound; before the first tap the browser keeps audio locked, so it is skipped instead of queued
+    play: (name) => (name && running() ? sounds.play(name).catch(() => {}) : Promise.resolve()),
     silence() {
       sounds.stop();
       try { st.source?.stop(); } catch { /* already stopped */ }

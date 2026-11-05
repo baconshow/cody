@@ -81,9 +81,9 @@ class CommandsTest(unittest.TestCase):
         config = {"port": 7420}
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(launcher, "data_dir", return_value=Path(tmp)):
             with mock.patch.object(launcher, "server_running", return_value=False):
-                launcher.start_server(popen, config, opened.append, platform="linux")
+                launcher.start_server(popen, config, opened.append, platform="linux", sleep=lambda _s: None)
             with mock.patch.object(launcher, "server_running", return_value=True):
-                launcher.start_server(popen, config, opened.append, platform="linux")
+                launcher.start_server(popen, config, opened.append, platform="linux", sleep=lambda _s: None)
             popen.call_args.kwargs["stdout"].close()
         self.assertEqual(popen.call_count, 1)
         self.assertTrue(popen.call_args.kwargs["start_new_session"])

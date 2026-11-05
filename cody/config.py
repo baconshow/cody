@@ -76,7 +76,9 @@ def config_file() -> Path:
 
 
 def _folder(value) -> str | None:
-    return value if isinstance(value, str) and value.strip() and Path(value).expanduser().is_dir() else None
+    if not (isinstance(value, str) and value.strip() and Path(value).expanduser().is_dir()):
+        return None
+    return str(Path(value).expanduser().resolve())
 
 
 def _provider(value, voice) -> str:

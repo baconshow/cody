@@ -49,7 +49,7 @@ async function micState(nav) {
   try { return (await nav.permissions.query({ name: 'microphone' })).state; } catch { return null; }
 }
 
-function row(item, t, act) {
+function row(item, t, act, said) {
   const li = document.createElement('li');
   li.className = `status-row status-${item.state}`;
   const dot = Object.assign(document.createElement('span'), { className: 'status-dot' });
@@ -61,9 +61,10 @@ function row(item, t, act) {
   if (item.fix && item.state !== 'ok') body.append(Object.assign(document.createElement('p'), { className: 'status-fix', textContent: item.fix }));
   if (item.action) {
     const button = Object.assign(document.createElement('button'), { type: 'button', textContent: t(`status.do.${item.action}`) });
-    button.addEventListener('click', () => act(item.action, button));
+    button.addEventListener('click', () => act(item.action, button, item.id));
     body.append(button);
   }
+  if (said) body.append(Object.assign(document.createElement('p'), { className: 'status-fix', textContent: said }));
   li.append(dot, body);
   return li;
 }
@@ -77,20 +78,21 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
   const close = Object.assign(document.createElement('button'), { type: 'button', className: 'status-close', textContent: t('status.close') });
   panel.append(heading, list, close);
   document.body.append(chip, panel);
-  const st = { items: [], local: false, timer: 0 };
+  const st = { items: [], local: false, timer: 0, said: new Map() };   // said: an action's answer, by item
 
-  async function act(action, button) {
+  async function act(action, button, id) {
     button.disabled = true;
+    st.said.delete(id);
     try {
       if (action === 'sound') audio?.unlock();
       else if (action === 'mic') (await win.navigator.mediaDevices.getUserMedia({ audio: true })).getTracks().forEach((tr) => tr.stop());
       else if (action === 'network') win.location.hash = 'network';
       else {
         const done = await api.action(action);
-        if (done?.message) button.after(Object.assign(document.createElement('p'), { className: 'status-fix', textContent: done.message }));
+        if (done?.message) st.said.set(id, done.message);
       }
     } catch (e) {
-      button.after(Object.assign(document.createElement('p'), { className: 'status-fix', textContent: String(e?.message || e) }));
+      st.said.set(id, String(e?.message || e));
     }
     setTimeout(refresh, 600);
   }
@@ -101,7 +103,7 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     chip.textContent = summary(st.items, t);
     chip.setAttribute('aria-label', `${t('status.title')}: ${chip.textContent}`);
     if (panel.hidden) return;
-    list.replaceChildren(...st.items.map((it) => row(st.local || !['voice', 'hooks'].includes(it.action) ? it : { ...it, action: null }, t, act)));
+    list.replaceChildren(...st.items.map((it) => row(st.local || !['voice', 'hooks'].includes(it.action) ? it : { ...it, action: null }, t, act, st.said.get(it.id))));
   }
 
   async function refresh() {

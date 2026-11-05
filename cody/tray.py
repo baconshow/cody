@@ -50,8 +50,7 @@ def start_voice(config: dict, opener=launcher.open_voice_window) -> str | None:
     """Opens the voice session unless one is already up. Returns what went wrong, if anything."""
     if launcher.voice_session_running():
         return None
-    folder = Path(config["voice_folder"]) if config.get("voice_folder") else Path.home()
-    return opener(folder)
+    return opener(launcher.voice_folder(None, config, Path.home()))
 
 
 def actions(config: dict, stop, open_url=webbrowser.open) -> dict:

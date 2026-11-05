@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 VALUE = "Cody"
@@ -18,7 +19,13 @@ def _registry():
 
 
 def command(exe: str | None = None) -> str:
-    return f'"{exe or sys.executable}" --background'
+    """The Run value: the app itself, or, from a checkout, pythonw (no console) with cody.py's tray mode."""
+    if exe or getattr(sys, "frozen", False):
+        return f'"{exe or sys.executable}" --background'
+    python = Path(sys.executable)
+    windowless = python.with_name("pythonw.exe")
+    script = Path(__file__).resolve().parent.parent / "cody.py"
+    return f'"{windowless if windowless.is_file() else python}" "{script}" --tray --background'
 
 
 def enabled(registry=None) -> bool:

@@ -6,7 +6,7 @@ argument-hint: "[folder]"
 Open Cody's voice session (a Claude Code session that listens to the mascot) in a new terminal window:
 
 ```
-python3 "${CLAUDE_PLUGIN_ROOT}/cody.py" --voice-window $ARGUMENTS
+python3 "${CLAUDE_PLUGIN_ROOT}/cody.py" --voice-window "$ARGUMENTS"
 ```
 
 If `python3` is not found, try `python`, then `py -3`. Then tell the user, in one or two sentences:

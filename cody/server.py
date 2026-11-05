@@ -147,6 +147,7 @@ class App:
             opened = network.login()["open"]
         else:
             self.add_hosts(network.serve(self.port)["hosts"])
+        doctor.forget_network()
         self.forget_status()
         return {**self.network_state(), "open": opened}
 
@@ -171,8 +172,7 @@ class App:
         if what == "voice":
             if launcher.voice_session_running():
                 return {"ok": True, "message": ""}
-            folder = Path(self.config["voice_folder"]) if self.config.get("voice_folder") else Path.home()
-            problem = launcher.open_voice_window(folder)
+            problem = launcher.open_voice_window(launcher.voice_folder(None, self.config, Path.home()))
             result = {"ok": problem is None, "message": problem or ""}
         elif what == "hooks":
             result = {"ok": True, "message": hooks.install()}
@@ -401,7 +401,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             if path == "/api/settings":
-                self._json(200, self.app.change_settings(body))
+                self._json(200, {**self.app.change_settings(body), "local": True})
             elif path == "/api/network":
                 self._json(200, self.app.network_step(str(body.get("step") or "")))
             elif path == "/api/settings/key":

@@ -64,12 +64,12 @@ def voice_arguments(claude: str, mcp_config: Path) -> list[str]:
             "--allowedTools", *tools]
 
 
-def voice_folder(argument: str | None, config: dict | None = None) -> Path:
-    """The folder Claude works in: the one given, else the configured one, else the current folder."""
+def voice_folder(argument: str | None, config: dict | None = None, default: Path | None = None) -> Path:
+    """The folder Claude works in: the one given, else the configured one, else `default` (the current folder)."""
     for candidate in (argument, (config or {}).get("voice_folder")):
         if candidate and Path(candidate).expanduser().is_dir():
             return Path(candidate).expanduser().resolve()
-    return Path.cwd()
+    return default or Path.cwd()
 
 
 def run_voice(folder: Path, run=subprocess.call, which=shutil.which, env=None) -> int:
@@ -129,10 +129,16 @@ def server_running(port: int, connect=None) -> bool:
     return True
 
 
-def start_server(popen=subprocess.Popen, config: dict | None = None, opener=None, platform=sys.platform) -> str:
+START_WAIT_S = 10
+
+
+def start_server(popen=subprocess.Popen, config: dict | None = None, opener=None, platform=sys.platform,
+                 sleep=None) -> str:
     """Starts the mascot server in the background (output to server.log in the data folder) and opens the mascot."""
+    import time
     import webbrowser
     from cody.config import load_config
+    sleep = sleep or time.sleep
     config = config or load_config()
     url = f"http://127.0.0.1:{config['port']}/"
     if not server_running(config["port"]):
@@ -141,5 +147,9 @@ def start_server(popen=subprocess.Popen, config: dict | None = None, opener=None
         log = (folder / "server.log").open("ab")
         detach = {"creationflags": 0x08000000 | 0x00000200} if platform == "win32" else {"start_new_session": True}
         popen(cli_command(), stdin=subprocess.DEVNULL, stdout=log, stderr=log, **detach)
+        for _ in range(int(START_WAIT_S / 0.25)):          # the page only opens once the server answers
+            if server_running(config["port"]):
+                break
+            sleep(0.25)
     (opener or webbrowser.open)(url)
     return f"Cody is running at {url}"

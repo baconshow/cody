@@ -107,3 +107,5 @@ class FailureEventTest(unittest.TestCase):
         ok = line.replace('"is_error": true', '"is_error": false')
         self.assertEqual(tool_events(ok), [])
         self.assertNotIn("secret", json.dumps(tool_events(line)))
+        said_no = line.replace("secret output", "The user doesn't want to proceed with this tool use.")
+        self.assertEqual(tool_events(said_no), [])

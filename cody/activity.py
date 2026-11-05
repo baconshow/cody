@@ -71,6 +71,7 @@ def parse_ts(text) -> float | None:
     return value.timestamp() if value.tzinfo else None
 
 
+REJECTED = ("doesn't want to proceed", "rejected", "denied")   # you said no: that is not a failure
 FAILED = "!failed"            # the event for a tool result marked as an error (a command or a test failed)
 
 
@@ -85,7 +86,8 @@ def failure_events(line: str) -> list[dict]:
     content = (data.get("message") or {}).get("content") if isinstance(data, dict) else None
     if not isinstance(content, list):
         return []
-    failed = any(isinstance(b, dict) and b.get("type") == "tool_result" and b.get("is_error") is True for b in content)
+    failed = any(isinstance(b, dict) and b.get("type") == "tool_result" and b.get("is_error") is True
+                 and not any(said in str(b.get("content")) for said in REJECTED) for b in content)
     return [{"tool": FAILED, "code": False}] if failed else []
 
 

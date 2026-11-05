@@ -65,13 +65,16 @@ class DoctorTest(unittest.TestCase):
         self.assertIn("há 30 s", network[1]["say"])
 
     def test_elevenlabs_reason_is_shown(self):
-        config = {**CONFIG, "voice": {"voice_id": "abcdefghij", "model": "eleven_flash_v2_5"}}
+        config = {**CONFIG, "voice": {"voice_id": "abcdefghij", "model": "eleven_flash_v2_5"},
+                  "voice_provider": "elevenlabs"}
         text = doctor.TEXT["en"]
         self.assertEqual(doctor.check_provider(config, text, key=lambda: None)["state"], "warn")
         doctor.note_voice_error("payment pending")
         failed = doctor.check_provider(config, text, key=lambda: "k")
         self.assertEqual(failed["state"], "fail")
         self.assertIn("ElevenLabs: payment pending", failed["say"])
+        moved_on = doctor.check_provider({**config, "voice_provider": "sounds"}, text, key=lambda: "k")
+        self.assertEqual((moved_on["state"], moved_on["say"]), ("ok", text["provider.sounds"]))   # not red anymore
         doctor.note_voice_error(None)
         self.assertEqual(doctor.check_provider(config, text, key=lambda: "k")["state"], "ok")
 

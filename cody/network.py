@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import sys
 import threading
+from pathlib import Path
 
 from cody import setup
 
@@ -43,7 +44,7 @@ def _status(run) -> dict | None:
 
 def state(port: int, run=subprocess.run, which=shutil.which) -> dict:
     """Where the user stands. Each key is a plain fact the screen can show."""
-    installed = which("tailscale") is not None
+    installed = which("tailscale") is not None or Path(setup.tailscale_exe(which)).is_file()
     status = _status(run) if installed else None
     backend = (status or {}).get("BackendState")
     tailnet = (status or {}).get("CurrentTailnet") or {}
@@ -75,7 +76,7 @@ def next_step(facts: dict) -> str:
 def install(popen=subprocess.Popen, which=shutil.which, platform=sys.platform) -> dict:
     """Starts the official installer. Returns {"open": url} when the user has to do it in the browser."""
     if platform == "win32" and which("winget"):
-        popen(WINGET, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        popen(WINGET, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **setup.NO_WINDOW)
         return {"started": True, "open": None}
     return {"started": False, "open": DOWNLOAD_URL}
 
@@ -84,8 +85,8 @@ def login(popen=subprocess.Popen, wait: float = LOGIN_WAIT_S) -> dict:
     """Runs `tailscale login` in the background and returns the sign-in link it prints (or None after `wait`). A
     reader thread keeps draining the output while the process waits for the sign-in, so it never blocks."""
     try:
-        process = popen(["tailscale", "login"], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT, text=True)
+        process = popen([setup.tailscale_exe(), "login"], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT, text=True, **setup.NO_WINDOW)
     except OSError:
         return {"open": None}
     found: dict = {}

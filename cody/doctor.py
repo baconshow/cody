@@ -45,6 +45,9 @@ TEXT = {
         "phone": "Phone", "phone.ok": "Connected {ago} ago.", "phone.off": "No phone has opened Cody recently.",
         "phone.fix": "Open the private address on your phone (it needs the Tailscale app too).",
         "provider": "Voice", "provider.device": "The phone's own voice.",
+        "provider.sounds": "Cody's sounds (no words).",
+        "provider.hosted": "Cody's hosted voice is not offered yet: the phone's own voice is used.",
+        "provider.hosted.fix": "Settings > Voice: pick another voice.",
         "provider.eleven": "ElevenLabs.", "provider.nokey": "ElevenLabs is chosen, but there is no key on this "
         "computer: the phone's own voice is used.", "provider.nokey.fix": "Settings > Voice: paste your key.",
         "provider.error": "ElevenLabs: {reason}. The phone's own voice is used meanwhile.",
@@ -76,6 +79,9 @@ TEXT = {
         "phone": "Celular", "phone.ok": "Conectado há {ago}.", "phone.off": "Nenhum celular abriu o Cody há pouco.",
         "phone.fix": "Abra o endereço privado no celular (ele também precisa do app do Tailscale).",
         "provider": "Voz", "provider.device": "A voz do próprio celular.",
+        "provider.sounds": "Os sons do Cody (sem palavras).",
+        "provider.hosted": "A voz hospedada do Cody ainda não está disponível: o celular usa a própria voz.",
+        "provider.hosted.fix": "Configurações > Voz: escolha outra voz.",
         "provider.eleven": "ElevenLabs.", "provider.nokey": "O ElevenLabs foi escolhido, mas não há chave neste "
         "computador: o celular usa a própria voz.", "provider.nokey.fix": "Configurações > Voz: cole sua chave.",
         "provider.error": "ElevenLabs: {reason}. Enquanto isso, o celular usa a própria voz.",
@@ -169,13 +175,31 @@ def check_hooks(text: dict, language: str, settings_path: Path | None = None, cl
     return item("hooks", "ok", text["hooks"], say)
 
 
+NETWORK_CACHE_S = 60
+_network_seen: dict = {}
+
+
+def _tailscale_facts(port: int, run, clock) -> tuple[dict | None, list[str]]:
+    """Tailscale's identity and what it serves for Cody, asked at most once a minute (forget_network() to redo)."""
+    cached = _network_seen.get(port)
+    if cached and clock() - cached[0] < NETWORK_CACHE_S and run is subprocess.run:
+        return cached[1], cached[2]
+    me = setup.identity(run)
+    hosts = setup.served(setup.serve_status(run), port) if me else []
+    _network_seen[port] = (clock(), me, hosts)
+    return me, hosts
+
+
+def forget_network() -> None:
+    _network_seen.clear()
+
+
 def check_network(config: dict, text: dict, language: str, run=subprocess.run, clock=time.time,
                   folder: Path | None = None) -> list[dict]:
-    me = setup.identity(run)
+    me, hosts = _tailscale_facts(config["port"], run, clock)
     if not me:
         network = item("tailscale", "warn", text["tailscale"], text["tailscale.off"], text["tailscale.fix"], "network")
     else:
-        hosts = setup.served(setup.serve_status(run), config["port"])
         network = (item("tailscale", "ok", text["tailscale"], text["tailscale.ok"].format(host=hosts[0])) if hosts
                    else item("tailscale", "warn", text["tailscale"], text["tailscale.unshared"],
                              text["tailscale.unshared.fix"], "network"))
@@ -190,7 +214,12 @@ def check_network(config: dict, text: dict, language: str, run=subprocess.run, c
 
 def check_provider(config: dict, text: dict, folder: Path | None = None, key=None) -> dict:
     from cody import voice
-    if not config.get("voice"):
+    chosen = config.get("voice_provider") or ("elevenlabs" if config.get("voice") else "device")
+    if chosen == "sounds":
+        return item("provider", "ok", text["provider"], text["provider.sounds"])
+    if chosen == "hosted":
+        return item("provider", "warn", text["provider"], text["provider.hosted"], text["provider.hosted.fix"])
+    if chosen == "device" or not config.get("voice"):
         return item("provider", "ok", text["provider"], text["provider.device"])
     if not (key or voice._api_key)():
         return item("provider", "warn", text["provider"], text["provider.nokey"], text["provider.nokey.fix"])
