@@ -50,6 +50,9 @@ over HTTPS. Check `tailscale serve status`: no Funnel.
 2. Each provider in Settings > Voice: ElevenLabs (with a working key, the Test button says it works), the device's
    voice, Cody's sounds (chirps while the caption shows; the mouth moves with them).
 3. Reload the page: sound is locked again until a tap; the Status screen says so and its button unlocks it.
+4. Shake the phone (on an iPhone, tap first so the motion sensor is allowed): Cody stretches his arms to the screen
+   edges and opens his eyes wide, with the startle sound. Stop shaking: `&#$*%@!` comes out of his mouth one symbol
+   at a time for about 2 seconds, then the mouth is back to normal. With "reduce motion" on, neither happens.
 
 ## 6. Scenes with real work
 
