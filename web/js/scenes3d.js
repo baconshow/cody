@@ -26,7 +26,7 @@ function signTexture(THREE, lines, ink) {
   g.fillStyle = '#0f1a14';
   g.fillRect(0, 0, 256, 160);
   g.fillStyle = ink || '#7dff9b';
-  g.font = '28px "Jersey 10", monospace';
+  g.font = 'bold 26px ui-monospace, Consolas, monospace';
   lines.slice(0, 4).forEach((line, i) => g.fillText(String(line).slice(0, 18), 14, 42 + i * 38));
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;

@@ -7,8 +7,8 @@ Reversible choices made while preparing the launch, with the reason. Newest last
 three.js 0.186.1 (`build/three.module.js`, `build/three.core.js` and the two examples the mascot uses) lives in
 `web/vendor/three`, with its MIT license, in the same folder layout as the npm package, so the importmap only changes
 its base URL. The package has no minified build for this version, so the files are kept as published (about 2 MB).
-The block font, Jersey 10 (SIL Open Font License), lives in `web/fonts` as the two woff2 subsets Google Fonts serves,
-declared with `@font-face` in `style.css`. The Content-Security-Policy now allows only `'self'` (plus the importmap
+The font lives in `web/fonts` as the two woff2 subsets Google Fonts serves (latin and latin-ext), declared with
+`@font-face` in `style.css`. The Content-Security-Policy now allows only `'self'` (plus the importmap
 hash): the page loads nothing from outside and works without internet.
 
 ## 2026-11-05 · Lint at 140 columns
@@ -129,3 +129,10 @@ scratch; the reference figures were used only as a list of accessory ideas.
 - `tailscale login` output is read by a thread with a timeout, so a silent process cannot hold a request forever.
 - A Tailscale address added with no known login (a tagged device) is logged as open to the whole tailnet.
 - Known and unchanged: another user account on the same computer can load the page from 127.0.0.1.
+
+## 2026-11-05 · Varela Round instead of the pixel font
+
+The maintainer asked for Varela Round (SIL Open Font License, license in `web/fonts/OFL.txt`): the app looks modern
+and the 8-bit pixel font no longer fits. It ships in `web/fonts` like the old one (no font service at run time).
+Varela Round is much wider than the condensed pixel font, so every size in the mascot's font went to 80%. The debug
+scene's terminal sign uses the system monospace font.

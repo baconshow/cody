@@ -63,7 +63,7 @@ class ServerTest(unittest.TestCase):
     def test_vendored_three_and_font_are_served(self):
         for path, kind in (("/web/vendor/three/build/three.module.js", "text/javascript"),
                            ("/web/vendor/three/examples/jsm/geometries/RoundedBoxGeometry.js", "text/javascript"),
-                           ("/web/fonts/jersey10-latin.woff2", "font/woff2")):
+                           ("/web/fonts/varelaround-latin.woff2", "font/woff2")):
             response, _ = self.request("GET", path)
             self.assertEqual(response.status, 200, path)
             self.assertTrue(response.getheader("Content-Type").startswith(kind), path)

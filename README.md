@@ -337,7 +337,7 @@ mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool)
   20 a minute.
 - The voice channel listens on `127.0.0.1` only and needs a secret that lives in a file readable only by you.
 - Outside connections: your browser's speech service, and ElevenLabs only if you configure a voice. three.js and the
-  font (Jersey 10, SIL Open Font License) ship with Cody, so the page loads no CDN and works without internet.
+  font (Varela Round, SIL Open Font License) ship with Cody, so the page loads no CDN and works without internet.
 
 ## Tests
 
