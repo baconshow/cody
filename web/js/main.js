@@ -36,6 +36,7 @@ import { createTimerPanel } from './timer-panel.js';
 import { createAlerts } from './alerts.js';
 import { createStatus } from './status.js';
 import { createSettings } from './settings.js';
+import { createNetwork } from './network.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -464,6 +465,7 @@ async function start() {
     wireAlerts(voice, cycle, loop.request);
     createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request });
     createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m) }).firstRun();
+    createNetwork({ api, t });
   }
   faces.forEach(measureFace);
   loop.request();

@@ -77,5 +77,7 @@ export const api = {
   saveKey: (key) => call('POST', '/api/settings/key', { key }),
   testVoice: () => call('POST', '/api/settings/test', {}, { timeout: 15000 }),
   qr: (which) => bytes(`/api/qr?for=${encodeURIComponent(which)}`),
+  network: () => call('GET', '/api/network', undefined, { timeout: 20000 }),
+  networkStep: (step) => call('POST', '/api/network', { step }, { timeout: 40000 }),
   hasToken: () => TOKEN.length > 0,
 };

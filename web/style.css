@@ -198,3 +198,9 @@ body.with-gallery { overflow-y: auto; }
 .first-run .settings-qr { margin: 8px auto; }
 .settings-phone code { overflow-wrap: anywhere; }
 .settings-panel .settings-close { position: fixed; right: 16px; bottom: 16px; }
+
+/* Create your private network (network.js) */
+.network-steps { padding-left: 24px; color: var(--mascot-ink-2); }
+.network-steps .done { color: var(--status-ok); }
+.network-steps .now { color: var(--mascot-ink); }
+.network-say { font-size: 22px; }

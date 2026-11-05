@@ -146,6 +146,14 @@ Cody's sounds), the ElevenLabs key with a **Test** button, privacy, the hooks an
 
 ## Put it on your phone
 
+**The easy way:** Settings > **Create your private network**. Cody takes you through it without a terminal: it
+installs Tailscale if it is missing (`winget` on Windows, the official download page elsewhere), opens the sign-in
+page, sends you to the Tailscale admin page if MagicDNS or HTTPS certificates are off, shares itself with
+`tailscale serve`, and shows two QR codes: the Tailscale app for your phone, and Cody's private address. Only your
+own devices can see Cody. Your phone needs the Tailscale app too, signed in to the same account.
+
+**By hand:**
+
 The server only listens on `127.0.0.1`. To reach it from your phone, Cody uses Tailscale **serve**, which keeps it
 inside your private tailnet. Never use `tailscale funnel`: that would put your mascot (and its voice channel into
 Claude) on the public internet. Cody refuses Funnel requests and never trusts a Funnel address.

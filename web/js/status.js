@@ -84,7 +84,7 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     try {
       if (action === 'sound') audio?.unlock();
       else if (action === 'mic') (await win.navigator.mediaDevices.getUserMedia({ audio: true })).getTracks().forEach((tr) => tr.stop());
-      else if (action === 'network') win.location.hash = 'settings';
+      else if (action === 'network') win.location.hash = 'network';
       else {
         const done = await api.action(action);
         if (done?.message) button.after(Object.assign(document.createElement('p'), { className: 'status-fix', textContent: done.message }));

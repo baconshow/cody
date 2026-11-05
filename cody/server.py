@@ -34,7 +34,7 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, doctor, hooks, launcher, page, pointer, qr, settings, setup, timers, voice
+from cody import cursor, doctor, hooks, launcher, network, page, pointer, qr, settings, setup, timers, voice
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
@@ -50,7 +50,8 @@ VOICE_MESSAGES_PER_MINUTE = 20
 STATUS_CACHE_S = 10
 PHONE_NOTE_S = 30
 ACTIONS = ("voice", "hooks")
-SETTINGS_POSTS = ("/api/settings", "/api/settings/key", "/api/settings/test")
+SETTINGS_POSTS = ("/api/settings", "/api/settings/key", "/api/settings/test", "/api/network")
+NETWORK_STEPS = ("install", "login", "serve")
 
 
 class RateLimit:
@@ -124,6 +125,40 @@ class App:
         notes = settings.apply_switches(body)
         self.forget_status()
         return {**settings.public(self.config), "notes": notes}
+
+    def network_state(self) -> dict:
+        facts = network.state(self.port)
+        if facts["served"]:
+            self.add_hosts(facts["served"])
+        return {**facts, "step": network.next_step(facts), "admin_dns": network.ADMIN_DNS_URL,
+                "download": network.DOWNLOAD_URL}
+
+    def network_step(self, step: str) -> dict:
+        """Runs one step of "Create your private network" and returns the new state (plus a page to open)."""
+        if step not in NETWORK_STEPS:
+            raise settings.SettingsError("unknown step")
+        opened = None
+        if step == "install":
+            opened = network.install()["open"]
+        elif step == "login":
+            opened = network.login()["open"]
+        else:
+            self.add_hosts(network.serve(self.port)["hosts"])
+        self.forget_status()
+        return {**self.network_state(), "open": opened}
+
+    def add_hosts(self, hosts: list[str]) -> None:
+        """A new Tailscale address for Cody: allowed from now on, for your own login only."""
+        new = [h for h in hosts if h not in self.config["extra_hosts"]]
+        if not new:
+            return
+        self.config["extra_hosts"] = [*self.config["extra_hosts"], *new]
+        self.hosts |= set(new)
+        self.origins |= {f"https://{h}" for h in new} | {f"http://{h}" for h in new}
+        if not self.config["allowed_logins"]:
+            login = network.identity_login()
+            if login:
+                self.config["allowed_logins"] = [login]
 
     def act(self, what: str) -> dict:
         """A button on the Status screen (from this computer only)."""
@@ -322,6 +357,8 @@ class Handler(BaseHTTPRequestHandler):
             "/api/status": lambda: self._json(200, {"items": self.app.status(param("lang")), "local": self._local()}),
             "/api/settings": lambda: self._json(200, {**settings.public(self.app.config), "local": self._local()}),
             "/api/qr": lambda: self._qr(param("for")),
+            "/api/network": lambda: (self._json(200, self.app.network_state()) if self._local()
+                                     else self._error(403, "only from the computer itself")),
             "/api/activity": lambda: self._activity(param("cursor")),
             "/api/cursor": lambda: self._json(200, pointer.pointed() or cursor.position() or {"x": None, "y": None}),
             "/api/timers": lambda: self._json(200, timers.for_phone(language=self.app.config["language"])),
@@ -350,6 +387,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path == "/api/settings":
                 self._json(200, self.app.change_settings(body))
+            elif path == "/api/network":
+                self._json(200, self.app.network_step(str(body.get("step") or "")))
             elif path == "/api/settings/key":
                 self._json(200, {"has_key": settings.set_key(str(body.get("key") or ""))})
             else:
