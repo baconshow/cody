@@ -19,7 +19,9 @@ and test tables go a little over, so the limit is 140 instead of reflowing them.
 ## 2026-11-05 · Coverage floors
 
 CI fails below 65% line coverage for Python (72% today on Linux; `overlay.py` is Windows-only and reads 0% elsewhere)
-and below 90% for the JavaScript tests (96% today).
+and below 85% for the JavaScript tests. The JavaScript floor started at 90% and was lowered to 85% when the Status,
+Settings and network screens and the audio fallback arrived: their decisions are pure functions with tests, but the
+DOM and WebAudio wiring cannot run in Node, so it is checked with headless Chromium captures instead (88% today).
 
 ## 2026-11-05 · Windows app: PyInstaller folder build and Inno Setup
 
