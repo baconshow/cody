@@ -51,6 +51,23 @@ class ServerTest(unittest.TestCase):
             self.assertIn(script_hash, csp)
         self.assertIn("frame-ancestors 'none'", csp)
 
+    def test_page_loads_nothing_from_outside(self):
+        # no CDN at run time: three.js and the font ship in web/, so the page works offline
+        response, body = self.request("GET", "/")
+        csp = response.getheader("Content-Security-Policy")
+        self.assertNotIn("http", csp)
+        for path in ("index.html", "style.css"):
+            text = (page.WEB_DIR / path).read_text(encoding="utf-8")
+            self.assertNotRegex(text, r"https?://(?!127\.0\.0\.1)[a-z]", path)
+
+    def test_vendored_three_and_font_are_served(self):
+        for path, kind in (("/web/vendor/three/build/three.module.js", "text/javascript"),
+                           ("/web/vendor/three/examples/jsm/geometries/RoundedBoxGeometry.js", "text/javascript"),
+                           ("/web/fonts/jersey10-latin.woff2", "font/woff2")):
+            response, _ = self.request("GET", path)
+            self.assertEqual(response.status, 200, path)
+            self.assertTrue(response.getheader("Content-Type").startswith(kind), path)
+
     def test_meta_csp_hash_matches_the_importmap(self):
         _, body = self.request("GET", "/")
         meta = re.search(rb'http-equiv="Content-Security-Policy" content="([^"]+)"', body)

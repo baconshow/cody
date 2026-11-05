@@ -422,7 +422,7 @@ function createSensorPanel() {
   };
 }
 
-// the 3D mascot; without three.js (offline, esm.sh down), the 2D drawing
+// the 3D mascot; without three.js (no WebGL, or the module failed to load), the 2D drawing
 async function load3d() {
   try {
     return (await import('./scene3d.js')).createScene3d;

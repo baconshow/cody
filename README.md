@@ -215,7 +215,7 @@ mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool)
   save facts, look at the screen and send the mini Cody (`cody/overlay.py`, plain tkinter) to point.
 - **Data folder**: `%LOCALAPPDATA%\cody` on Windows, `~/.local/state/cody` elsewhere. Small JSON files shared by
   the server, the channel and the hooks: timers, memory, hook events. Readable only by you.
-- **Mascot**: three.js (loaded from esm.sh), with a pixel-art 2D fallback. The face motion (springs, blinks, glances)
+- **Mascot**: three.js (bundled in `web/vendor/three`, MIT), with a pixel-art 2D fallback. The face motion (springs, blinks, glances)
   is ported from the face animator of the public-domain Bluey app.
 - **Cursor follow**: on Windows the mascot looks at your mouse pointer. Other systems: PRs welcome.
 
@@ -237,8 +237,8 @@ mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool)
   and, without `allowed_logins`, every device in your tailnet. Voice messages are capped at
   20 a minute.
 - The voice channel listens on `127.0.0.1` only and needs a secret that lives in a file readable only by you.
-- Outside connections: three.js from esm.sh and a font from Google Fonts (loaded by the page), your browser's speech
-  service, and ElevenLabs only if you configure a voice.
+- Outside connections: your browser's speech service, and ElevenLabs only if you configure a voice. three.js and the
+  font (Jersey 10, SIL Open Font License) ship with Cody, so the page loads no CDN and works without internet.
 
 ## Tests
 
