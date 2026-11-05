@@ -73,6 +73,7 @@ export const api = {
   status: (lang) => call('GET', `/api/status?lang=${encodeURIComponent(lang)}`, undefined, { timeout: 15000 }),
   action: (what) => call('POST', '/api/action', { do: what }, { timeout: 15000 }),
   settings: () => call('GET', '/api/settings'),
+  version: () => call('GET', '/api/version', undefined, { timeout: 12000 }),
   saveSettings: (updates) => call('POST', '/api/settings', updates, { timeout: 15000 }),
   saveKey: (key) => call('POST', '/api/settings/key', { key }),
   testVoice: () => call('POST', '/api/settings/test', {}, { timeout: 15000 }),

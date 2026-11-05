@@ -123,6 +123,10 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     const close = el('button', { type: 'button', className: 'settings-close', textContent: t('status.close') });
     close.addEventListener('click', closePanel);
     const body = [el('h2', { textContent: t('settings.title') }), languageField(note)];
+    try {
+      const v = await api.version();
+      body.push(el('p', { className: 'settings-privacy', textContent: v.update ? t('settings.version.new', { version: v.version, latest: v.latest }) : t('settings.version', { version: v.version }) }));
+    } catch { /* the version line is a nicety */ }
     if (info?.local) {
       const again = el('button', { type: 'button', textContent: t('settings.firstRun') });
       again.addEventListener('click', () => firstRun(true));

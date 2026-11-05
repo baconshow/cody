@@ -34,7 +34,7 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, doctor, hooks, launcher, network, page, pointer, qr, settings, setup, timers, voice
+from cody import cursor, doctor, hooks, launcher, network, page, pointer, qr, settings, setup, timers, updates, voice
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
@@ -357,6 +357,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/status": lambda: self._json(200, {"items": self.app.status(param("lang")), "local": self._local()}),
             "/api/settings": lambda: self._json(200, {**settings.public(self.app.config), "local": self._local()}),
             "/api/qr": lambda: self._qr(param("for")),
+            "/api/version": lambda: self._json(200, updates.status(self.app.config["update_check"])),
             "/api/network": lambda: (self._json(200, self.app.network_state()) if self._local()
                                      else self._error(403, "only from the computer itself")),
             "/api/activity": lambda: self._activity(param("cursor")),

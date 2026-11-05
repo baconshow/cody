@@ -11,3 +11,11 @@ Things only the maintainer can do. Newest last.
       it, the signing step goes after `iscc` in `.github/workflows/windows-app.yml`.
 - [ ] **Attach `CodySetup.exe` to the release.** The `Windows app` workflow uploads it as a build artifact on every
       push and tag; download it from the run of the release tag and attach it to the GitHub release.
+- [ ] **Turn on GitHub Pages** for the landing page: repository Settings > Pages > Source: "GitHub Actions". The
+      `Landing page` workflow then publishes `site/` on every push to `main` that touches it.
+- [ ] **Run `docs/MANUAL-TESTS.md`** on the Windows PC and the Android phone before the release.
+- [ ] **Merge the `launch` pull request**, tag `v1.2.0`, attach `CodySetup.exe` (from the tag's `Windows app` run) to
+      the release, and write the release notes from `CHANGELOG.md`.
+- [ ] **Post on Reddit** from `docs/launch/reddit.md` (attach `docs/media/cody-scenes.gif`, or record a short video
+      of the real thing: it will be better than the headless captures).
+- [ ] **ElevenLabs payment** (pending): only needed for the ElevenLabs voice and for the hosted voice (P1.6).

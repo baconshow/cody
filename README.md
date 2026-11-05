@@ -13,6 +13,8 @@ It also does the desk-buddy things: **timers and reminders** that ring on the ph
 how you like things, a **mini Cody that flies across your computer screen** to point at the button you asked about,
 and a **heads-up** when one of your Claude Code sessions finishes a long task or is waiting for your permission.
 
+![Cody at work: a monitor full of code, a thinking bubble, a bug with a DEBUG MODE sign, confetti, coffee and a nightcap](docs/media/cody-scenes.gif)
+
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are
 > trademarks of Anthropic, PBC. Cody is fan art. Not related to Sourcegraph's Cody either.
 
@@ -316,7 +318,9 @@ mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool)
 
 ## Privacy and security
 
-- No telemetry. Cody never sends anything to its author. Timers, memory and hook events stay in the data folder on
+- No telemetry. Cody never sends anything to its author (the full list of what goes where is in
+  [PRIVACY.md](PRIVACY.md)). The update check is off by default; on, it asks GitHub once a day for the latest
+  version number. Timers, memory and hook events stay in the data folder on
   your computer. What does leave it, as part of using Claude and the voice you chose: the saved facts reach Claude
   with the first thing you say in each voice session, and with an ElevenLabs voice the timer labels are spoken by
   ElevenLabs when they ring.
@@ -346,6 +350,10 @@ node --test "tests/js/*.test.mjs"
 
 Handy for tinkering: `?lang=pt-BR`, `?visual=2d`, `?gallery=1` (all moods side by side), `?mood=sleepy`,
 `?prop=keyboard`, `?grab=1`, `?sensor=1` (shows the accelerometer readings).
+
+## More
+
+[CHANGELOG](CHANGELOG.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Manual tests](docs/MANUAL-TESTS.md)
 
 ## License
 
