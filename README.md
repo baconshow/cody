@@ -45,7 +45,24 @@ credits roll over for up to two months. Only what the mascot says out loud is se
 replies and its "can I run a command?" questions), never your question or your files. Without a voice configured,
 nothing goes to ElevenLabs at all. Synthesis is capped at 20 replies a minute, so a leak can't drain your credits.
 
-## Quick start
+## Windows app
+
+Download **CodySetup.exe** from the [latest release](https://github.com/baconshow/cody/releases/latest) and run it.
+No Python needed, no admin rights: it installs for your user only.
+
+- Cody lives in the notification area (next to the clock). Its menu: **Open Cody**, **Status**, **Start voice
+  session**, **Settings**, **Start with Windows** and **Quit**.
+- Opening Cody starts everything: the mascot server, the mascot in your browser and the voice session (a terminal
+  window with Claude Code; confirm the development channel there once, see [Talk to it](#talk-to-it-voice)). You
+  never start two terminals by hand. Started with Windows, it stays quiet in the tray until you open it.
+- **Windows SmartScreen will warn you** the first time ("Windows protected your PC"), because the installer is not
+  signed with a paid code-signing certificate yet. Click **More info**, then **Run anyway**. The installer is built
+  by GitHub Actions from this repository ([`packaging/`](packaging), workflow `Windows app`); you can check the
+  build log of any release.
+- Uninstalling (Settings, Apps) also takes Cody's hooks out of Claude Code's settings. Your timers and memory stay
+  in `%LOCALAPPDATA%\cody` until you delete that folder.
+
+## Quick start (from source, any system)
 
 You need **Python 3.10+** and **Claude Code**. Nothing to `pip install`: the server uses only the standard library.
 
@@ -68,7 +85,8 @@ That opens the mascot at `http://127.0.0.1:7420`. Use Claude Code as usual and w
 A "no" is remembered. `python cody.py --setup` asks again; `--no-setup` skips all of it. The language follows the
 computer's (Portuguese or English) unless you set it.
 
-Nothing else to configure. To change something, copy `config.example.json` to `config.json` and edit it:
+Nothing else to configure. To change something, copy `config.example.json` to `config.json` and edit it (the
+Windows app keeps its `config.json` in `%LOCALAPPDATA%\cody`):
 
 | Key | Default | What it does |
 |---|---|---|
@@ -77,6 +95,7 @@ Nothing else to configure. To change something, copy `config.example.json` to `c
 | `extra_hosts` | found by itself | More host names allowed besides localhost (Tailscale addresses that forward to Cody are found at start) |
 | `allowed_logins` | your own login | The Tailscale logins that may use it from the phone |
 | `voice` | `null` | Optional ElevenLabs voice: `{"voice_id": "...", "model": "eleven_flash_v2_5"}` |
+| `voice_folder` | current folder | Folder the voice session works in (the Windows app's default is your home folder) |
 
 ## Put it on your phone
 
@@ -104,12 +123,10 @@ Voice uses Claude Code [channels](https://code.claude.com/docs/en/channels), a r
 you sign in to Claude Code with your claude.ai account (Pro or Max) or a Console API key. On Team and Enterprise
 plans an admin has to enable them first.
 
-1. Start the voice session in the folder you want Claude to work in:
-   ```powershell
-   .\scripts\voice.ps1            # Windows
-   ```
+1. Start the voice session in the folder you want Claude to work in. In the Windows app: the tray menu's **Start
+   voice session** (it opens in your home folder, or in `voice_folder` from `config.json`). From source:
    ```bash
-   ./scripts/voice.sh             # macOS / Linux
+   python cody.py --voice            # any system; or .\scripts\voice.ps1 / ./scripts/voice.sh
    ```
    Claude Code asks you to confirm the development channel: choose **I am using this for local development**.
 2. On the mascot, **hold** it and speak, or say **"Cody"** (or "Claude") followed by your request.
@@ -123,7 +140,7 @@ plans an admin has to enable them first.
    pick WhatsApp, or any other app. Claude only gets an id, never the picture, and nothing is uploaded anywhere
    except where you share it. Screenshots happen only when you ask: there is no periodic capture.
 
-The voice scripts let Cody's harmless tools run without asking (reply, timers, memory, pointing). The two that
+The voice session lets Cody's harmless tools run without asking (reply, timers, memory, pointing). The two that
 capture your screen, `screenshot` and `look`, always ask first, by voice too.
 
 ### Timers and reminders

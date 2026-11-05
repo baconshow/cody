@@ -20,3 +20,26 @@ and test tables go a little over, so the limit is 140 instead of reflowing them.
 
 CI fails below 65% line coverage for Python (72% today on Linux; `overlay.py` is Windows-only and reads 0% elsewhere)
 and below 90% for the JavaScript tests (96% today).
+
+## 2026-11-05 · Windows app: PyInstaller folder build and Inno Setup
+
+`CodySetup.exe` is built in CI (`.github/workflows/windows-app.yml`) from `packaging/`: PyInstaller makes one folder
+with two programs sharing the same files, `Cody.exe` (no console: the tray app) and `cody-cli.exe` (console: what
+Claude Code runs for hooks and the voice channel, which talk over stdin and stdout). A folder build starts in a
+fraction of a second, which matters for hooks; a one-file build unpacks itself on every run. Inno Setup installs per
+user in `%LOCALAPPDATA%\Programs\Cody`, so no admin rights and no UAC prompt. The tray menu uses pystray and Pillow,
+bundled only in the app: Cody from source still needs nothing from pip.
+
+## 2026-11-05 · What opening the app does
+
+Opening Cody.exe starts the server, opens the mascot in the browser and opens the voice session in a terminal
+window, unless one is already running (`channel.json` names a port that answers). Started with Windows
+(`--background`), it only starts the server and waits in the tray: a Claude Code window popping up at every login
+would be rude. The voice session's MCP config is written with `json.dumps` to the data folder, which also fixes the
+two script debts (unescaped `printf` JSON and leftover temp file in `voice.sh`, fixed `%TEMP%` path in `voice.ps1`):
+both scripts now call `python cody.py --voice`.
+
+## 2026-11-05 · Version 1.2.0
+
+The package said 0.1.0 while the README history calls the current release v1.1. The launch build is 1.2.0, in
+`cody/__init__.py`, shown by `--version` and sent as the MCP server version.

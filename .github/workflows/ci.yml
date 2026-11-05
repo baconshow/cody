@@ -32,7 +32,7 @@ jobs:
         with:
           node-version: 22
       - name: Tools (CI only; Cody itself needs nothing from pip)
-        run: python -m pip install --disable-pip-version-check ruff==0.16.8 coverage==7.17.2
+        run: python -m pip install --disable-pip-version-check ruff==0.16.8 coverage==7.16.2
       - name: Lint Python
         run: ruff check .
       - name: Check JavaScript syntax

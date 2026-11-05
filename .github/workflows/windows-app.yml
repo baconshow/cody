@@ -1,0 +1,74 @@
+name: Windows app
+
+# Builds CodySetup.exe (PyInstaller + Inno Setup), then installs it on the runner and checks that it works:
+# the console build answers hooks and the voice channel, the tray app serves the mascot, uninstall cleans up.
+on:
+  push:
+    branches: [main, launch]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build tools (bundled into the app; Cody from source still needs nothing from pip)
+        run: python -m pip install --disable-pip-version-check pyinstaller==6.11.1 pystray==0.19.5 pillow==11.0.0
+      - name: Icon
+        run: python packaging/make_icon.py
+      - name: Build the app folder
+        run: pyinstaller packaging/cody.spec --noconfirm --distpath dist --workpath build
+      - name: Check the console build
+        run: |
+          set -e
+          cli=dist/Cody/cody-cli.exe
+          test "$("$cli" --version)" = "$(python -c 'import cody; print(cody.__version__)')"
+          echo '{"hook_event_name":"Stop","session_id":"ci"}' | "$cli" --hook
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"1"}}}' \
+            | timeout 20 "$cli" --channel > channel.out || true
+          grep -q '"protocolVersion": *"2025-06-18"' channel.out
+      - name: Check the tray app serves the mascot
+        run: |
+          set -e
+          dist/Cody/Cody.exe --background &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:7420/ -o page.html && break; sleep 1; done
+          grep -q '<title>' page.html
+          curl -sf http://127.0.0.1:7420/web/vendor/three/build/three.module.js -o /dev/null
+          taskkill //IM Cody.exe //F
+      - name: Installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y; }
+          $version = python -c "import cody; print(cody.__version__)"
+          & $iscc "/DAppVersion=$version" packaging\cody.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install, run and uninstall
+        shell: pwsh
+        run: |
+          Start-Process dist\CodySetup.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=autostart' -Wait
+          $app = Join-Path $env:LOCALAPPDATA 'Programs\Cody'
+          if (-not (Test-Path "$app\Cody.exe")) { throw 'Cody.exe was not installed' }
+          $run = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name Cody
+          if ($run.Cody -notlike '*Cody.exe*--background') { throw "unexpected Run value: $($run.Cody)" }
+          & "$app\cody-cli.exe" --version
+          Start-Process "$app\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES' -Wait
+          Start-Sleep -Seconds 3
+          if (Test-Path "$app\Cody.exe") { throw 'Cody.exe is still there after uninstall' }
+          if (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run' -Name Cody -ErrorAction SilentlyContinue) { throw 'Run value left behind' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CodySetup
+          path: dist/CodySetup.exe
+          if-no-files-found: error

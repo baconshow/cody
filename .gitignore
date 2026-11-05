@@ -16,3 +16,8 @@ Thumbs.db
 # coverage runs (CI and local)
 .coverage
 htmlcov/
+
+# Windows app build (packaging/)
+build/
+dist/
+packaging/cody.ico

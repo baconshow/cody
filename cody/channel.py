@@ -3,7 +3,7 @@ spoken reply goes back to the mascot. It is a Claude Code channel (research prev
 starts as a subprocess and that pushes events into it.
 
     claude --mcp-config <file> --dangerously-load-development-channels server:cody
-    (scripts/voice.ps1 and scripts/voice.sh write the config and run this for you)
+    (`python cody.py --voice`, cody/launcher.py, writes the config and runs this for you)
 
 Permission prompts (the channels permission relay): when Claude Code asks to approve a tool, the channel gets a copy,
 the mascot asks out loud ("can I run a command?") and shows the command on screen, and your spoken "yes" or "no"
@@ -35,7 +35,8 @@ from urllib.parse import parse_qs, urlsplit
 if __package__ in (None, ""):          # run as a script by Claude Code: make the cody package importable
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from cody.abilities import Abilities  # noqa: E402 - after the path fix above
+from cody import __version__  # noqa: E402 - after the path fix above
+from cody.abilities import Abilities  # noqa: E402
 from cody.memory import clean_fact  # noqa: E402
 from cody.store import NAME, data_dir, write_private  # noqa: E402,F401 - still importable from here
 
@@ -351,7 +352,7 @@ class Channel:
             result = {
                 "protocolVersion": PROTOCOL,
                 "capabilities": {"experimental": {"claude/channel": {}, "claude/channel/permission": {}}, "tools": {}},
-                "serverInfo": {"name": NAME, "version": "0.1.0"},
+                "serverInfo": {"name": NAME, "version": __version__},
                 "instructions": self._texts["instructions"],
             }
         elif method == "ping":

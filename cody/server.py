@@ -365,6 +365,14 @@ def _arguments(argv):
     return parser.parse_args(argv)
 
 
+def start(config: dict) -> tuple[App, Server]:
+    """The app and its HTTP server, bound and watching the transcripts (OSError when the port is taken)."""
+    app = App(config)
+    server = Server(app)
+    app.activity.start()
+    return app, server
+
+
 def main(argv=None) -> int:
     args = _arguments(argv)
     if hasattr(sys.stderr, "reconfigure"):
@@ -379,14 +387,12 @@ def main(argv=None) -> int:
         config, notes = setup.prepare(config, ask=ask, again=args.setup)
         for note in notes:
             LOG.info("%s", note)
-    app = App(config)
     url = f"http://127.0.0.1:{config['port']}/"
     try:
-        server = Server(app)
+        app, server = start(config)
     except OSError:
         LOG.error("port %s is already in use: is Cody already running?", config["port"])
         return 1
-    app.activity.start()
     LOG.info("Cody is up at %s (watching %s)", url, app.activity.projects_dir)
     for host in config["extra_hosts"]:
         LOG.info("phone: https://%s/ (through Tailscale serve)", host)

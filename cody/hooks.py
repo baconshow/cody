@@ -7,7 +7,7 @@ Three hooks run `python cody.py --hook` (set them up with `python cody.py --inst
     Notification       permission_prompt and the like: "needs you"
 Each run appends one line to events.jsonl in the data folder (cody/store.py): the time, the kind and the first
 characters of the session id. Never the prompt, the reply or the command. The server reads the file (HookFeed) for
-the phone. Hooks run inside the voice session too (CODY_VOICE=1, set by scripts/voice.ps1 and voice.sh): those are
+the phone. Hooks run inside the voice session too (CODY_VOICE=1, set by `cody.py --voice`): those are
 skipped, since there the mascot already does the talking.
 """
 from __future__ import annotations
@@ -31,7 +31,7 @@ VOICE_ENV = "CODY_VOICE"
 SESSION_CHARS = 12
 MAX_EVENTS = 50
 MARKER = "--hook"
-OURS = re.compile(r'cody\.py"?\s+--hook\b')        # how our own hook commands are recognized in settings.json
+OURS = re.compile(r'(?:cody\.py|cody-cli(?:\.exe)?)"?\s+--hook\b')   # how our own hooks are recognized in settings.json
 EVENTS = ("UserPromptSubmit", "Stop", "Notification")
 TIMEOUT_S = 10
 
@@ -163,6 +163,8 @@ class HookFeed:
 def hook_command(python: str | None = None, script: Path | None = None) -> str:
     """The hook's command line. `|| exit 0` (valid in bash, cmd and PowerShell): if Python cannot even start the
     script (the folder moved), it must not exit with 2, which Claude Code reads as "block this prompt"."""
+    if getattr(sys, "frozen", False) and not python:       # the installed app: its console build runs the hook
+        return f'"{Path(sys.executable).with_name("cody-cli.exe").as_posix()}" {MARKER} || exit 0'
     python = Path(python or sys.executable).as_posix()
     script = (script or Path(__file__).resolve().parent.parent / "cody.py").as_posix()
     return f'"{python}" "{script}" {MARKER} || exit 0'
