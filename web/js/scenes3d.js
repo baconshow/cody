@@ -73,7 +73,12 @@ export function createScenes3d(THREE, data) {
       const anchor = anchorOf(part);
       const root = roots[anchor];
       if (part.sign && Array.isArray(part.box)) {
-        root.add(box(part.box, new THREE.MeshBasicMaterial({ map: signTexture(THREE, part.sign, part.ink) })));
+        const b = part.box;                // a sign is its own holder, at its middle: worn, it grows in place too
+        const holder = new THREE.Group();
+        holder.position.set(b[0] * V, b[1] * V, b[2] * V);
+        holder.add(box([0, 0, 0, b[3], b[4], b[5]], new THREE.MeshBasicMaterial({ map: signTexture(THREE, part.sign, part.ink) })));
+        root.add(holder);
+        if (anchor === 'body') holders.push(holder);
         continue;
       }
       const at = pivotOf(part);

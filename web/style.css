@@ -87,7 +87,8 @@ body.with-gallery { overflow-y: auto; }
   overflow-wrap: anywhere; text-align: left; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s ease;
 }
 .attachment.visible { opacity: 1; pointer-events: auto; }
-.attachment:focus-visible, .wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: -8px; }
+.attachment:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+.wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: -8px; }
 
 /* the wake word light, in the corner: green while the phone is listening for "Cody", red when it is off. A tap
    switches it. No words on screen: they show on hover, on keyboard focus and for a moment after a switch. The
@@ -287,7 +288,6 @@ body.with-gallery { overflow-y: auto; }
 .settings-card { margin: 8px 0 0; padding: 4px 14px; border: 1px solid var(--sheet-line); border-radius: 14px; }
 .settings-card > * + * { border-top: 1px solid var(--sheet-line); }
 .settings-card > button { margin: 12px 0; }
-.settings-card > button + *, .settings-card > * + button { border-top: 0; }
 .sheet .settings-field { gap: 6px; margin: 0; padding: 12px 0; }
 .settings-inline { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 
