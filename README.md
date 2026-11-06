@@ -212,6 +212,11 @@ plans an admin has to enable them first.
 The voice session lets Cody's harmless tools run without asking (reply, timers, memory, pointing). The two that
 capture your screen, `screenshot` and `look`, always ask first, by voice too.
 
+**Your other MCP servers work by voice too.** The voice session is a normal Claude Code session with Cody's channel
+added, so whatever you already connected to Claude Code (Airtable, a calendar, your smart home) is there: *"Cody,
+what is on my roadmap this week?"*. Cody pre-approves only its own harmless tools; a tool from another server asks
+permission like always, and you answer **yes** or **no** out loud.
+
 ### Timers and reminders
 
 *"Cody, set a timer for ten minutes for the pizza"*, *"a 25 minute focus timer"*, *"remind me at 3:30 to call

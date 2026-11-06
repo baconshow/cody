@@ -40,6 +40,15 @@ class LauncherTest(unittest.TestCase):
         self.assertNotIn("mcp__cody__screenshot", tools)
         self.assertNotIn("mcp__cody__look", tools)
 
+    def test_voice_session_keeps_the_users_own_mcp_servers(self):
+        args = launcher.voice_arguments("claude", Path("m.json"))
+        self.assertIn("--mcp-config", args)
+        for narrowing in ("--strict-mcp-config", "--tools", "--disallowedTools", "--disallowed-tools"):
+            self.assertNotIn(narrowing, args, "the voice session must not cut the user's own tools or servers")
+        tools = args[args.index("--allowedTools") + 1:]
+        self.assertTrue(tools and all(t.startswith("mcp__cody__") for t in tools),
+                        "only Cody's own tools skip the question; nothing else is pre-approved")
+
     def test_run_voice_sets_the_voice_flag_and_folder(self):
         seen = {}
 

@@ -59,6 +59,10 @@ def claude_path(which=shutil.which) -> str | None:
 
 
 def voice_arguments(claude: str, mcp_config: Path) -> list[str]:
+    """The voice session's command line. It adds Cody's channel to a normal Claude Code session: `--mcp-config`
+    without `--strict-mcp-config`, so the MCP servers the user already has (Airtable, a calendar, a home hub) are
+    there too and work by voice. `--allowedTools` only spares Cody's harmless tools the question; it takes nothing
+    away, and every other tool asks first as usual."""
     tools = [f"mcp__cody__{name}" for name in SAFE_TOOLS]
     return [claude, "--mcp-config", str(mcp_config), "--dangerously-load-development-channels", "server:cody",
             "--allowedTools", *tools]
