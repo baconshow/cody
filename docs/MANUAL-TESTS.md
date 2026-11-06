@@ -49,8 +49,10 @@ over HTTPS. Check `tailscale serve status`: no Funnel.
 ## 5. Voice on the phone
 
 1. On Android Chrome, add Cody to the home screen, open it, tap once (sound unlocks).
-2. Each provider in Settings > Voice: ElevenLabs (with a working key, the Test button says it works), the device's
-   voice, Cody's sounds (chirps while the caption shows; the mouth moves with them).
+2. Each provider in Settings > Voice: ElevenLabs (paste a working key and save it: the voices of the account show
+   in a list; pick one and Cody says hi with it, mouth moving; the Test button says it again), the device's voice,
+   Cody's sounds (chirps while the caption shows; the mouth moves with them). With a key restricted to text to
+   speech, the list is replaced by a voice id field and the reason.
 3. Reload the page: sound is locked again until a tap; the Status screen says so and its button unlocks it.
 4. Shake the phone (on an iPhone, tap first so the motion sensor is allowed): Cody stretches its arms to the screen
    edges and opens its eyes wide, with the startle sound. Stop shaking: `&#$*%@!` comes out of its mouth one symbol

@@ -225,3 +225,22 @@ opens, what a key or a click does, what the server is asked. It found one real b
 could show twice in one visit: the page did not remember it was done). JavaScript line coverage on a developer
 machine went from 80% to 94%; the 85% floor in CI stays.
 
+## 2026-11-06 · Your ElevenLabs key, then a list of your voices to hear
+
+A voice used to be an id copied from the ElevenLabs site into a field. With a key saved, Settings (and the first
+step of the first run, when ElevenLabs is the chosen voice) now asks ElevenLabs for the voices of that account
+(`GET /v1/voices`, no credits) and shows them by name; picking one saves it and Cody says one short sentence with it.
+
+- **The sample is Cody speaking, not ElevenLabs' preview file.** Each voice has a preview mp3 on ElevenLabs' storage,
+  free to play, but the page loads nothing from outside (the Content-Security-Policy allows only this server) and a
+  preview is a stranger reading English. So the test is a real synthesis of "Hi! I'm Cody. Can you hear me?" in the
+  page's language: about 30 characters, counted against the same per-minute and per-day limits as replies. The mp3
+  comes back as base64 in the JSON answer and plays through the mascot's own output, so the mouth moves.
+- **A key that cannot list voices still works.** ElevenLabs keys can be restricted per feature; one made for text to
+  speech only gets "the key lacks permission for this". Settings then shows the reason and takes a voice id typed by
+  hand, as before.
+- **From the computer only.** The list names the voices of someone's account, so `GET /api/settings/voices` is
+  refused through Tailscale, like every change to Settings.
+- **The default without a key did not change**: the device's voice, then Cody's sounds. Whether a new install should
+  start with Cody's sounds instead is a question for the maintainer (see `docs/BACON-TODO.md`).
+

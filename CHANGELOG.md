@@ -12,7 +12,8 @@
 - **Settings** and a three-step **first run**; QR codes drawn on the computer.
 - **Create your private network**: Tailscale from install to the phone, without a terminal (never Funnel).
 - **Voice with four outputs**: ElevenLabs, Cody's hosted voice (not offered yet), the device's voice, and **Cody's own
-  sounds**, which always work.
+  sounds**, which always work. With your ElevenLabs key saved (in Settings or on the first run), the voices of your
+  account are listed: pick one and Cody says hi with it.
 - **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping. What Cody wears (the nightcap,
   the headphones, the coffee in its hand, the bug on its head) moves with it; the camera slides to keep the monitor
   and the debug sign in the picture on any screen.

@@ -291,12 +291,18 @@ They are made from scratch by `tools/make_sounds.py` (only the Python standard l
 ### A nicer voice with ElevenLabs
 
 1. Create an [ElevenLabs](https://elevenlabs.io) account (the free tier is enough to start).
-2. Create an API key and paste it in **Settings > Voice** (saved on this computer only, in Cody's data folder). The
-   `ELEVENLABS_API_KEY` environment variable and a `.elevenlabs-key` file in your home folder still work too.
-3. Pick a voice in the ElevenLabs voice library, copy its voice ID, and add it to `config.json`:
+2. Create an API key and paste it in **Settings > Voice** (or on the first step of the first run). It is saved on
+   this computer only, in Cody's data folder. The `ELEVENLABS_API_KEY` environment variable and a `.elevenlabs-key`
+   file in your home folder still work too.
+3. With the key saved, Settings lists the voices of your ElevenLabs account. Pick one: Cody says hi with it right
+   away, and it is saved. To use a voice from the ElevenLabs voice library, add it to your voices there first. If
+   your key is not allowed to list voices (a key restricted to text to speech), Settings asks for a voice ID
+   instead. By hand, the same thing in `config.json`:
    ```json
    { "voice": { "voice_id": "YOUR_VOICE_ID", "model": "eleven_flash_v2_5" } }
    ```
+
+Listing the voices costs no credits; hearing one costs one short sentence (about 30 characters).
 
 Never commit your key. `config.json` and `.elevenlabs-key` are already in `.gitignore`.
 
