@@ -172,7 +172,8 @@ def _eleven(text: str, voice: dict, language: str) -> bytes:
 
 
 ELEVEN_REASONS = {
-    "payment_required": "payment pending", "payment_issue": "payment pending", "quota_exceeded": "monthly characters used up",
+    "payment_required": "payment pending", "payment_issue": "payment pending",
+    "quota_exceeded": "monthly characters used up",
     "invalid_api_key": "the key is not valid", "missing_permissions": "the key lacks text-to-speech permission",
     "voice_not_found": "the voice id does not exist", "too_many_concurrent_requests": "too many requests at once",
     "system_busy": "ElevenLabs is busy",
