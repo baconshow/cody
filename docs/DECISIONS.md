@@ -263,3 +263,23 @@ step of the first run, when ElevenLabs is the chosen voice) now asks ElevenLabs 
   without array methods (a first version of the focus fix called `find()` on it: fine on the fake, nothing in a
   browser); and a new `#hash` is told a moment later. Each fix has a test that fails without it.
 
+## 2026-11-06 · Security review of the voice list: what changed
+
+Nothing serious was found: the key never reaches the page or a log, the address asked is fixed, and both routes
+answer the computer only. Four things were tightened:
+
+- **No redirect is followed when ElevenLabs is asked.** urllib copies the request's headers to wherever a 30x
+  points, the key included. It would take ElevenLabs itself, or a proxy that opens TLS, to send one; still, both
+  calls (speech and the voice list) now go through an opener that refuses redirects, and a test with two local
+  servers shows the second one is never asked.
+- **The voice test counts under the same lock as replies.** It took its slot in the per-minute limit without the
+  lock the spoken replies use, so a test racing a reply could slip past the limit.
+- **Only real audio of a sane size passes for a working voice.** The answer is read up to 4 MB and has to start like
+  an mp3; a 200 with something else used to end in "the voice works" with no sound.
+- **The list is kept for a minute**, for the key it was asked with (a digest of it, not the key), and forgotten when
+  the key changes. The drawer asks for it on every redraw; ElevenLabs is asked once. A failure is not kept.
+
+Smaller: a voice id is the whole string (`\Z`, since `$` lets a trailing newline through); names and labels keep
+only printable characters, so a shared voice cannot use direction marks to look like another; the test route's
+refusal through Tailscale has its own test, since it spends credits.
+
