@@ -57,10 +57,20 @@ over HTTPS. Check `tailscale serve status`: no Funnel.
 ## 6. Scenes with real work
 
 Watch the mascot while Claude: edits code (monitor), runs a long command (bubble with "..."), runs a failing test
-(bug and DEBUG MODE sign, error sound), finishes a long task (confetti). Leave it idle a minute (coffee), then ten
-minutes (nightcap). Turn on "reduce motion" in the OS: scenes appear without moving.
+(a bug walking on Cody's head and the DEBUG MODE sign, error sound), finishes a long task (confetti). Leave it idle a
+minute (a coffee mug in its right hand), then ten minutes (nightcap on the right of its head, Z letters on the left).
+Turn on "reduce motion" in the OS: scenes appear without moving.
+
+On a wide window and on the phone lying down, check that nothing is cut off: the monitor and the sign are whole (the
+camera slides toward them and back), the mug and the bug show. Speak softly so Cody turns sideways to listen: the
+four legs walk around with the body, and whatever it is wearing turns with it.
 
 ## 7. First run and settings
 
 Delete `first-run.json` in the data folder, reload on the PC: three steps with Cody talking, ending in "say hi".
 Change the language and voice in Settings: the next reply uses them.
+
+The corner of the mascot page: a light (green while Cody listens for its name, red when off; a tap switches it and
+the words show for a moment) and a gear. The gear opens Settings as a drawer on the right, with the mascot still in
+view; the X, Esc and a click outside the drawer close it. Changing a switch says "Saved." at the bottom of the
+drawer. Clicking inside the drawer must not make Cody hop. Tap Cody itself: it hops and blinks, with no sound.

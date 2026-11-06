@@ -13,7 +13,12 @@
 - **Create your private network**: Tailscale from install to the phone, without a terminal (never Funnel).
 - **Voice with four outputs**: ElevenLabs, Cody's hosted voice (not offered yet), the device's voice, and **Cody's own
   sounds**, which always work.
-- **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping.
+- **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping. What Cody wears (the nightcap,
+  the headphones, the coffee in its hand, the bug on its head) moves with it; the camera slides to keep the monitor
+  and the debug sign in the picture on any screen.
+- The legs turn with the body instead of staying behind when Cody listens sideways.
+- **Settings** is a drawer beside the mascot, opened from a gear in the corner. The wake word state is a small light
+  (green on, red off) instead of words. A tap on Cody is silent.
 - The sleeping Z is one piece, the thought bubbles grow to four, and after a shake Cody swears (`&#$*%@!`).
 - Opt-in update check (off by default). three.js and the font ship with Cody: the page works offline.
 - CI on Windows, macOS and Linux.

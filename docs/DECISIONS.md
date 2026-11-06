@@ -136,3 +136,50 @@ The maintainer asked for Varela Round (SIL Open Font License, license in `web/fo
 and the 8-bit pixel font no longer fits. It ships in `web/fonts` like the old one (no font service at run time).
 Varela Round is much wider than the condensed pixel font, so every size in the mascot's font went to 80%. The debug
 scene's terminal sign uses the system monospace font.
+
+## 2026-11-06 · The feet follow a real turn, not the gaze
+
+The legs were outside the group that turns, so listening sideways rotated the body box over four legs that stayed
+put. They are now one group under the body. The rule the maintainer asked for (planted for small head movements,
+following past a threshold) is split by where the turn comes from: the body's turn with the gaze (at most 0.32 rad)
+leaves the feet planted up to 0.2 rad and drags them only by the excess; the sideways turn (0.95 rad) takes them
+all the way, on a spring a little slower than the body's, stepping in diagonal pairs while they move. A threshold
+on the total angle was tried on paper first: at a full sideways turn it made the legs shuffle with every glance.
+The rule lives in `animator.js` (`feetYaw`), so the tests cover it without WebGL.
+
+## 2026-11-06 · Scene parts are worn or stand in the room
+
+A scene part with `"on": "body"` goes in a group on the mascot's body and turns, hops, tilts and breathes with it; a
+`"pivot"` says where it grows from and sways around. Everything else stands still around the mascot. An anchor this
+version does not know is treated as the room, so a newer scene file cannot break an older page. Worn today: the
+nightcap (right half of the head, clear of the sprout; the Z letters moved to the left), the headphones (the band
+leans back behind the sprout), the coffee mug (in the right hand) and the debug bug (walking on the head). The mug
+and the bug used to sit on the floor in front, which a wide screen cuts off: only the steam showed.
+
+## 2026-11-06 · The camera slides for a wide scene
+
+The monitor and the debug sign stand beside the mascot and did not fit on a wide phone or a narrow window. Instead
+of shrinking them or the mascot, the camera moves sideways by the least that fits both (the mascot keeps its size)
+and pulls back only when the mascot and the scene together are wider than the screen (`scenes.js` `frameFor`). The
+extent is read from the scene's own boxes, so a community scene gets the same treatment with no extra field.
+
+## 2026-11-06 · A tap is silent, and only the mascot is tapped
+
+Tapping and holding the face is how you call Cody when the wake word misses, so the pet sound no longer plays on a
+tap; `pet.wav` stays in `web/sounds` (the sound test still remakes it) for a later use. A scene that comes back
+within 10 seconds does not play its sound again: a tap shows the party for a second, and the debug scene behind it
+used to return with its error sound. A tap on a button or a panel drawn over the mascot is not a pat any more (no hop
+and confetti while changing a setting), and Space or Enter typed in a field does not poke it.
+
+## 2026-11-06 · The wake word light, and Settings as a drawer
+
+The corner said "listening for Cody" in words; it is now a 12 px light (green on, red off) on a 44 px target. Its
+words show on hover, on keyboard focus and for 1.8 s after a switch, since a phone has no hover. Next to it, a gear
+opens Settings: before, only the tray menu and `#settings` did. Settings is a drawer on the right (the full width on
+a phone) so the mascot stays in view, with a title bar and its close button at the top (Esc and a click outside
+close it too) instead of a Close button floating in the bottom corner. The ElevenLabs fields show only while
+ElevenLabs is the chosen voice. The hosted voice is listed as "coming soon" and cannot be picked: choosing it only
+fell through to the device's voice with a notice.
+
+The Status screen, the network screen and the first-run card still use the old full-screen layout: the drawer is the
+direction to be confirmed by the maintainer before the other three follow it.

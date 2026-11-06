@@ -2,9 +2,10 @@
 
 Things only the maintainer can do. Newest last.
 
-- [ ] **`web/js/stale-page.js` is not on `main`.** The commit that reloads a page opened before the server restarted
-      (each start changes the token) is missing from `main`. Push it to `main`, or say where it lives, so `launch`
-      can include it.
+- [ ] **Push `main` and `launch`.** `web/js/stale-page.js` (reloads a page opened before the server restarted) is
+      committed on the local `main` and merged into `launch`, but neither is pushed: `main` is 1 commit ahead of
+      `origin/main`, `launch` is ahead of `origin/launch` by that merge, the ElevenLabs wording fix and the
+      2026-11-06 polish (legs, worn scene parts, camera, silent tap, wake word light, Settings drawer).
 - [ ] **Code-signing certificate for the Windows installer.** Without one, SmartScreen warns "Windows protected your
       PC" on every download until the file builds reputation (the README explains More info, Run anyway). Options:
       an OV or EV certificate from a CA, or Azure Trusted Signing (cheaper, needs an identity check). Once you have
@@ -18,5 +19,7 @@ Things only the maintainer can do. Newest last.
       the release, and write the release notes from `CHANGELOG.md`.
 - [ ] **Post on Reddit** from `docs/launch/reddit.md` (attach `docs/media/cody-scenes.gif`, or record a short video
       of the real thing: it will be better than the headless captures). Status: recording the video.
-- [ ] **ElevenLabs payment** (pending): only needed for the ElevenLabs voice and for the hosted voice (P1.6).
-      Status: scheduled. After paying, Settings > Test voice should say it works.
+- [x] **ElevenLabs payment**: paid on 2026-11-06; the Status screen shows the ElevenLabs voice working.
+- [ ] **Say whether the Settings drawer is the direction.** Settings is now a drawer beside the mascot, opened from
+      the gear in the corner. The Status screen, the network screen and the first-run card still have the old
+      full-screen layout (and the Close button in the bottom corner); with a yes, they follow the drawer.
