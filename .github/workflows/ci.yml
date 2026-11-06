@@ -42,7 +42,7 @@ jobs:
           coverage run --source=cody -m unittest discover tests
           coverage report --fail-under=65
       - name: JavaScript tests with coverage
-        run: node --test --experimental-test-coverage --test-coverage-lines=85 "tests/js/*.test.mjs"
+        run: node --test --experimental-test-coverage --test-coverage-exclude="tests/js/fake-dom.mjs" --test-coverage-lines=85 "tests/js/*.test.mjs"
 
   plugin:
     name: Claude Code plugin

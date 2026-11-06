@@ -289,7 +289,11 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
         const under = el('div');
         const fill = () => under.replaceChildren(...(st.info.voice_provider === 'elevenlabs' ? [elevenLabsBox(st.info, run.note)] : []));
         fill();
-        extra.push(languageField(run.note, () => show(i)), voiceChoice(st.info, run.note, fill, 'first-provider'), under);
+        const again = async () => {                    // the step again, in the new language; the keyboard stays put
+          await show(i);
+          run.body.querySelector('.settings-language')?.focus({ preventScroll: true });
+        };
+        extra.push(languageField(run.note, again), voiceChoice(st.info, run.note, fill, 'first-provider'), under);
       }
       if (step.id === 'phone') extra.push(await phoneBox(st.info));
       if (step.id === 'voice') {

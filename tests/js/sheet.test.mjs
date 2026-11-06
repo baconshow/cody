@@ -19,9 +19,12 @@ function page() {
   globalThis.history = p.history;
   return p;
 }
-const t = (key) => en[key] ?? key;
-const open = (p) => p.document.body.querySelectorAll('.sheet-backdrop').filter((panel) => !panel.hidden);
-const withText = (root, selector, text) => root.querySelectorAll(selector).find((e) => e.textContent === text);
+// {name} in a text is filled in, as the page's own t() does
+const fill = (text, vars = {}) => String(text).replace(/\{(\w+)\}/g, (whole, name) => (name in vars ? vars[name] : whole));
+const t = (key, vars) => fill(en[key] ?? key, vars);
+const all = (root, selector) => [...root.querySelectorAll(selector)];
+const open = (p) => all(p.document.body, '.sheet-backdrop').filter((panel) => !panel.hidden);
+const withText = (root, selector, text) => all(root, selector).find((e) => e.textContent === text);
 
 test('Tab wraps around inside the drawer; in the middle the browser moves on by itself', () => {
   assert.equal(wrapFocus(4, 3, false), 0, 'Tab on the last control: the first');
@@ -145,7 +148,7 @@ function settings(p, api, more = {}) {
   const said = [];
   const made = createSettings({
     api, win: p.win, language: () => lang.now, setLanguage: (v) => { lang.now = v; },
-    t: (key) => (lang.now === 'pt-BR' ? pt : en)[key] ?? key, announce: (m) => said.push(m.text), ...more,
+    t: (key, vars) => fill((lang.now === 'pt-BR' ? pt : en)[key] ?? key, vars), announce: (m) => said.push(m.text), ...more,
   });
   return { ...made, said, lang, gear: p.document.body.querySelector('.settings-open') };
 }
@@ -161,13 +164,13 @@ test('Settings opens from the gear with its four groups; the hosted voice cannot
   await p.settle();
   const [panel] = open(p);
   assert.equal(p.win.location.hash, '#settings');
-  assert.deepEqual(panel.querySelectorAll('h3').map((h) => h.textContent), ['Voice', 'On your phone', 'General', 'About']);
-  const radios = panel.querySelectorAll('input[type=radio]');
+  assert.deepEqual(all(panel, 'h3').map((h) => h.textContent), ['Voice', 'On your phone', 'General', 'About']);
+  const radios = all(panel, 'input[type=radio]');
   assert.deepEqual(radios.map((r) => `${r.value}:${r.checked}:${r.disabled}`),
     ['elevenlabs:true:false', 'hosted:false:true', 'device:false:false', 'sounds:false:false']);
   assert.ok(withText(panel, 'em', 'coming soon'));
   assert.ok(panel.querySelector('input[type=password]'), 'ElevenLabs is chosen: its key field shows');
-  assert.equal(withText(panel, 'p', 'Cody {version}') !== undefined, true, 'the version line filled in');
+  assert.ok(withText(panel, 'p', 'Cody 1.2.0'), 'the version line filled in');
 
   p.key('Escape');
   assert.equal(open(p).length, 0);
@@ -182,7 +185,7 @@ test('picking a voice saves it and only swaps what is under the choice: the radi
   const s = settings(p, api);
   await s.open();
   const [panel] = open(p);
-  const before = panel.querySelectorAll('input[type=radio]');
+  const before = all(panel, 'input[type=radio]');
   const device = before.find((r) => r.value === 'device');
   device.checked = true;
   device.dispatchEvent({ type: 'change', bubbles: true });
@@ -190,7 +193,7 @@ test('picking a voice saves it and only swaps what is under the choice: the radi
   assert.deepEqual(api.calls, [['save', { voice_provider: 'device' }]]);
   assert.equal(panel.querySelector('.sheet-note').textContent, 'Saved.');
   assert.equal(panel.querySelector('input[type=password]'), null, 'no ElevenLabs fields for the device voice');
-  const after = panel.querySelectorAll('input[type=radio]');
+  const after = all(panel, 'input[type=radio]');
   assert.ok(after.every((r, i) => r === before[i]), 'the same radios: the keyboard keeps its place');
 
   before.find((r) => r.value === 'elevenlabs').dispatchEvent({ type: 'change', bubbles: true });
@@ -240,7 +243,7 @@ test('with a key saved, the account\'s voices are listed; picking one saves it a
   await s.open();
   await p.settle();
   const [panel] = open(p);
-  const voice = panel.querySelectorAll('select').find((e) => !e.classList.contains('settings-language'));
+  const voice = all(panel, 'select').find((e) => !e.classList.contains('settings-language'));
   assert.deepEqual(voice.children.map((o) => `${o.value}|${o.textContent}|${o.selected}`),
     ['voice-1|Adam · american, male|false', 'voice-2|Bella|true'], 'by name, the one in use selected');
 
@@ -264,7 +267,7 @@ test('a voice that is not in the list stays chosen; without a key the list waits
   const s = settings(p, settingsApi({ has_key: true, voice_id: 'voice-9' }));
   await s.open();
   await p.settle();
-  const voice = open(p)[0].querySelectorAll('select').find((e) => !e.classList.contains('settings-language'));
+  const voice = all(open(p)[0], 'select').find((e) => !e.classList.contains('settings-language'));
   assert.deepEqual(voice.children.map((o) => `${o.value}|${o.textContent}|${o.selected}`).slice(0, 1),
     [`voice-9|${en['settings.voicePick.current']}|true`]);
   s.close();
@@ -276,11 +279,11 @@ test('a voice that is not in the list stays chosen; without a key the list waits
   await q.settle();
   const [panel] = open(q);
   assert.ok(withText(panel, 'small', en['settings.voicePick.needKey']));
-  assert.equal(panel.querySelectorAll('select').length, 1, 'only the language: no voices without a key');
+  assert.equal(all(panel, 'select').length, 1, 'only the language: no voices without a key');
   panel.querySelector('input[type=password]').enter('sk-new');
   withText(panel, 'button', en['settings.key.save']).click();
   await q.settle();
-  const listed = panel.querySelectorAll('select').find((e) => !e.classList.contains('settings-language'));
+  const listed = all(panel, 'select').find((e) => !e.classList.contains('settings-language'));
   assert.deepEqual(listed.children.map((o) => o.textContent), [en['settings.voicePick.choose'], 'Adam · american, male', 'Bella'],
     'the key is in: its voices show, none chosen yet');
   fresh.close();
@@ -294,8 +297,9 @@ test('when the voices cannot be listed, the voice id is typed by hand, with the 
   await s.open();
   await p.settle();
   const [panel] = open(p);
-  assert.ok(withText(panel, 'small', en['settings.voicePick.byHand']));
-  const typed = panel.querySelectorAll('input').find((e) => e.placeholder === en['settings.voiceId']);
+  assert.ok(withText(panel, 'small', fill(en['settings.voicePick.byHand'], { reason: 'the key lacks permission for this' })),
+    'the reason shows');
+  const typed = all(panel, 'input').find((e) => e.placeholder === en['settings.voiceId']);
   assert.equal(typed.value, 'voice-1');
   typed.enter('  voice-7 ', 'change');
   await p.settle();
@@ -308,7 +312,7 @@ test('a switch saves what it switches; the plugin keeps the hooks switch off lim
   const api = settingsApi({ hooks: { on: true, plugin: true } });
   const s = settings(p, api);
   await s.open();
-  const [hooks, autostart, updates] = open(p)[0].querySelectorAll('input[type=checkbox]');
+  const [hooks, autostart, updates] = all(open(p)[0], 'input[type=checkbox]');
   assert.equal(hooks.disabled, true, 'the plugin brings the hooks: nothing to switch here');
   autostart.checked = true;
   autostart.dispatchEvent({ type: 'change', bubbles: true });
@@ -325,8 +329,8 @@ test('from the phone the drawer only has the language, and says where the rest i
   const s = settings(p, api);
   await s.open();
   const [panel] = open(p);
-  assert.deepEqual(panel.querySelectorAll('h3').map((h) => h.textContent), ['General']);
-  assert.equal(panel.querySelectorAll('input').length, 0, 'no key, no switches');
+  assert.deepEqual(all(panel, 'h3').map((h) => h.textContent), ['General']);
+  assert.equal(all(panel, 'input').length, 0, 'no key, no switches');
   assert.ok(withText(panel, 'p', en['settings.onComputer']));
   panel.querySelector('.settings-language').enter('pt-BR', 'change');
   await p.settle();
@@ -341,6 +345,7 @@ test('without a phone address, Settings offers to create the private network', a
   await s.open();
   withText(open(p)[0], 'button', en['settings.network']).click();
   assert.equal(p.win.location.hash, '#network');
+  await p.settle();
   assert.equal(open(p).length, 0, 'leaving for another screen closes the drawer');
 });
 
@@ -356,11 +361,11 @@ test('the first run: three steps said out loud, Next to the end, and it is remem
   assert.equal(panel.querySelector('.first-step').textContent, '1/3');
   assert.equal(panel.querySelector('.first-say').textContent, en['first.hello']);
   assert.deepEqual(s.said, [en['first.hello']]);
-  assert.deepEqual([...new Set(panel.querySelectorAll('input[type=radio]').map((r) => r.name))], ['first-provider'],
+  assert.deepEqual([...new Set(all(panel, 'input[type=radio]').map((r) => r.name))], ['first-provider'],
     'its radios are a group of their own, apart from the ones in Settings');
-  assert.deepEqual(panel.querySelector('.sheet-foot').querySelectorAll('button').map((b) => b.textContent), ['Skip', 'Next']);
+  assert.deepEqual(all(panel.querySelector('.sheet-foot'), 'button').map((b) => b.textContent), ['Skip', 'Next']);
   assert.ok(panel.querySelector('input[type=password]'), 'ElevenLabs is the voice: the key is asked right here');
-  const device = panel.querySelectorAll('input[type=radio]').find((r) => r.value === 'device');
+  const device = all(panel, 'input[type=radio]').find((r) => r.value === 'device');
   device.dispatchEvent({ type: 'change', bubbles: true });
   await p.settle();
   assert.equal(panel.querySelector('input[type=password]'), null, 'another voice: no key needed');
@@ -444,7 +449,7 @@ test('Status: the light says the first broken thing; a tap opens the checks, a b
   const [panel] = open(p);
   assert.equal(p.win.location.hash, '#status');
   assert.equal(panel.querySelector('h2').textContent, 'Status');
-  assert.deepEqual(panel.querySelectorAll('strong').map((e) => e.textContent),
+  assert.deepEqual(all(panel, 'strong').map((e) => e.textContent),
     ['Mascot server', 'Voice session', 'Microphone', 'Sound'], 'the server checks, then the ones only the browser knows');
   assert.ok(panel.querySelector('.status-fail'), 'the broken one is marked');
   withText(panel, 'button', en['status.do.voice']).click();
@@ -500,7 +505,7 @@ test('the private network: the steps so far, one button for the next, and what t
   await p.settle();
   const [panel] = open(p);
   assert.equal(panel.querySelector('h2').textContent, en['settings.network']);
-  assert.deepEqual(panel.querySelectorAll('li').map((li) => li.className), ['done', 'now', '', '']);
+  assert.deepEqual(all(panel, 'li').map((li) => li.className), ['done', 'now', '', '']);
   assert.equal(panel.querySelector('.network-say').textContent, en['network.login']);
 
   withText(panel, 'button', en['network.do.login']).click();
@@ -511,7 +516,7 @@ test('the private network: the steps so far, one button for the next, and what t
 
   withText(panel, 'button', en['network.check']).click();
   await p.settle();
-  assert.deepEqual(panel.querySelectorAll('li').map((li) => li.className), ['done', 'done', 'done', 'done']);
+  assert.deepEqual(all(panel, 'li').map((li) => li.className), ['done', 'done', 'done', 'done']);
   assert.equal(panel.querySelector('code').textContent, 'https://pc.example.ts.net/');
   assert.equal(panel.querySelector('.network-actions'), null, 'done: nothing left to press');
   assert.equal(panel.querySelector('.sheet-note').textContent, '');
@@ -546,4 +551,158 @@ test('the private network: the DNS step opens the admin page; a failure shows it
   await q.settle();
   assert.equal(open(q)[0].querySelector('.sheet-note').textContent, 'tailscale did not answer');
   failing.close();
+});
+
+// --- the screens together, as main.js makes them: Status, then Settings, then the private network -------------------
+
+function wholePage(p, api, lang = { now: 'en' }) {
+  const tt = (key, vars) => fill((lang.now === 'pt-BR' ? pt : en)[key] ?? key, vars);
+  const status = createStatus({ api, t: tt, lang: () => lang.now, audio: { state: () => 'running', unlock: () => {} }, win: p.win });
+  const made = createSettings({ api, t: tt, win: p.win, language: () => lang.now, setLanguage: (v) => { lang.now = v; } });
+  const network = createNetwork({ api, t: tt, win: p.win });
+  return { status, settings: made, network, lang, gear: p.document.body.querySelector('.settings-open'),
+    chip: p.document.body.querySelector('.status-chip') };
+}
+
+test('from Settings to the private network: one drawer leaves, the other comes in front, the focus finds the gear', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+  const p = page();
+  const api = { ...settingsApi(), ...statusApi(), network: async () => ({ step: 'login' }) };
+  const w = wholePage(p, api);
+  await p.settle();
+  w.gear.focus();
+  w.gear.click();
+  await p.settle();
+  const go = withText(open(p)[0], 'button', en['settings.network']);
+  go.focus();
+  go.click();
+  await p.settle();
+  const [panel, ...others] = open(p);
+  assert.equal(others.length, 0, 'only one drawer is open');
+  assert.equal(panel.querySelector('h2').textContent, en['settings.network']);
+  assert.equal(p.document.body.children.at(-1), panel, 'and it is the last thing in the page: in front');
+  assert.ok(panel.contains(p.document.activeElement), 'the keyboard is inside it');
+  p.key('Escape');
+  assert.equal(open(p).length, 0);
+  assert.equal(p.document.activeElement, w.gear, 'back at the gear, not on a button that no longer exists');
+});
+
+test('a drawer opened over the first run is in front of it and takes the keyboard; Esc closes only that one', async () => {
+  const p = page();
+  const api = { ...settingsApi({ first_run_done: false, phone_url: null, voice_provider: 'device' }), network: async () => ({ step: 'login' }) };
+  const s = settings(p, api);
+  createNetwork({ api, t, win: p.win });
+  await s.firstRun();
+  await p.settle();
+  withText(open(p)[0], 'button', en['first.next']).click();
+  await p.settle();
+  withText(open(p)[0], 'button', en['settings.network']).click();        // step 2, no phone yet: make the network
+  await p.settle();
+  const shown = open(p);
+  assert.equal(shown.length, 2);
+  const network = shown.find((panel) => !panel.classList.contains('first-run'));
+  assert.equal(p.document.body.children.at(-1), network, 'the network drawer is in front of the first run');
+  p.key('Escape');
+  assert.deepEqual(open(p).map((panel) => panel.classList.contains('first-run')), [true], 'the first run is still there');
+  p.key('Escape');
+  assert.equal(open(p).length, 0);
+});
+
+test('Status follows the language; a redraw keeps the keyboard on its button; closing returns to the light', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+  const p = page();
+  const api = { ...settingsApi(), ...statusApi() };
+  const w = wholePage(p, api);
+  await p.settle();
+  w.chip.focus();
+  w.chip.click();
+  await p.settle();
+  let [panel] = open(p);
+  assert.equal(panel.querySelector('h2').textContent, 'Status');
+  assert.equal(panel.querySelector('.status-dot').getAttribute('role'), 'img');
+
+  const before = withText(panel, 'button', en['status.do.voice']);
+  before.focus();
+  before.click();
+  await p.settle();
+  ctx.mock.timers.tick(600);                             // it looks again: the rows are made anew
+  await p.settle();
+  const after = withText(panel, 'button', en['status.do.voice']);
+  assert.notEqual(after, before, 'the row was drawn again');
+  assert.equal(p.document.activeElement, after, 'and the keyboard is on the same button of the new row');
+
+  const rows = all(panel, '.status-row');
+  ctx.mock.timers.tick(15000);                           // the regular look: nothing changed
+  await p.settle();
+  assert.ok(all(panel, '.status-row').every((row, i) => row === rows[i]), 'the same rows: nothing was redrawn');
+
+  after.remove();                                        // the focused control vanishes: the focus falls to the page
+  assert.equal(p.document.activeElement, p.document.body);
+  p.key('Escape');
+  assert.equal(p.document.activeElement, w.chip, 'closing still returns the focus to the light');
+
+  w.lang.now = 'pt-BR';
+  w.chip.click();
+  await p.settle();
+  [panel] = open(p);
+  assert.equal(panel.querySelector('h2').textContent, 'Estado', 'opened again after a language change');
+  assert.equal(panel.querySelector('.sheet-close').getAttribute('aria-label'), 'Fechar');
+  w.status.close();
+});
+
+test('the private network says its steps to a screen reader, and forgets an old message when opened again', async () => {
+  const p = page();
+  const api = {
+    network: async () => ({ step: 'dns', admin_dns: 'https://admin.example/dns' }),
+    networkStep: async () => ({ step: 'dns' }),
+    qr: async () => null,
+  };
+  const made = createNetwork({ api, t, win: p.win });
+  made.open();
+  await p.settle();
+  let [panel] = open(p);
+  const steps = all(panel, 'li');
+  assert.deepEqual(steps.map((li) => li.getAttribute('aria-current')), [null, null, 'step', null]);
+  assert.equal(steps[0].textContent, `${en['network.step.install']} (done)`, 'a done step says so in words too');
+  assert.equal(steps[3].textContent, en['network.step.serve']);
+  withText(panel, 'button', en['network.do.dns']).click();
+  await p.settle();
+  assert.equal(panel.querySelector('.sheet-note').textContent, en['network.afterDns']);
+  made.close();
+  made.open();
+  assert.equal(panel.querySelector('.sheet-note').textContent, '', 'no message left over from last time');
+  await p.settle();
+  made.close();
+});
+
+test('the fake page behaves like a browser where the drawers depend on it', async () => {
+  const p = page();
+  const make = (tag = 'button', props = {}) => Object.assign(p.document.createElement(tag), props);
+  const loose = make();
+  loose.focus();
+  assert.equal(p.document.activeElement, p.document.body, 'not in the page: no focus');
+  const box = make('div');
+  const [shown, off] = [make(), make('button', { disabled: true })];
+  box.append(shown, off);
+  p.document.body.append(box);
+  off.focus();
+  assert.equal(p.document.activeElement, p.document.body, 'disabled: no focus');
+  box.hidden = true;
+  shown.focus();
+  assert.equal(p.document.activeElement, p.document.body, 'inside something hidden: no focus');
+  box.hidden = false;
+  shown.focus();
+  assert.equal(p.document.activeElement, shown);
+  box.replaceChildren();
+  assert.equal(p.document.activeElement, p.document.body, 'the focused element left the page: the focus falls back');
+  assert.equal(shown.isConnected, false);
+  const list = p.document.body.querySelectorAll('div');
+  assert.equal(list.map, undefined, 'a list of elements is not an array');
+  assert.deepEqual([...list], [box]);
+  let told = 0;
+  p.win.addEventListener('hashchange', () => { told += 1; });
+  p.win.location.hash = 'status';
+  assert.equal(told, 0, 'a new #hash is told a moment later');
+  await p.settle();
+  assert.equal(told, 1);
 });

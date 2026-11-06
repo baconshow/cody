@@ -34,8 +34,13 @@ export function createNetwork({ api, t, win = window }) {
 
   async function render(state, message = '') {
     const v = view(state, t);
-    const steps = el('ol', { className: 'network-steps' },
-      ...ORDER.slice(0, 4).map((id, i) => el('li', { className: i < v.index ? 'done' : (i === v.index ? 'now' : ''), textContent: t(`network.step.${id}`) })));
+    const steps = el('ol', { className: 'network-steps' }, ...ORDER.slice(0, 4).map((id, i) => {
+      const done = i < v.index;
+      const li = el('li', { className: done ? 'done' : (i === v.index ? 'now' : '') }, el('span', { textContent: t(`network.step.${id}`) }),
+        done ? el('span', { className: 'sr-only', textContent: ` (${t('network.step.isDone')})` }) : null);
+      if (i === v.index) li.setAttribute('aria-current', 'step');
+      return li;
+    }));
     sheet.setTitle(t('settings.network'), t('status.close'));
     const parts = [el('p', { className: 'settings-privacy', textContent: t('network.why') }), steps,
       el('p', { className: 'network-say', textContent: v.say })];
@@ -65,12 +70,16 @@ export function createNetwork({ api, t, win = window }) {
   }
 
   async function refresh() {
-    try { await render(await api.network()); } catch (e) { body.replaceChildren(el('p', { textContent: String(e?.message || e) })); }
+    try { await render(await api.network()); } catch (e) {
+      note.textContent = '';
+      body.replaceChildren(el('p', { textContent: String(e?.message || e) }));
+    }
   }
 
   function open() {
     sheet.setTitle(t('settings.network'), t('status.close'));
     sheet.open();
+    note.textContent = '';
     body.replaceChildren(el('p', { textContent: '…' }));
     refresh();
   }

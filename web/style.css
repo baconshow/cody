@@ -209,7 +209,6 @@ body.with-gallery { overflow-y: auto; }
   background: rgba(0, 0, 0, .5); font: 15px/1.35 var(--mascot-font); color: var(--mascot-ink);
 }
 .sheet-backdrop[hidden] { display: none; }
-.sheet-backdrop.first-run { z-index: 50; }
 .sheet {
   display: flex; flex-direction: column; width: min(440px, 100vw); height: 100%;
   background: #000; border-left: 1px solid var(--sheet-line); animation: sheet-in .18s ease-out;
@@ -240,11 +239,13 @@ body.with-gallery { overflow-y: auto; }
   padding: 12px 20px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--sheet-line);
 }
 .sheet-foot:empty { display: none; }
-.sheet-note {
+.sheet .sheet-note {
   flex: none; margin: 0; padding: 10px 20px max(10px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--sheet-line); font-size: 14px; overflow-wrap: anywhere;
 }
-.sheet-note:empty { padding-block: 0; border-top-width: 0; }   /* still there (a live region), taking no room */
+.sheet .sheet-note:empty { padding-block: 0; border-top-width: 0; }   /* still there (a live region), taking no room */
+/* for screen readers only: in the page, not on the screen */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* what goes in a drawer: words, fields and buttons */
 .sheet small { font-size: 13px; line-height: 1.3; color: var(--mascot-ink-2); }

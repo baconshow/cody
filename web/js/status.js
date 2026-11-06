@@ -56,6 +56,7 @@ function row(item, t, act, said) {
   const li = document.createElement('li');
   li.className = `status-row status-${item.state}`;
   const dot = Object.assign(document.createElement('span'), { className: 'status-dot' });
+  dot.setAttribute('role', 'img');
   dot.setAttribute('aria-label', t(`status.state.${item.state}`));
   const body = document.createElement('div');
   const title = Object.assign(document.createElement('strong'), { textContent: item.title });
@@ -64,6 +65,7 @@ function row(item, t, act, said) {
   if (item.fix && item.state !== 'ok') body.append(Object.assign(document.createElement('p'), { className: 'status-fix', textContent: item.fix }));
   if (item.action) {
     const button = Object.assign(document.createElement('button'), { type: 'button', className: 'primary', textContent: t(`status.do.${item.action}`) });
+    button.dataset.item = item.id;
     button.addEventListener('click', () => act(item.action, button, item.id));
     body.append(button);
   }
@@ -82,7 +84,8 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
   const list = Object.assign(document.createElement('ul'), { className: 'status-list' });
   sheet.body.append(list);
   document.body.append(chip);
-  const st = { items: [], local: false, timer: 0, said: new Map() };   // said: an action's answer, by item
+  // said: an action's answer, by item · drawn: what the list shows now (the same again is not drawn again)
+  const st = { items: [], local: false, timer: 0, said: new Map(), drawn: '' };
 
   async function act(action, button, id) {
     button.disabled = true;
@@ -107,7 +110,14 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     chip.textContent = summary(st.items, t);
     chip.setAttribute('aria-label', `${t('status.title')}: ${chip.textContent}`);
     if (!sheet.isOpen) return;
-    list.replaceChildren(...st.items.map((it) => row(st.local || !['voice', 'hooks'].includes(it.action) ? it : { ...it, action: null }, t, act, st.said.get(it.id))));
+    const shown = st.items.map((it) => (st.local || !['voice', 'hooks'].includes(it.action) ? it : { ...it, action: null }));
+    const drawn = JSON.stringify([shown, [...st.said]]);
+    if (drawn === st.drawn) return;                    // nothing changed since the last look: leave the rows alone
+    st.drawn = drawn;
+    // the rows are made again; the button the keyboard was on gets the focus back (same check, same button)
+    const held = list.contains(document.activeElement) ? document.activeElement.dataset.item : null;
+    list.replaceChildren(...shown.map((it) => row(it, t, act, st.said.get(it.id))));
+    if (held) [...list.querySelectorAll('button')].find((b) => b.dataset.item === held)?.focus({ preventScroll: true });
   }
 
   async function refresh() {
@@ -127,7 +137,13 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     request();
   }
 
-  function open() { sheet.open(); paint(); refresh(); }
+  function open() {
+    sheet.setTitle(t('status.title'), t('status.close'));   // again on each open: the language may have changed
+    sheet.open();
+    st.drawn = '';
+    paint();
+    refresh();
+  }
   chip.addEventListener('click', () => { win.location.hash = 'status'; });
   const route = () => (win.location.hash === '#status' ? open() : sheet.close());
   win.addEventListener('hashchange', route);

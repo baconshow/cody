@@ -2,9 +2,14 @@
 // Node: elements with children, classes, attributes and listeners; events that bubble up to the window; focus; a
 // location whose #hash tells its listeners. No layout and no styles: "visible" only means no ancestor is hidden.
 //
+// Where a browser's behaviour decides whether the drawers work, the fake follows it: only an element that is in the
+// page, shown and enabled takes the focus; when the focused element leaves the page the focus falls back to the
+// body; querySelectorAll hands back a list that can be walked and spread but has no map() or find(), like a
+// NodeList; and a new #hash tells its listeners a moment later, not on the spot.
+//
 //   createPage() → { document, win, history, key(name, more), settle() }
 //     key      a keydown on the focused element (it bubbles to the window, where the drawers listen)
-//     settle   lets pending promises run (the drawers draw themselves after asking the server)
+//     settle   lets pending promises and the hashchange run (the drawers draw themselves after asking the server)
 //   Selectors understood by querySelector(All): tag, .class, tag.class, [name=value] and tag[name=value], in a
 //   comma-separated list. A descendant combinator is not.
 
@@ -16,6 +21,18 @@ function parse(selector) {
     if (!m) throw new Error(`fake-dom: selector not understood: ${part}`);
     return { tag: m[1].toUpperCase(), classes: m[2].split('.').filter(Boolean), name: m[3], value: m[4] };
   });
+}
+
+// what querySelectorAll returns: indexes, length, forEach and iteration; no array methods
+class FakeNodeList {
+  constructor(items) {
+    items.forEach((item, i) => { this[i] = item; });
+    this.length = items.length;
+  }
+
+  forEach(fn) { for (let i = 0; i < this.length; i++) fn(this[i], i, this); }
+
+  * [Symbol.iterator]() { for (let i = 0; i < this.length; i++) yield this[i]; }
 }
 
 class FakeElement {
@@ -57,9 +74,11 @@ class FakeElement {
   }
 
   replaceChildren(...kids) {
-    for (const c of this.children) c.parentNode = null;
+    const gone = this.children;
+    for (const c of gone) c.parentNode = null;
     this.children = [];
     this.text = '';
+    for (const c of gone) c.left();
     this.append(...kids);
   }
 
@@ -67,7 +86,16 @@ class FakeElement {
     if (!this.parentNode) return;
     this.parentNode.children = this.parentNode.children.filter((c) => c !== this);
     this.parentNode = null;
+    this.left();
   }
+
+  // this element is out of the page: if the focus was in it, the focus falls back to the body
+  left() {
+    const doc = this.page.document;
+    if (this.contains(doc.activeElement)) doc.activeElement = doc.body;
+  }
+
+  get isConnected() { return this.page.document.body.contains(this); }
 
   contains(node) {
     for (let n = node; n; n = n.parentNode) if (n === this) return true;
@@ -103,10 +131,14 @@ class FakeElement {
     this.dispatchEvent({ type, bubbles: true });
   }
 
-  focus() { this.page.document.activeElement = this; }
+  // only what is in the page, shown and enabled takes the focus
+  focus() {
+    if (this.isConnected && !this.disabled && this.offsetParent !== null) this.page.document.activeElement = this;
+  }
 
-  // null when this element or an ancestor is hidden, as in a browser (where it also needs layout)
+  // null when this element or an ancestor is hidden, or it is not in the page (a browser also needs layout)
   get offsetParent() {
+    if (!this.isConnected) return null;
     for (let n = this; n; n = n.parentNode) if (n.hidden) return null;
     return this.parentNode;
   }
@@ -126,7 +158,7 @@ class FakeElement {
       }
     };
     walk(this);
-    return found;
+    return new FakeNodeList(found);
   }
 
   querySelector(selector) { return this.querySelectorAll(selector)[0] ?? null; }
@@ -150,7 +182,7 @@ export function createPage() {
         const next = value && !String(value).startsWith('#') ? `#${value}` : String(value || '');
         if (next === hash) return;
         hash = next;
-        page.win.dispatch({ type: 'hashchange' });
+        setImmediate(() => page.win.dispatch({ type: 'hashchange' }));   // a browser tells it a moment later
       },
     },
     navigator: {},

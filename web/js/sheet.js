@@ -3,7 +3,8 @@
 // a dialog: a title with the close button at the top, the content (scrolling), an optional row of buttons and, at
 // the bottom, a line for what the last action did. Esc and the X close it, and so does a click outside (unless the
 // owner says no: the first run should not vanish on a stray click); Tab stays inside; closing puts the keyboard
-// focus back where it was. Of the drawers open at one time, only the one on top answers the keyboard.
+// focus back where it was. Of the drawers open at one time, only the one on top answers the keyboard, and it is
+// also the one in front: opening a drawer moves it to the end of the page.
 //
 //   createSheet({ className, outside, onClose, win }) → sheet
 //     className   an extra class on the backdrop
@@ -56,16 +57,20 @@ export function createSheet({ className = '', outside = true, onClose = () => {}
     open() {
       if (!panel.hidden) return;
       st.before = document.activeElement;
+      document.body.append(panel);                     // last in the page: in front of a drawer already open
       panel.hidden = false;
       stack.push(sheet);
       box.focus({ preventScroll: true });              // keyboard and screen readers start inside the drawer
     },
     close() {
       if (panel.hidden) return;
-      const inside = box.contains(document.activeElement);
+      // the focus was in the drawer, or fell to the page when the control that had it was redrawn
+      const at = document.activeElement;
+      const ours = !at || at === document.body || box.contains(at);
       panel.hidden = true;
       stack.splice(stack.indexOf(sheet), 1);
-      if (inside) st.before?.focus?.({ preventScroll: true });   // back to where the drawer came from
+      // back to where the drawer came from, if that is still in the page
+      if (ours && st.before?.isConnected !== false) st.before?.focus?.({ preventScroll: true });
       onClose();
     },
   };
