@@ -35,8 +35,8 @@ LANGUAGES = ("en", "pt-BR")
 PROVIDERS = ("elevenlabs", "hosted", "device", "sounds")   # the voice outputs, best first (see cody/settings.py)
 VALID_HOST = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::\d{1,5})?$")
 VALID_LOGIN = re.compile(r"^[^\s,;]{1,254}$")
-VALID_VOICE = re.compile(r"^[A-Za-z0-9]{10,40}$")
-VALID_MODEL = re.compile(r"^[a-z0-9_]{3,40}$")
+VALID_VOICE = re.compile(r"^[A-Za-z0-9]{10,40}\Z")       # \Z, not $: a trailing newline is not part of an id
+VALID_MODEL = re.compile(r"^[a-z0-9_]{3,40}\Z")
 
 
 def _port(value) -> int:

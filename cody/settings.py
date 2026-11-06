@@ -6,9 +6,11 @@ Never returned: the key itself (only whether there is one).
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import re
 import sys
+import time
 from pathlib import Path
 
 from cody import autostart, hooks, voice
@@ -19,6 +21,8 @@ VALID_KEY = re.compile(r"^[A-Za-z0-9_\-]{20,128}$")
 FIRST_RUN_FILE = "first-run.json"
 TAILSCALE_APP = "https://tailscale.com/download"
 TEST_TEXT = {"en": "Hi! I'm Cody. Can you hear me?", "pt-BR": "Oi! Eu sou o Cody. Está me ouvindo?"}
+VOICES_TTL_S = 60                                 # the screen asks for the list on every redraw: ElevenLabs is asked once
+_voices = {"key": None, "at": 0.0, "answer": None}   # the last good list and (a digest of) the key it was asked with
 
 
 class SettingsError(ValueError):
@@ -107,6 +111,7 @@ def apply_switches(updates: dict) -> list[str]:
 def set_key(key: str) -> bool:
     """Saves the ElevenLabs key on this computer only ("" removes it). Returns whether a key is there now."""
     key = (key or "").strip()
+    forget_voices()                                   # another key, another account: its voices are asked again
     path = voice.saved_key_file()
     if not key:
         path.unlink(missing_ok=True)
@@ -117,13 +122,24 @@ def set_key(key: str) -> bool:
     return voice._api_key() is not None
 
 
-def voices() -> dict:
+def forget_voices() -> None:
+    _voices.update(key=None, answer=None)
+
+
+def voices(clock=time.monotonic) -> dict:
     """The ElevenLabs voices to choose from: {"ok": True, "voices": [...]}, or {"ok": False, "reason": ...} when the
-    key cannot list them (the screen then takes a voice id typed by hand)."""
+    key cannot list them (the screen then takes a voice id typed by hand). A good list is kept for a minute, for
+    the key it was asked with; a failure is asked again next time."""
+    key = voice._api_key()
+    mark = hashlib.sha256(key.encode("utf-8")).hexdigest() if key else None
+    if mark and _voices["key"] == mark and clock() - _voices["at"] < VOICES_TTL_S:
+        return _voices["answer"]
     try:
-        return {"ok": True, "voices": voice.eleven_voices()}
+        answer = {"ok": True, "voices": voice.eleven_voices()}
     except voice.VoiceError as error:
         return {"ok": False, "reason": error.message.removeprefix("ElevenLabs: "), "voices": []}
+    _voices.update(key=mark, at=clock(), answer=answer)
+    return answer
 
 
 def test_voice(config: dict, voice_id: str = "") -> dict:
@@ -137,7 +153,8 @@ def test_voice(config: dict, voice_id: str = "") -> dict:
         return {"ok": False, "reason": "no voice chosen yet"}
     chosen = {"voice_id": voice_id, "model": (saved or {}).get("model") or "eleven_flash_v2_5"} if voice_id else saved
     try:
-        voice._take_synthesis_slot()                  # the same per-minute and per-day limits as spoken replies
+        with voice._lock:                             # the same per-minute and per-day limits as spoken replies
+            voice._take_synthesis_slot()
         audio = voice._eleven(TEST_TEXT.get(config["language"], TEST_TEXT["en"]), chosen, config["language"])
     except voice.VoiceError as error:
         return {"ok": False, "reason": error.message.removeprefix("ElevenLabs: ")}

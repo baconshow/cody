@@ -9,6 +9,7 @@ Optional ElevenLabs voice: the API key comes from the ELEVENLABS_API_KEY environ
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -31,6 +32,7 @@ ELEVEN_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=
 ELEVEN_VOICES_URL = "https://api.elevenlabs.io/v1/voices"
 MAX_VOICES = 300                                 # what the list in Settings shows at most
 MAX_VOICES_BYTES = 4 * 1024 * 1024
+MAX_AUDIO_BYTES = 4 * 1024 * 1024                # a reply of MAX_TEXT characters is well under 1 MB of mp3
 ELEVEN_TIMEOUT_S = 30
 ELEVEN_LANGUAGE = {"en": "en", "pt-BR": "pt"}
 MAX_AUDIOS = 50                                  # as many as the channel keeps; in memory only, never on disk
@@ -151,6 +153,31 @@ def _api_key() -> str | None:
     return None
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """ElevenLabs is asked at one fixed address. A redirect would carry the key along to wherever it points (urllib
+    copies the headers), so none is followed: the 3xx then comes back as an ordinary HTTP error."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_ELEVEN = urllib.request.build_opener(_NoRedirect)
+
+
+def _ask_eleven(request: urllib.request.Request, limit: int) -> bytes:
+    """One request to ElevenLabs, following no redirect and reading at most `limit` bytes (more is an error)."""
+    with _ELEVEN.open(request, timeout=ELEVEN_TIMEOUT_S) as response:
+        data = response.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError("ElevenLabs sent more than expected")
+    return data
+
+
+def _is_mp3(data: bytes) -> bool:
+    """An mp3 starts with an ID3 tag or with a frame (eleven set bits)."""
+    return data[:3] == b"ID3" or (len(data) > 1 and data[0] == 0xFF and data[1] & 0xE0 == 0xE0)
+
+
 def _eleven(text: str, voice: dict, language: str) -> bytes:
     """The mp3 of the reply in the configured ElevenLabs voice."""
     key = _api_key()
@@ -162,14 +189,16 @@ def _eleven(text: str, voice: dict, language: str) -> bytes:
                                      headers={"xi-api-key": key, "Content-Type": "application/json",
                                               "Accept": "audio/mpeg"})
     try:
-        with urllib.request.urlopen(request, timeout=ELEVEN_TIMEOUT_S) as response:
-            audio = response.read()
+        audio = _ask_eleven(request, MAX_AUDIO_BYTES)
     except urllib.error.HTTPError as error:
         reason = eleven_reason(error.code, _error_body(error))
         _note(reason)
         raise VoiceError(502, f"ElevenLabs: {reason}") from error
-    except (urllib.error.URLError, OSError) as error:
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError) as error:
         raise VoiceError(502, "ElevenLabs did not answer") from error
+    if not _is_mp3(audio):                             # a 200 that is not sound must not pass for a working voice
+        _note("the answer was not audio")
+        raise VoiceError(502, "ElevenLabs: the answer was not audio")
     _note(None)
     return audio
 
@@ -183,30 +212,34 @@ def eleven_voices() -> list[dict]:
         raise VoiceError(503, "no ElevenLabs API key on this computer")
     request = urllib.request.Request(ELEVEN_VOICES_URL, headers={"xi-api-key": key, "Accept": "application/json"})
     try:
-        with urllib.request.urlopen(request, timeout=ELEVEN_TIMEOUT_S) as response:
-            data = json.loads(response.read(MAX_VOICES_BYTES))
+        data = json.loads(_ask_eleven(request, MAX_VOICES_BYTES))
     except urllib.error.HTTPError as error:
         raise VoiceError(502, f"ElevenLabs: {eleven_reason(error.code, _error_body(error))}") from error
-    except (urllib.error.URLError, OSError, ValueError) as error:
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError, RecursionError) as error:
         raise VoiceError(502, "ElevenLabs did not answer") from error
     return voice_list(data)
 
 
 def voice_list(data) -> list[dict]:
     """ElevenLabs' answer to "which voices?" cut down to what the list needs. Anything that is not a voice with a
-    usable id and a name is left out; `about` joins the labels ElevenLabs gives (accent, gender, age)."""
+    usable id and a name is left out; `about` joins the labels ElevenLabs gives (accent, gender, age). A voice can
+    be named anything by whoever made it, so only printable characters are kept (no control or direction marks)."""
     from cody.config import VALID_VOICE
+
+    def clean(text: str) -> str:
+        return " ".join("".join(ch for ch in text if ch.isprintable()).split())
+
     found = []
     for entry in (data.get("voices") if isinstance(data, dict) else None) or []:
         if not isinstance(entry, dict):
             continue
         voice_id, name = entry.get("voice_id"), entry.get("name")
-        if not (isinstance(voice_id, str) and VALID_VOICE.match(voice_id) and isinstance(name, str) and name.strip()):
+        if not (isinstance(voice_id, str) and VALID_VOICE.fullmatch(voice_id) and isinstance(name, str) and clean(name)):
             continue
         labels = entry.get("labels") if isinstance(entry.get("labels"), dict) else {}
-        about = ", ".join(str(labels[k]).strip() for k in ("accent", "gender", "age") if isinstance(labels.get(k), str)
-                          and labels[k].strip())
-        found.append({"id": voice_id, "name": " ".join(name.split())[:60], "about": about[:60]})
+        about = ", ".join(clean(labels[k]) for k in ("accent", "gender", "age") if isinstance(labels.get(k), str)
+                          and clean(labels[k]))
+        found.append({"id": voice_id, "name": clean(name)[:60], "about": about[:60]})
     found.sort(key=lambda v: v["name"].casefold())
     return found[:MAX_VOICES]
 
