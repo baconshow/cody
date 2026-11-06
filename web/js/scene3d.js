@@ -1,7 +1,8 @@
 // scene3d.js — the mascot in 3D (instead of the flat drawing in face2d.js): the mascot figure on a dark table over
 // pure black, warm light from one side, a cool rim light from the other so it stands out from the background, a soft
 // shadow underneath and a room reflection (RoomEnvironment) on the plastic. The animator (animator.js) is the same:
-// only what draws it changes.
+// only what draws it changes. When a scene puts something beside the mascot that would not fit (the monitor), the
+// camera slides sideways to keep both in the picture, and pulls back only if it must (scenes.js frameFor).
 //
 //   createScene3d(canvas) → { measure(width, height, dpr), draw(q), eyeCenter() → { x, y } in CSS px }
 //     measure  width and height in CSS px; returns the framing mode. Wide screen (phone in landscape): the face
@@ -14,6 +15,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { createMascot } from './mascot3d.js';
 import { createDecorations } from './decorations3d.js';
 import { createScenes3d } from './scenes3d.js';
+import { frameFor } from './scenes.js';
 
 const PEEK_FROM_ASPECT = 1.8;                            // width / height
 const FRAME = Object.freeze({
@@ -23,6 +25,8 @@ const FRAME = Object.freeze({
 const FOV = 28;
 const MAX_DPR = 2;
 const HEAD_TOP = 1.9;
+const SLIDE = 4;                                         // how fast the camera follows a scene (per second)
+const NO_SPAN = Object.freeze([0, 0]);
 
 function lights(scene) {
   scene.add(new THREE.HemisphereLight(0xffe2c4, 0x140c08, 0.35));
@@ -76,7 +80,8 @@ function createRenderer(canvas) {
   return r;
 }
 
-// the camera pulls back until the requested half width fits (and, in full mode, the half height too)
+// the camera pulls back until the requested half width fits (and, in full mode, the half height too). Returns the
+// framing: its mode, the distance and how many units the screen shows to each side of the middle
 function frameCamera(camera, width, height) {
   const aspect = width / Math.max(1, height);
   const mode = aspect >= PEEK_FROM_ASPECT ? 'peek' : 'full';
@@ -85,10 +90,14 @@ function frameCamera(camera, width, height) {
   let dist = f.halfWidth / (half * aspect);
   if (f.halfHeight) dist = Math.max(dist, f.halfHeight / half);
   camera.aspect = aspect;
-  camera.position.set(0, f.cameraHeight, dist);
-  camera.lookAt(0, f.targetY, 0);
   camera.updateProjectionMatrix();
-  return mode;
+  return { mode, dist, halfWidth: dist * half * aspect, f };
+}
+
+// look: { x, zoom }, how far the camera slid sideways and pulled back for the scene
+function placeCamera(camera, view, look) {
+  camera.position.set(look.x, view.f.cameraHeight, view.dist * look.zoom);
+  camera.lookAt(look.x, view.f.targetY, 0);
 }
 
 export function createScene3d(canvas) {
@@ -105,8 +114,24 @@ export function createScene3d(canvas) {
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 50);
   const size = { width: 1, height: 1 };
   const point = new THREE.Vector3();
+  const look = { x: 0, zoom: 1 };
+  let view = null;
   let scenes = null;
   let lastTime = null;
+
+  // the camera goes where the current scene fits; true while it is still on its way
+  function follow(sceneId, dt, quiet) {
+    if (!view) return false;
+    const want = frameFor(view.halfWidth, scenes ? scenes.span(sceneId) : NO_SPAN);
+    const zoom = want.halfWidth / view.halfWidth;
+    const k = quiet ? 1 : Math.min(1, dt * SLIDE);
+    const near = (a, b) => Math.abs(a - b) < 0.002;
+    if (near(look.x, want.x) && near(look.zoom, zoom)) return false;
+    look.x = k === 1 || near(look.x, want.x) ? want.x : look.x + (want.x - look.x) * k;
+    look.zoom = k === 1 || near(look.zoom, zoom) ? zoom : look.zoom + (zoom - look.zoom) * k;
+    placeCamera(camera, view, look);
+    return true;
+  }
 
   return {
     measure(width, height, dpr) {
@@ -114,7 +139,9 @@ export function createScene3d(canvas) {
       size.height = height;
       renderer.setPixelRatio(Math.min(dpr, MAX_DPR));
       renderer.setSize(width, height, false);
-      return frameCamera(camera, width, height);
+      view = frameCamera(camera, width, height);
+      placeCamera(camera, view, look);
+      return view.mode;
     },
     draw(q) {
       mascot.pose(q);
@@ -122,6 +149,7 @@ export function createScene3d(canvas) {
       const dt = lastTime === null ? 0 : Math.min(0.1, Math.max(0, q.time - lastTime));
       lastTime = q.time;
       const changed = scenes ? scenes.update(q, q.scene, dt) : false;
+      follow(q.scene, dt, q.quiet);
       renderer.render(scene, camera);
       return changed;
     },

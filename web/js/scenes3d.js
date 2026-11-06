@@ -7,20 +7,27 @@
 // nightcap, the headphones: "on": "body"). Worn parts live in a second group that goes on the mascot's body, so they
 // turn, hop, tilt and breathe with it instead of floating where the head used to be.
 //
-//   createScenes3d(THREE, data) → { group, worn, update(q, sceneId) }
+//   createScenes3d(THREE, data) → { group, worn, update(q, sceneId), span(sceneId) }
 //     group   what stands around the mascot (add it to the room)
 //     worn    what the mascot wears (hand it to mascot.wear)
+//     span    [left, right] in units: how far the scene reaches to each side (scenes.js sceneSpan), for the camera
 
-import { anchorOf, pivotOf } from './scenes.js';
+import { anchorOf, pivotOf, sceneSpan } from './scenes.js';
 
 const V = 0.1;                    // units per voxel, as in mascot3d.js
 const GROW = 6;                   // how fast a scene grows in or out (per second)
+const NO_SPAN = Object.freeze([0, 0]);
 
 const CLIPS = {
   bob: (o, t) => { o.position.y = Math.sin(t * 4) * 0.02; },
   blink: (o, t, i) => { o.visible = Math.floor(t * 2 + i * 0.7) % 4 !== 0; },
   dots: (o, t, i) => { o.scale.setScalar(Math.floor(t * 2.5) % 4 > i ? 1 : 0.001); },
-  steam: (o, t, i) => { const k = (t * 0.6 + i / 3) % 1; o.position.y = k * 0.25; o.scale.setScalar(1 - k * 0.7); },
+  steam: (o, t, i) => {                                // each puff rises and thins out where it is
+    const k = (t * 0.6 + i / 3) % 1;
+    const puff = o.children[0];
+    o.position.y = k * 0.25;
+    puff.scale.copy(puff.userData.size).multiplyScalar(1 - k * 0.7);
+  },
   walk: (o, t) => { o.position.x = Math.sin(t * 1.3) * 0.5; o.position.y = Math.abs(Math.sin(t * 9)) * 0.02; },
   confetti: (o, t, i) => { const k = (t * 0.35 + i * 0.17) % 1; o.position.y = -k * 2.2; o.children[0].rotation.z = t * (2 + i); },
   sway: (o, t) => { o.rotation.z = Math.sin(t * 1.1 - 0.6) * 0.05; },   // in time with the sleeping breath, a little late
@@ -54,6 +61,7 @@ export function createScenes3d(THREE, data) {
     const mesh = new THREE.Mesh(cube, mat);
     mesh.position.set(b[0] * V, b[1] * V, b[2] * V);
     mesh.scale.set(b[3] * V, b[4] * V, b[5] * V);
+    mesh.userData.size = mesh.scale.clone();
     return mesh;
   };
   const built = new Map();
@@ -84,7 +92,7 @@ export function createScenes3d(THREE, data) {
     roots.world.scale.setScalar(0.001);
     group.add(roots.world);
     worn.add(roots.body);
-    built.set(scene.id, { roots, holders, animated, grow: 0 });
+    built.set(scene.id, { roots, holders, animated, grow: 0, span: sceneSpan(scene) });
   }
 
   let last = null;
@@ -104,5 +112,5 @@ export function createScenes3d(THREE, data) {
     return changed;
   }
 
-  return { group, worn, update };
+  return { group, worn, update, span: (id) => built.get(id)?.span ?? NO_SPAN };
 }
