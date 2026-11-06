@@ -8,8 +8,10 @@
 //   pivotOf(part) → [x, y, z] in voxels: where a part grows from and sways around
 //   sceneSpan(scene) → [left, right] in units: how far its standing pieces reach to each side of the mascot's middle
 //   frameFor(halfWidth, span) → { x, halfWidth }: where the camera looks so the mascot and the scene both fit
+//   createSceneSounds() → (scene, now) → sound name | null: the sound of a scene that just came in
 
 export const IDLE_COFFEE_S = 45;          // this long with nothing going on, and the coffee comes out
+export const SOUND_GAP_S = 10;            // a scene back this soon is the same moment: its sound does not play again
 
 export const TRIGGERS = Object.freeze({
   failed: (s) => !!s.reading?.failed,                       // a command or a test failed a moment ago
@@ -55,6 +57,19 @@ export function frameFor(halfWidth, [left, right]) {
   const to = Math.max(MASCOT_REACH, right + MARGIN);
   if (to - from > 2 * halfWidth) return { x: (from + to) / 2, halfWidth: (to - from) / 2 };
   return { x: Math.max(to - halfWidth, Math.min(from + halfWidth, 0)), halfWidth };
+}
+
+// a scene's sound marks the moment it comes in. A tap on the mascot shows the party for a second and then the scene
+// that was there returns: that is not a new moment, so it comes back without its sound (a tap is always silent)
+export function createSceneSounds(gap = SOUND_GAP_S) {
+  const played = new Map();
+  return (scene, now) => {
+    if (!scene?.sound) return null;
+    const last = played.get(scene.id);
+    if (last !== undefined && now - last < gap) return null;
+    played.set(scene.id, now);
+    return scene.sound;
+  };
 }
 
 export function validScenes(data) {

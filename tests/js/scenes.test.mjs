@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validScenes, pickScene, anchorOf, pivotOf, sceneSpan, frameFor, MASCOT_REACH, TRIGGERS, IDLE_COFFEE_S }
-  from '../../web/js/scenes.js';
+import { validScenes, pickScene, anchorOf, pivotOf, sceneSpan, frameFor, createSceneSounds, MASCOT_REACH, TRIGGERS,
+  IDLE_COFFEE_S, SOUND_GAP_S } from '../../web/js/scenes.js';
 
 const data = JSON.parse(readFileSync(new URL('../../web/scenes/scenes.json', import.meta.url)));
 const scenes = validScenes(data);
@@ -78,4 +78,15 @@ test('the camera slides to keep a wide scene in the picture, and pulls back only
   assert.ok(narrow.halfWidth > 2, 'a narrow screen: it has to pull back');
   near(narrow.x - narrow.halfWidth, -MASCOT_REACH);
   assert.ok(narrow.x + narrow.halfWidth >= right);
+});
+
+test('a scene sounds when it comes in, not when it only comes back after a tap', () => {
+  const sound = createSceneSounds();
+  const debug = scenes.find((s) => s.id === 'debug');
+  const party = scenes.find((s) => s.id === 'party');
+  assert.equal(sound(debug, 100), 'error', 'a failure: the scene comes in with its sound');
+  assert.equal(sound(party, 101), null, 'a tap shows the party, which has no sound');
+  assert.equal(sound(debug, 102.6), null, 'the failure scene returns after the tap: silent');
+  assert.equal(sound(debug, 100 + SOUND_GAP_S), 'error', 'a new failure later sounds again');
+  assert.equal(sound(null, 0), null);
 });

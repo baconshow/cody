@@ -276,7 +276,8 @@ Settings > Voice picks the first one to try; when it fails, the next one speaks 
 3. **this device's voice** (the browser's speech);
 4. **Cody's sounds**: no words, little chirps in the rhythm of the text while it shows on screen. They always work.
 
-Cody's sounds also mark what happens: thinking, done, an error, calling you, a timer ringing, a pet, a startle.
+Cody's sounds also mark what happens: thinking, done, an error, calling you, a timer ringing, a startle. A tap on
+Cody is silent: tapping and holding it is how you talk to it, so it answers with a hop, not with a noise.
 They are made from scratch by `tools/make_sounds.py` (only the Python standard library, no samples), live in
 `web/sounds`, and are MIT like the rest. The mouth follows their volume.
 

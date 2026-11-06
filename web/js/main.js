@@ -38,7 +38,7 @@ import { createAlerts } from './alerts.js';
 import { createStatus } from './status.js';
 import { createSettings } from './settings.js';
 import { createNetwork } from './network.js';
-import { validScenes, pickScene } from './scenes.js';
+import { validScenes, pickScene, createSceneSounds } from './scenes.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -52,8 +52,10 @@ const CURSOR_LOOK_Y = 0.8;            // the computer screen is wider than tall:
 const POINTING_S = 6;                 // the face points along while the mini Cody points on the computer screen
 const NEEDS_YOU_S = 8;                // and points at the computer when Claude is waiting for you
 
-// Cody's sounds for things that happen to the face (a poke, a shake): set once the voice exists
+// Cody's sounds for things that happen to the face (a shake, a scene coming in): set once the voice exists. A tap is
+// not one of them: tapping (and holding) the face is how you call Cody, so it answers with a hop, never with a sound
 const reactions = { play: () => {} };   // name → sound; an unknown or empty name plays nothing
+const sceneSound = createSceneSounds();
 const VOICE_NOTICE_MS = 9000;
 
 function readOptions(search) {
@@ -145,7 +147,7 @@ function announceMood(f, mood) {
 
 function paint(f, q) {
   if (f.scene) {
-    if (f.scene.draw(q) && q.scene) reactions.play(scenes.list.find((s) => s.id === q.scene)?.sound);
+    if (f.scene.draw(q) && q.scene) reactions.play(sceneSound(scenes.list.find((s) => s.id === q.scene), q.time));
   } else drawFace(f.ctx, q, f.size, f.geo);
   announceMood(f, q.mood);
 }
@@ -213,7 +215,6 @@ function touchSide(f, x) {
 function wirePointer(faces, cycle, request, local) {
   const now = () => performance.now() / 1000;
   const poke = (x = null) => {
-    reactions.play('pet');
     for (const f of faces) f.animator.poke(x === null ? 0 : touchSide(f, x));
     cycle?.touched(now());
     request();
