@@ -182,8 +182,9 @@ close it too) instead of a Close button floating in the bottom corner. The Eleve
 ElevenLabs is the chosen voice. The hosted voice is listed as "coming soon" and cannot be picked: choosing it only
 fell through to the device's voice with a notice.
 
-The Status screen, the network screen and the first-run card still use the old full-screen layout: the drawer is the
-direction to be confirmed by the maintainer before the other three follow it.
+The Status screen, the network screen and the first-run card still used the old full-screen layout at this point:
+the drawer was the direction to be confirmed by the maintainer before the other three followed it (next entry but
+one).
 
 ## 2026-11-06 · Code review of the polish: what changed
 
@@ -207,3 +208,20 @@ direction to be confirmed by the maintainer before the other three follow it.
 - Found by opening the page, not by the review: the first version of the radio-name fix read a variable before its
   declaration and the drawer opened empty. The unit tests cannot see that (no DOM), so the check in
   `docs/MANUAL-TESTS.md` section 7 matters.
+
+## 2026-11-06 · One drawer for every screen, and a fake page to test it
+
+The maintainer confirmed the drawer, so Status, the private network and the first run moved into it. The drawer is
+now its own module, `web/js/sheet.js`: the dialog behaviour (role, Esc, Tab kept inside, focus returned, a click
+outside, only the top drawer answering the keyboard) is written once and the four screens only fill it. The first
+run differs in one thing: a click outside does not close it, since a stray click should not skip the welcome; Skip,
+the X and Esc all end it and mark it done. Its steps are said again when the language changes on the first one. The
+old full-screen styles (`.status-panel`, `.settings-panel`, the floating Close buttons) are gone.
+
+The screens had no tests: their code needs a page, and the first version of one fix opened an empty drawer that only
+a browser showed. `tests/js/fake-dom.mjs` is a page small enough to read in one sitting (elements, classes, events
+that bubble, focus, a `#hash`), and `tests/js/sheet.test.mjs` runs the drawer and the four screens on it: what
+opens, what a key or a click does, what the server is asked. It found one real bug on its first run (the first run
+could show twice in one visit: the page did not remember it was done). JavaScript line coverage on a developer
+machine went from 80% to 94%; the 85% floor in CI stays.
+

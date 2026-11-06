@@ -20,6 +20,5 @@ Things only the maintainer can do. Newest last.
 - [ ] **Post on Reddit** from `docs/launch/reddit.md` (attach `docs/media/cody-scenes.gif`, or record a short video
       of the real thing: it will be better than the headless captures). Status: recording the video.
 - [x] **ElevenLabs payment**: paid on 2026-11-06; the Status screen shows the ElevenLabs voice working.
-- [ ] **Say whether the Settings drawer is the direction.** Settings is now a drawer beside the mascot, opened from
-      the gear in the corner. The Status screen, the network screen and the first-run card still have the old
-      full-screen layout (and the Close button in the bottom corner); with a yes, they follow the drawer.
+- [x] **The drawer is the direction** (said yes on 2026-11-06): Status, the private network and the first run now
+      use the same drawer as Settings.

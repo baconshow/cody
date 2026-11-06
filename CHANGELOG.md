@@ -17,8 +17,10 @@
   the headphones, the coffee in its hand, the bug on its head) moves with it; the camera slides to keep the monitor
   and the debug sign in the picture on any screen.
 - The legs turn with the body instead of staying behind when Cody listens sideways.
-- **Settings** is a drawer beside the mascot, opened from a gear in the corner. The wake word state is a small light
-  (green on, red off) instead of words. A tap on Cody is silent.
+- **Settings, Status, the private network and the first run** are one drawer beside the mascot (a dialog: the X,
+  Esc and a click outside close it), instead of full-screen lists with a Close button in the corner. A gear in the
+  corner opens Settings. The wake word state is a small light (green on, red off) instead of words. A tap on Cody is
+  silent.
 - The sleeping Z is one piece, the thought bubbles grow to four, and after a shake Cody swears (`&#$*%@!`).
 - Opt-in update check (off by default). three.js and the font ship with Cody: the page works offline.
 - CI on Windows, macOS and Linux.

@@ -27,8 +27,9 @@ Code signed in, an Android phone with Chrome, and Tailscale on both (or let test
 
 ## 3. Status screen and doctor
 
-1. Close the voice session: the light in the corner turns red, "voice session closed". Tap it: the Status screen.
-   "Open voice session" opens it (on the PC only; on the phone the button is not there).
+1. Close the voice session: the light in the corner turns red, "voice session closed". Tap it: the Status drawer
+   opens on the right, the mascot still in view. "Open voice session" opens it (on the PC only; on the phone the
+   button is not there). The X, Esc and a click outside close the drawer.
 2. Open a second voice session: Status warns "2 voice sessions are open".
 3. With an ElevenLabs key whose account has a payment problem: Status shows `ElevenLabs: payment pending` and the
    voice falls back to the phone's voice with a notice.
@@ -39,7 +40,8 @@ Code signed in, an Android phone with Chrome, and Tailscale on both (or let test
 
 ## 4. Create your private network
 
-On a PC without Tailscale: Settings > Create your private network. Expect, in order: winget installs Tailscale; the
+On a PC without Tailscale: Settings > Create your private network. The drawer shows four numbered steps; the done
+ones get a tick and the current one is lit. Expect, in order: winget installs Tailscale; the
 sign-in page opens; the DNS page opens if MagicDNS or HTTPS is off; "Share Cody" ends with two QR codes. Scan the
 Tailscale one with the phone, install, sign in to the same account, then scan Cody's. The mascot opens on the phone
 over HTTPS. Check `tailscale serve status`: no Funnel.
@@ -67,7 +69,9 @@ four legs walk around with the body, and whatever it is wearing turns with it.
 
 ## 7. First run and settings
 
-Delete `first-run.json` in the data folder, reload on the PC: three steps with Cody talking, ending in "say hi".
+Delete `first-run.json` in the data folder, reload on the PC: three steps in a drawer on the right, with Cody
+talking beside it, ending in "say hi". Change the language on the first step: Cody says the step again in the new
+language. A click outside the drawer does not close it; Skip, the X and Esc do, and it does not come back on reload.
 Change the language and voice in Settings: the next reply uses them.
 
 The corner of the mascot page: a light (green while Cody listens for its name, red when off; a tap switches it and
