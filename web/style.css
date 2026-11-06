@@ -87,16 +87,29 @@ body.with-gallery { overflow-y: auto; }
   overflow-wrap: anywhere; text-align: left; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s ease;
 }
 .attachment.visible { opacity: 1; pointer-events: auto; }
-.attachment:focus-visible, .wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+.attachment:focus-visible, .wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: -8px; }
 
-/* the wake word button, in the corner: lit while the phone is listening for "mascot" */
+/* the wake word light, in the corner: green while the phone is listening for "Cody", red when it is off. A tap
+   switches it. No words on screen: they show on hover, on keyboard focus and for a moment after a switch. The
+   button is a full 44 px target around a 12 px dot */
 .wake {
-  position: fixed; right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top));
-  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .55);
-  color: var(--mascot-ink-2); font-family: var(--mascot-font); font-size: 14px; letter-spacing: .04em; cursor: pointer;
+  position: fixed; right: max(2px, env(safe-area-inset-right)); top: max(2px, env(safe-area-inset-top)); z-index: 20;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
 }
-.wake[aria-pressed="true"] { color: var(--mascot-ink); border-color: #e8762d; box-shadow: 0 0 0 1px #e8762d inset; }
-@media (prefers-reduced-motion: reduce) { .attachment { transition: none; } }
+.wake::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  border-radius: 50%; background: var(--status-fail); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55);
+}
+.wake[aria-pressed="true"]::before { background: var(--status-ok); }
+.wake::after {
+  content: attr(data-tip); position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
+  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .82);
+  color: var(--mascot-ink); font: 14px var(--mascot-font); letter-spacing: .04em; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .15s ease;
+}
+.wake:focus-visible::after, .wake.told::after { opacity: 1; }
+@media (hover: hover) { .wake:hover::after { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .attachment, .wake::after { transition: none; } }
 
 /* a screenshot Claude took on request: the picture over the face, with Share, Save and Close below it */
 .shot {

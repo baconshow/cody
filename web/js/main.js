@@ -57,6 +57,7 @@ const NEEDS_YOU_S = 8;                // and points at the computer when Claude 
 const reactions = { play: () => {} };   // name → sound; an unknown or empty name plays nothing
 const sceneSound = createSceneSounds();
 const VOICE_NOTICE_MS = 9000;
+const WAKE_TOLD_MS = 1800;            // how long the wake word light spells out its state after a switch
 
 function readOptions(search) {
   const q = new URLSearchParams(search);
@@ -266,8 +267,9 @@ function wireCursor(faces, cycle, request, local) {
 }
 
 // voice commands (voice.js): hold the face or call "Cody". The caption at the top, the box with the link or
-// command at the bottom (a tap copies it and, for a link, opens it), the button that turns the wake word on and off,
-// and the mouth following the volume of the speech
+// command at the bottom (a tap copies it and, for a link, opens it), the light in the corner that turns the wake word
+// on and off (green: listening for "Cody"; red: off; the words show on hover and for a moment after a switch), and
+// the mouth following the volume of the speech
 function wireVoice(f, cycle, request) {
   const make = (tag, className) => Object.assign(document.createElement(tag), { className });
   const caption = make('p', 'caption');
@@ -294,14 +296,21 @@ function wireVoice(f, cycle, request) {
       notice.timer = setTimeout(() => notice.classList.remove('visible'), VOICE_NOTICE_MS);
     },
     onListening: (on) => {
+      const say = t(on ? 'mascot.voice.wakeWord' : 'mascot.voice.wakeWordOff');
       wake.setAttribute('aria-pressed', String(on));
-      wake.textContent = t(on ? 'mascot.voice.wakeWord' : 'mascot.voice.wakeWordOff');
+      wake.setAttribute('aria-label', say);
+      wake.dataset.tip = say;
       remember(PREF_WAKE_WORD, on);
     },
   });
   f.animator.hearVoice(() => voice.volume());
   attachment.addEventListener('click', () => useAttachment(attachment.textContent));
-  wake.addEventListener('click', () => voice.listen(!voice.listening));
+  wake.addEventListener('click', () => {
+    voice.listen(!voice.listening);
+    wake.classList.add('told');                          // a phone has no hover: say what changed, briefly
+    clearTimeout(wake.timer);
+    wake.timer = setTimeout(() => wake.classList.remove('told'), WAKE_TOLD_MS);
+  });
   voice.listen(remembered(PREF_WAKE_WORD, true));
   const sync = () => (document.hidden ? voice.stop() : voice.start());
   document.addEventListener('visibilitychange', sync);
