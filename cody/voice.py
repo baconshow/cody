@@ -172,7 +172,7 @@ def _eleven(text: str, voice: dict, language: str) -> bytes:
 
 
 ELEVEN_REASONS = {
-    "payment_required": "payment pending", "quota_exceeded": "monthly characters used up",
+    "payment_required": "payment pending", "payment_issue": "payment pending", "quota_exceeded": "monthly characters used up",
     "invalid_api_key": "the key is not valid", "missing_permissions": "the key lacks text-to-speech permission",
     "voice_not_found": "the voice id does not exist", "too_many_concurrent_requests": "too many requests at once",
     "system_busy": "ElevenLabs is busy",
@@ -192,7 +192,7 @@ def _error_body(error) -> dict:
 def eleven_reason(status: int, body: dict) -> str:
     """ElevenLabs' error in plain words: its detail.status when it is a known one, else by HTTP status."""
     detail = body.get("detail")
-    code = detail.get("status") if isinstance(detail, dict) else None
+    code = (detail.get("status") or detail.get("code")) if isinstance(detail, dict) else None
     return ELEVEN_REASONS.get(str(code), ELEVEN_BY_STATUS.get(status, f"error {status}"))
 
 
