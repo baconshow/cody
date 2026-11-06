@@ -41,7 +41,8 @@ test('what the mascot wears is on its body; the rest stands around it', () => {
   const anchors = (id) => [...new Set(scenes.find((s) => s.id === id).parts.map(anchorOf))];
   assert.deepEqual(anchors('sleeping'), ['body'], 'the nightcap');
   assert.deepEqual(anchors('headphones'), ['body']);
-  for (const id of ['coding', 'party', 'thinking']) assert.deepEqual(anchors(id), ['world'], id);
+  for (const id of ['coding', 'party']) assert.deepEqual(anchors(id), ['world'], id);
+  assert.deepEqual(anchors('thinking'), ['body'], 'the thought bubble floats in front of the face and turns with it');
   assert.deepEqual(anchors('coffee'), ['body'], 'the mug is in its hand: a wide screen cuts off the floor in front');
   assert.deepEqual(anchors('debug').sort(), ['body', 'world'], 'the bug walks on its head, the sign stands beside it');
   assert.equal(anchorOf({ on: 'moon' }), 'world', 'an anchor this version does not know stands still');

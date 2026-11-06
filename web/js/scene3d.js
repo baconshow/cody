@@ -110,7 +110,8 @@ export function createScene3d(canvas) {
   table(scene);
   const mascot = createMascot(THREE, RoundedBoxGeometry);
   const decorations = createDecorations(THREE, RoundedBoxGeometry, HEAD_TOP);
-  scene.add(mascot.root, decorations.group);
+  scene.add(mascot.root);
+  mascot.wear(decorations.group);                        // the Z letters and the thought bubbles move with the head
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 50);
   const size = { width: 1, height: 1 };
   const point = new THREE.Vector3();

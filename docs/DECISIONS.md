@@ -303,3 +303,15 @@ automatic step runs once, so a slow install does not start twice; closing the dr
 step shows its reason and gives the button back. The screen's first words say what this is for: it is how the phone
 reaches the computer.
 
+## 2026-11-06 · The thought bubble in front, and a real keyboard
+
+The thinking scene's bubble and the thought spheres sat at the back of the head (z 0.2 to 0.4, behind the face at
+0.8) and stayed in the room, so a turn of the head left them behind, as the maintainer saw. They are now worn (the
+spheres live in the decorations group, which goes on the body too, with the Z letters) and float in front of the
+face, at the upper right, like the keyboard and the coffee: they turn and hop with the head.
+
+The keyboard was three staggered rows of equal keys with the space bar at the back. It is now laid out like a real
+one seen from the viewer's seat: the number row far away by the mascot, Tab, Caps Lock and Enter, the two Shifts,
+the bottom row with the space bar nearest the viewer, and a numeric keypad on the right with + and Enter two rows
+tall and a wide 0. 78 keys, from a table of widths per row (`KEY_SLOTS`), with a test that no two overlap.
+
