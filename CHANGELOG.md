@@ -10,7 +10,8 @@
 - **Status screen** and `python cody.py --doctor`: what is on and off, in plain words, with what to do; duplicate voice
   sessions and real error reasons (`ElevenLabs: payment pending`).
 - **Settings** and a three-step **first run**; QR codes drawn on the computer.
-- **Create your private network**: Tailscale from install to the phone, without a terminal (never Funnel).
+- **Create your private network**: Tailscale from install to the phone, without a terminal (never Funnel), in one
+  press: the sign-in and the DNS page open in the browser and Cody goes on by itself.
 - **Voice with four outputs**: ElevenLabs, Cody's hosted voice (not offered yet), the device's voice, and **Cody's own
   sounds**, which always work and are the default until you pick something else (an install that never picked a
   voice moves from the device's voice to Cody's sounds; pick the device's voice in Settings to keep it). With your

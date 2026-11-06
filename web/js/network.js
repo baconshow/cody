@@ -1,15 +1,21 @@
-// network.js — "Create your private network" (#network): one step at a time from no Tailscale to Cody on the phone,
-// with no terminal. The computer does the work (POST /api/network, from the computer only); pages the user has to
-// see (sign-in, the DNS settings, the download) open in the browser. Ends with two QR codes: the Tailscale app for
-// the phone and Cody's private address. It is the drawer of sheet.js: the steps, what to do now with its button,
-// and what the last press did at the bottom.
+// network.js — "Create your private network" (#network): from no Tailscale to Cody on the phone, with no terminal and
+// one press. The computer does the work (POST /api/network, from the computer only); what the user has to do
+// themself happens in the browser (sign in with Google, Microsoft, GitHub or Apple; switch on MagicDNS and HTTPS),
+// and the drawer looks again every few seconds until it is done, going on by itself: install, then sign in, then
+// the DNS page if it is needed, then share Cody, then two QR codes (the Tailscale app for the phone, and Cody's
+// private address). It is the drawer of sheet.js: the steps, what is happening now, and the last message at the
+// bottom.
 //
 //   createNetwork({ api, t, win }) → { open(), close() }
-//   view(state, t) is pure, for the tests.
+//   view(state, t) is pure, for the tests. NETWORK.poll: how often it looks again while it waits for the user.
 
 import { createSheet, el } from './sheet.js';
 
 const ORDER = ['install', 'login', 'dns', 'serve', 'done'];
+export const NETWORK = Object.freeze({ poll: 4000 });
+
+// what each step needs: 'run' the computer does alone; 'browser' needs the user there, then a look again later
+const NEEDS = Object.freeze({ install: 'run', login: 'browser', dns: 'browser', serve: 'run' });
 
 export function view(state, t) {
   const step = ORDER.includes(state?.step) ? state.step : 'install';
@@ -21,9 +27,15 @@ export function view(state, t) {
 export function createNetwork({ api, t, win = window }) {
   const sheet = createSheet({
     win,
-    onClose: () => { if (win.location.hash === '#network') history.replaceState(null, '', ' '); },
+    onClose: () => {
+      stop();
+      if (win.location.hash === '#network') history.replaceState(null, '', ' ');
+    },
   });
   const { body, note } = sheet;
+  // going: the press started the chain and it is not done · did: the steps run in this chain (install and serve
+  // once each, the browser opened once per step) · poll: the next look
+  const st = { going: false, did: new Set(), poll: 0 };
 
   async function qr(which) {
     try {
@@ -48,10 +60,11 @@ export function createNetwork({ api, t, win = window }) {
       parts.push(el('div', { className: 'settings-phone' }, el('p', { textContent: t('settings.phone.app') }), await qr('tailscale'),
         el('p', { textContent: t('settings.phone.scan') }), await qr('phone'), el('code', { textContent: state.phone_url })));
     } else {
-      const go = el('button', { type: 'button', className: 'primary', textContent: v.button });
-      go.addEventListener('click', () => run(v, go));
+      // one press starts the chain; while it runs, the button waits and "check again" is there for the impatient
+      const go = el('button', { type: 'button', className: 'primary', textContent: v.button, disabled: st.going });
+      go.addEventListener('click', () => { st.did.clear(); drive(state); });
       const again = el('button', { type: 'button', textContent: t('network.check') });
-      again.addEventListener('click', refresh);
+      again.addEventListener('click', () => look());
       parts.push(el('div', { className: 'network-actions' }, go, again));
     }
     parts.push(el('p', { className: 'settings-privacy', textContent: t('network.phoneToo') }));
@@ -59,21 +72,59 @@ export function createNetwork({ api, t, win = window }) {
     body.replaceChildren(...parts);
   }
 
-  async function run(v, button) {
-    button.disabled = true;
+  // the chain: does what the current step needs and goes on until done; what needs the user waits for a look again
+  async function drive(state) {
+    const v = view(state, t);
+    st.going = true;
+    if (v.step === 'done') { st.going = false; await render(state); return; }
+    if (st.did.has(v.step)) { await render(state, waitingWord(v.step)); later(); return; }   // started: wait for it
+    st.did.add(v.step);
     try {
-      if (v.link) { win.open(v.link, '_blank', 'noopener'); await render(await api.network(), t('network.afterDns')); return; }
-      const state = await api.networkStep(v.action);
-      if (state.open) win.open(state.open, '_blank', 'noopener');
-      await render(state, state.open ? t('network.finishInBrowser') : '');
-    } catch (e) { await render({ step: v.step }, String(e?.message || e)); }
+      if (NEEDS[v.step] === 'run' || v.step === 'login') {
+        const next = await api.networkStep(v.action);
+        if (next.open) win.open(next.open, '_blank', 'noopener');
+        if (view(next, t).step !== v.step) { await drive(next); return; }       // on to the next step at once
+        await render(next, waitingWord(v.step));
+      } else {
+        win.open(v.link, '_blank', 'noopener');
+        await render(state, waitingWord(v.step));
+      }
+      later();
+    } catch (e) {
+      st.going = false;
+      await render({ step: v.step }, String(e?.message || e));
+    }
   }
 
-  async function refresh() {
-    try { await render(await api.network()); } catch (e) {
+  // what the note says while a step is on its way
+  function waitingWord(step) {
+    return t(step === 'install' ? 'network.installing' : step === 'dns' ? 'network.afterDns' : step === 'serve'
+      ? 'network.sharing' : 'network.finishInBrowser');
+  }
+
+  function later() {
+    clearTimeout(st.poll);
+    if (st.going && sheet.isOpen) st.poll = setTimeout(look, NETWORK.poll);
+  }
+
+  function stop() {
+    st.going = false;
+    st.did.clear();
+    clearTimeout(st.poll);
+  }
+
+  // a look at where things stand; in a chain, it goes on from there
+  async function look() {
+    let state;
+    try { state = await api.network(); } catch (e) {
+      stop();
       note.textContent = '';
       body.replaceChildren(el('p', { textContent: String(e?.message || e) }));
+      return;
     }
+    if (!sheet.isOpen) return;
+    if (st.going) await drive(state);
+    else await render(state);
   }
 
   function open() {
@@ -81,7 +132,7 @@ export function createNetwork({ api, t, win = window }) {
     sheet.open();
     note.textContent = '';
     body.replaceChildren(el('p', { textContent: '…' }));
-    refresh();
+    look();
   }
   const route = () => (win.location.hash === '#network' ? open() : sheet.close());
   win.addEventListener('hashchange', route);

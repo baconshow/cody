@@ -292,3 +292,14 @@ text shows on screen, and they are Cody's own. The device's voice stays in Setti
 on the server and on the page alike; an install that never picked a voice changes with the upgrade, which the
 changelog says.
 
+## 2026-11-06 · The private network in one press
+
+The network screen asked for a press per step and a "check again" after each one. Now one press starts a chain
+that goes on by itself: install (then wait for winget), sign in (the browser opens on the Tailscale page, where
+Google, Microsoft, GitHub or Apple sign you in), the DNS page if MagicDNS or HTTPS is off, share, the two codes.
+While a step needs the user in the browser, the drawer looks again every 4 seconds (`GET /api/network`, which
+runs `tailscale status`: cheap) and goes on when the state moves. Each page opens once per chain and each
+automatic step runs once, so a slow install does not start twice; closing the drawer stops the looking; a failed
+step shows its reason and gives the button back. The screen's first words say what this is for: it is how the phone
+reaches the computer.
+

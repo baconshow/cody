@@ -59,7 +59,7 @@ export const en = {
   'first.phone.network': 'Want me on your phone? First we make your private network.', 'first.voice': 'Last step: open my voice session.',
   'first.sayHi': 'Now say hi!', 'first.next': 'Next', 'first.done': 'Done', 'first.skip': 'Skip',
   'first.title': 'First steps',
-  'network.why': 'Only your own devices can see Cody: Tailscale links them in a private network, and Cody shares itself there.',
+  'network.why': 'This is how your phone reaches your computer. Only your own devices can see Cody: Tailscale links them in a private network (you sign in with Google, Microsoft, GitHub or Apple), and Cody shares itself there. One press does it all; what needs you opens in the browser.',
   'network.phoneToo': 'Your phone needs the Tailscale app too, signed in to the same account.',
   'network.step.install': 'Install Tailscale', 'network.step.login': 'Sign in', 'network.step.dns': 'Turn on MagicDNS and HTTPS',
   'network.step.serve': 'Share Cody', 'network.step.isDone': 'done', 'network.install': 'Tailscale is not on this computer yet.',
@@ -69,8 +69,10 @@ export const en = {
   'network.done': 'Done! Open Cody on your phone:',
   'network.do.install': 'Install Tailscale', 'network.do.login': 'Sign in', 'network.do.dns': 'Open the DNS page',
   'network.do.serve': 'Share Cody', 'network.check': 'Check again',
-  'network.finishInBrowser': 'Finish in the window that opened, then press "Check again".',
-  'network.afterDns': 'Switch both on in the page that opened, then press "Check again".',
+  'network.finishInBrowser': 'Sign in in the window that opened. Cody looks again by itself every few seconds.',
+  'network.afterDns': 'Switch both on in the page that opened. Cody looks again by itself every few seconds.',
+  'network.installing': 'Installing Tailscale… this takes a minute. Cody goes on by itself when it is in.',
+  'network.sharing': 'Sharing Cody in your network…',
 };
 
 export const pt = {
@@ -130,7 +132,7 @@ export const pt = {
   'first.phone.network': 'Quer me levar no celular? Primeiro a gente cria sua rede privada.', 'first.voice': 'Último passo: abra minha sessão de voz.',
   'first.sayHi': 'Agora diga oi!', 'first.next': 'Próximo', 'first.done': 'Pronto', 'first.skip': 'Pular',
   'first.title': 'Primeiros passos',
-  'network.why': 'Só os seus aparelhos enxergam o Cody: o Tailscale liga seus aparelhos numa rede privada, e o Cody se compartilha nela.',
+  'network.why': 'É assim que o seu celular chega ao computador. Só os seus aparelhos enxergam o Cody: o Tailscale liga seus aparelhos numa rede privada (você entra com Google, Microsoft, GitHub ou Apple), e o Cody se compartilha nela. Um toque faz tudo; o que depende de você abre no navegador.',
   'network.phoneToo': 'O celular também precisa do app do Tailscale, entrando na mesma conta.',
   'network.step.install': 'Instalar o Tailscale', 'network.step.login': 'Entrar', 'network.step.dns': 'Ligar MagicDNS e HTTPS',
   'network.step.serve': 'Compartilhar o Cody', 'network.step.isDone': 'feito', 'network.install': 'O Tailscale ainda não está neste computador.',
@@ -140,6 +142,8 @@ export const pt = {
   'network.done': 'Pronto! Abra o Cody no celular:',
   'network.do.install': 'Instalar o Tailscale', 'network.do.login': 'Entrar', 'network.do.dns': 'Abrir a página de DNS',
   'network.do.serve': 'Compartilhar o Cody', 'network.check': 'Conferir de novo',
-  'network.finishInBrowser': 'Termine na janela que abriu e depois aperte "Conferir de novo".',
-  'network.afterDns': 'Ligue as duas opções na página que abriu e depois aperte "Conferir de novo".',
+  'network.finishInBrowser': 'Entre na sua conta na janela que abriu. O Cody confere sozinho a cada poucos segundos.',
+  'network.afterDns': 'Ligue as duas opções na página que abriu. O Cody confere sozinho a cada poucos segundos.',
+  'network.installing': 'Instalando o Tailscale… leva um minuto. O Cody segue sozinho quando terminar.',
+  'network.sharing': 'Compartilhando o Cody na sua rede…',
 };

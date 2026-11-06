@@ -9,7 +9,7 @@ import { createPage } from './fake-dom.mjs';
 import { createSheet, wrapFocus } from '../../web/js/sheet.js';
 import { createSettings, mp3Bytes } from '../../web/js/settings.js';
 import { createStatus } from '../../web/js/status.js';
-import { createNetwork } from '../../web/js/network.js';
+import { createNetwork, NETWORK } from '../../web/js/network.js';
 import { en, pt } from '../../web/js/strings.js';
 
 // a fresh page for each test; the modules reach `document` and `history` as globals, like in a browser
@@ -490,7 +490,8 @@ test('Status with the server down: one red check with the reason', async (ctx) =
 
 // --- the private network ------------------------------------------------------------------------------------------
 
-test('the private network: the steps so far, one button for the next, and what the press did', async () => {
+test('the private network: the steps so far, one button for the next, and what the press did', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
   const p = page();
   const calls = [];
   const states = [{ step: 'login' }, { step: 'done', phone_url: 'https://pc.example.ts.net/' }];
@@ -705,4 +706,91 @@ test('the fake page behaves like a browser where the drawers depend on it', asyn
   assert.equal(told, 0, 'a new #hash is told a moment later');
   await p.settle();
   assert.equal(told, 1);
+});
+
+test('the private network in one press: install, sign in, the DNS page, share, the codes; it looks again by itself', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  const p = page();
+  const calls = [];
+  // what each look finds, in order: Tailscale missing; installed (winget done); signed in but DNS off; still off;
+  // DNS on; and the step answers: install started, the sign-in link, Cody shared
+  const looks = [{ step: 'install' }, { step: 'login' }, { step: 'dns', admin_dns: 'https://admin.example/dns' },
+    { step: 'dns', admin_dns: 'https://admin.example/dns' }, { step: 'serve' }];
+  const api = {
+    network: async () => { calls.push('look'); return looks.length > 1 ? looks.shift() : looks[0]; },
+    networkStep: async (step) => {
+      calls.push(step);
+      return { install: { step: 'install' }, login: { step: 'login', open: 'https://login.example/' },
+        serve: { step: 'done', phone_url: 'https://pc.example.ts.net/' } }[step];
+    },
+    qr: async () => { throw new Error('no picture in this test'); },
+  };
+  const made = createNetwork({ api, t, win: p.win });
+  made.open();
+  await p.settle();
+  const [panel] = open(p);
+  const note = () => panel.querySelector('.sheet-note').textContent;
+  withText(panel, 'button', en['network.do.install']).click();           // the one press
+  await p.settle();
+  assert.deepEqual(calls, ['look', 'install']);
+  assert.equal(note(), en['network.installing']);
+  assert.equal(withText(panel, 'button', en['network.do.install']).disabled, true, 'the button waits while it runs');
+
+  ctx.mock.timers.tick(NETWORK.poll);                                    // installed: it signs in by itself
+  await p.settle();
+  assert.deepEqual(calls.slice(2), ['look', 'login']);
+  assert.deepEqual(p.win.opened, ['https://login.example/'], 'the sign-in page opened');
+  assert.equal(note(), en['network.finishInBrowser']);
+
+  ctx.mock.timers.tick(NETWORK.poll);                                    // signed in, DNS off: the admin page opens
+  await p.settle();
+  assert.deepEqual(p.win.opened.at(-1), 'https://admin.example/dns');
+  assert.equal(note(), en['network.afterDns']);
+  ctx.mock.timers.tick(NETWORK.poll);                                    // still off: no second window
+  await p.settle();
+  assert.equal(p.win.opened.length, 2, 'each page opens once');
+  assert.deepEqual(all(panel, 'li').map((li) => li.className), ['done', 'done', 'now', '']);
+
+  ctx.mock.timers.tick(NETWORK.poll);                                    // DNS on: it shares Cody and is done
+  await p.settle();
+  assert.equal(calls.at(-1), 'serve');
+  assert.equal(panel.querySelector('code').textContent, 'https://pc.example.ts.net/');
+  assert.deepEqual(all(panel, 'li').map((li) => li.className), ['done', 'done', 'done', 'done']);
+  const seen = calls.length;
+  ctx.mock.timers.tick(NETWORK.poll * 3);
+  await p.settle();
+  assert.equal(calls.length, seen, 'done: it stops looking');
+  made.close();
+});
+
+test('closing the private network drawer stops the looking; a failed step says why and lets you press again', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setTimeout', 'setInterval'] });
+  const p = page();
+  const calls = [];
+  const api = {
+    network: async () => { calls.push('look'); return { step: 'login' }; },
+    networkStep: async () => { calls.push('login'); return { step: 'login', open: 'https://login.example/' }; },
+    qr: async () => null,
+  };
+  const made = createNetwork({ api, t, win: p.win });
+  made.open();
+  await p.settle();
+  withText(open(p)[0], 'button', en['network.do.login']).click();
+  await p.settle();
+  made.close();
+  const seen = calls.length;
+  ctx.mock.timers.tick(NETWORK.poll * 3);
+  await p.settle();
+  assert.equal(calls.length, seen, 'closed: no more looks');
+
+  const q = page();
+  const failing = createNetwork({ api: { ...api, networkStep: async () => { throw new Error('tailscale did not answer'); } }, t, win: q.win });
+  failing.open();
+  await q.settle();
+  const [panel] = open(q);
+  withText(panel, 'button', en['network.do.login']).click();
+  await q.settle();
+  assert.equal(panel.querySelector('.sheet-note').textContent, 'tailscale did not answer');
+  assert.equal(withText(panel, 'button', en['network.do.login']).disabled, false, 'the button is back');
+  failing.close();
 });

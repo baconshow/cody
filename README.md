@@ -160,9 +160,10 @@ light shows whether Cody is listening for its name (green) or not (red); a tap s
 
 ## Put it on your phone
 
-**The easy way:** Settings > **Create your private network**. Cody takes you through it without a terminal: it
-installs Tailscale if it is missing (`winget` on Windows, the official download page elsewhere), opens the sign-in
-page, sends you to the Tailscale admin page if MagicDNS or HTTPS certificates are off, shares itself with
+**The easy way:** Settings > **Create your private network**, one press. Cody does it without a terminal and goes
+on by itself: it installs Tailscale if it is missing (`winget` on Windows, the official download page elsewhere),
+opens the sign-in page (Google, Microsoft, GitHub or Apple), opens the Tailscale admin page if MagicDNS or HTTPS
+certificates are off, looks again every few seconds while you finish in the browser, shares itself with
 `tailscale serve`, and shows two QR codes: the Tailscale app for your phone, and Cody's private address. Only your
 own devices can see Cody. Your phone needs the Tailscale app too, signed in to the same account.
 
