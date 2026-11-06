@@ -48,7 +48,7 @@ export function createDecorations(THREE, Rounded, top) {
       z.visible = asleep;
       if (!asleep) return;
       const phase = q.quiet ? 0.45 + i * 0.18 : ((q.time / ZZZ.period) + i / ZZZ.letters) % 1;
-      z.position.set(0.55 + phase * 0.45 + Math.sin(phase * 6) * 0.06, top + phase * ZZZ.rise, 0.3);
+      z.position.set(-(0.75 + phase * 0.45 + Math.sin(phase * 6) * 0.06), top + phase * ZZZ.rise, 0.3);   // on the left: the nightcap is on the right
       z.scale.setScalar(0.7 + phase * 0.8);
       material.opacity = Math.min(1, phase * 4) * (1 - phase);
     });

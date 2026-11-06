@@ -4,6 +4,8 @@
 //
 //   pickScene(scenes, situation) → scene | null
 //   situation: { mood, reading, idleSeconds, happy } (cycle.js situation())
+//   anchorOf(part) → 'body' (worn: it moves with the mascot) | 'world' (it stands around it)
+//   pivotOf(part) → [x, y, z] in voxels: where a part grows from and sways around
 
 export const IDLE_COFFEE_S = 45;          // this long with nothing going on, and the coffee comes out
 
@@ -16,6 +18,15 @@ export const TRIGGERS = Object.freeze({
   music: (s) => !!s.reading?.music,                         // music playing on the computer (comes with P1.3)
   idle: (s) => s.mood === 'listening' && s.idleSeconds >= IDLE_COFFEE_S,
 });
+
+// a part the mascot wears says "on": "body"; anything else (or an anchor this version does not know) stands still
+export const ANCHORS = Object.freeze(['world', 'body']);
+export const anchorOf = (part) => (ANCHORS.includes(part?.on) ? part.on : 'world');
+
+export function pivotOf(part) {
+  const at = part?.pivot;
+  return Array.isArray(at) && at.length === 3 && at.every(Number.isFinite) ? at : [0, 0, 0];
+}
 
 export function validScenes(data) {
   const list = Array.isArray(data?.scenes) ? data.scenes : [];

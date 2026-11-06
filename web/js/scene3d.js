@@ -129,6 +129,7 @@ export function createScene3d(canvas) {
     setScenes(list) {
       scenes = createScenes3d(THREE, list);
       scene.add(scenes.group);
+      mascot.wear(scenes.worn);
     },
     eyeCenter() {
       point.copy(mascot.eyes).project(camera);

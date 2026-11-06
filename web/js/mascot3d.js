@@ -3,7 +3,10 @@
 // little arms, four legs (the outer ones in front, the inner ones set back) and the sprout on the head. The sizes
 // come from the voxel drawing (measures.js), at 0.1 unit per voxel; the front faces +z and the floor is y = 0.
 //
-//   createMascot(THREE, RoundedBoxGeometry) → { root, eyes: THREE.Vector3 (the middle of the eyes, on the figure), pose(q) }
+//   createMascot(THREE, RoundedBoxGeometry) → { root, eyes: THREE.Vector3 (the middle of the eyes, on the figure), pose(q),
+//                                              wear(group) }
+//     wear(group)   puts a group on the body, so it turns, hops and breathes with it (a cap, headphones: scenes3d.js);
+//                   the group keeps measuring from the floor under the mascot's middle, like everything else
 //     pose(q)   applies the animator's pose (animator.js): gaze, blink, breathing, hop, tilt, arms, sprout, blush,
 //               talk, the happy face (^ eyes), the touch recoil, turning sideways (the body by q.yaw, the legs
 //               walking after it by q.feet, so they never stay behind) and the prop in hand: the
@@ -171,7 +174,11 @@ export function createMascot(THREE, Rounded) {
   const keyboard = createKeyboard(THREE, Rounded);
   body.add(keyboard.group);
   const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, feet, legs, m };
-  return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q) };
+  const wear = (group) => {
+    group.position.y = -LEG.height * V;                  // the body's own origin is at the top of the legs
+    body.add(group);
+  };
+  return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q), wear };
 }
 
 function applyPose(p, q) {
