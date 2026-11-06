@@ -22,6 +22,5 @@ Things only the maintainer can do. Newest last.
 - [x] **ElevenLabs payment**: paid on 2026-11-06; the Status screen shows the ElevenLabs voice working.
 - [x] **The drawer is the direction** (said yes on 2026-11-06): Status, the private network and the first run now
       use the same drawer as Settings.
-- [ ] **What should a new install sound like without an ElevenLabs key?** Today: the device's own voice (the
-      browser's speech, robotic on most computers), falling back to Cody's sounds. The other choice: Cody's sounds
-      first (no words, the text shows on screen), and the device's voice only if picked in Settings.
+- [x] **What a new install sounds like without an ElevenLabs key**: Cody's sounds (decided 2026-11-06); the
+      device's voice is there to pick in Settings.

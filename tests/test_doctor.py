@@ -13,7 +13,7 @@ from cody.server import App, Server
 from tests.test_server import free_port
 
 CONFIG = {"port": 7420, "language": "en", "voice": None, "voice_folder": None, "extra_hosts": [],
-          "voice_provider": "device", "update_check": False,
+          "voice_provider": "sounds", "update_check": False,
           "allowed_logins": []}
 
 

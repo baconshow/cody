@@ -70,7 +70,7 @@ class ServerSideTest(unittest.TestCase):
     def test_a_new_address_is_allowed_for_your_login_only(self):
         from cody.server import App
         app = App({"port": 7499, "extra_hosts": [], "allowed_logins": [], "language": "en", "voice": None,
-                   "voice_provider": "device", "update_check": False, "voice_folder": None})
+                   "voice_provider": "sounds", "update_check": False, "voice_folder": None})
         with mock.patch.object(network, "identity_login", return_value="me@example.com"):
             app.add_hosts(["pc.tail1234.ts.net:8443"])
         self.assertIn("pc.tail1234.ts.net:8443", app.hosts)

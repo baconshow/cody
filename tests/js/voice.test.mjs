@@ -34,6 +34,7 @@ function scenario({ failWithStatus = null } = {}) {
       return { request_id: '1' };
     },
     voiceReplies: async (after) => ({ channel: true, session: st.session, replies: st.replies.filter((r) => r.seq > after) }),
+    settings: async () => ({ voice_provider: 'device' }),   // these tests listen to the device's voice (the fake speechSynthesis)
   };
   const target = new EventTarget();
   st.attachments = [];

@@ -108,7 +108,7 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
   async function provider() {
     if (!st.provider || Date.now() - st.asked > PROVIDER_TTL_MS) {
       st.asked = Date.now();
-      try { st.provider = (await api.settings()).voice_provider; } catch { st.provider ??= 'device'; }
+      try { st.provider = (await api.settings()).voice_provider; } catch { st.provider ??= 'sounds'; }
     }
     return st.provider;
   }

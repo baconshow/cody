@@ -10,7 +10,7 @@ test('the outputs fall from the chosen one down to the sounds', () => {
   assert.deepEqual(order('elevenlabs'), OUTPUTS);
   assert.deepEqual(order('device'), ['device', 'sounds']);
   assert.deepEqual(order('sounds'), ['sounds']);
-  assert.deepEqual(order('nonsense'), ['device', 'sounds']);
+  assert.deepEqual(order('nonsense'), ['sounds'], 'no choice yet: Cody\'s sounds, not the device\'s voice');
 });
 
 test('the chatter follows the text: syllables, pauses, a question goes up', () => {

@@ -27,7 +27,7 @@ and a **heads-up** when one of your Claude Code sessions finishes a long task or
 | Cody | Free, MIT license |
 | Claude | **No API key and no API billing.** Voice commands run inside your normal Claude Code session, so they count against your Claude subscription (Pro or Max) like any message you type |
 | Phone access | [Tailscale](https://tailscale.com/pricing) Personal plan: free (up to 6 users, unlimited devices) |
-| Mascot voice | Your phone's built-in voice: free and unlimited |
+| Mascot voice | Cody's own sounds (no words: chirps while the text shows), or your phone's built-in voice if you pick it in Settings: free and unlimited |
 | Nicer voice (optional) | [ElevenLabs](https://elevenlabs.io/pricing): free tier of 10,000 credits a month, paid plans from $6 a month |
 
 ### Optional ElevenLabs voice: a cost simulation
@@ -280,8 +280,9 @@ Settings > Voice picks the first one to try; when it fails, the next one speaks 
 
 1. **ElevenLabs**, with your own key (below);
 2. **Cody's hosted voice**, opt-in, not offered yet;
-3. **this device's voice** (the browser's speech);
-4. **Cody's sounds**: no words, little chirps in the rhythm of the text while it shows on screen. They always work.
+3. **this device's voice** (the browser's speech; robotic on most computers);
+4. **Cody's sounds**: no words, little chirps in the rhythm of the text while it shows on screen. They always work,
+   and they are what a new install uses until you pick something else.
 
 Cody's sounds also mark what happens: thinking, done, an error, calling you, a timer ringing, a startle. A tap on
 Cody is silent: tapping and holding it is how you talk to it, so it answers with a hop, not with a noise.

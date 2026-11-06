@@ -12,10 +12,11 @@ export const CHATTER = 12;
 export const OUTPUTS = Object.freeze(['elevenlabs', 'hosted', 'device', 'sounds']);
 const MAX_SYLLABLES = 48;          // about six seconds: a long reply chatters for a while, not forever
 
-// the outputs to try, from the chosen one down to Cody's sounds, which always work
+// the outputs to try, from the chosen one down to Cody's sounds, which always work (and are the choice when there
+// is none)
 export function order(chosen) {
   const at = OUTPUTS.indexOf(chosen);
-  return OUTPUTS.slice(at < 0 ? OUTPUTS.indexOf('device') : at);
+  return OUTPUTS.slice(at < 0 ? OUTPUTS.indexOf('sounds') : at);
 }
 
 // one syllable per vowel group, a pause at spaces and a longer one at punctuation; the same text always sounds the

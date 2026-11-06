@@ -82,10 +82,11 @@ def _folder(value) -> str | None:
 
 
 def _provider(value, voice) -> str:
-    """The chosen voice output; without a choice, ElevenLabs when a voice is configured, else the device's voice."""
+    """The chosen voice output; without a choice, ElevenLabs when a voice is configured, else Cody's own sounds (the
+    device's voice is robotic on most computers; it is there to pick in Settings)."""
     if value in PROVIDERS:
         return value
-    return "elevenlabs" if _voice(voice) else "device"
+    return "elevenlabs" if _voice(voice) else "sounds"
 
 
 def load_config(path: Path | None = None, system=system_language) -> dict:

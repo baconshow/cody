@@ -242,8 +242,8 @@ step of the first run, when ElevenLabs is the chosen voice) now asks ElevenLabs 
   hand, as before.
 - **From the computer only.** The list names the voices of someone's account, so `GET /api/settings/voices` is
   refused through Tailscale, like every change to Settings.
-- **The default without a key did not change**: the device's voice, then Cody's sounds. Whether a new install should
-  start with Cody's sounds instead is a question for the maintainer (see `docs/BACON-TODO.md`).
+- **The default without a key** was the device's voice, then Cody's sounds. The maintainer chose Cody's sounds
+  (next entry).
 
 ## 2026-11-06 · Code review of the drawers: what changed
 
@@ -282,4 +282,13 @@ answer the computer only. Four things were tightened:
 Smaller: a voice id is the whole string (`\Z`, since `$` lets a trailing newline through); names and labels keep
 only printable characters, so a shared voice cannot use direction marks to look like another; the test route's
 refusal through Tailscale has its own test, since it spends credits.
+
+## 2026-11-06 · Without a voice picked, Cody's sounds
+
+A new install spoke with the device's voice (the browser's speech synthesis), which is robotic on most computers,
+and only fell back to Cody's sounds when that failed. The maintainer chose the sounds as the start: no words, the
+text shows on screen, and they are Cody's own. The device's voice stays in Settings for whoever prefers words.
+`config.json` without a `voice_provider` now means `sounds` (`elevenlabs` when a voice is configured, as before),
+on the server and on the page alike; an install that never picked a voice changes with the upgrade, which the
+changelog says.
 
