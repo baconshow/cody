@@ -85,8 +85,20 @@ test('a scene sounds when it comes in, not when it only comes back after a tap',
   const debug = scenes.find((s) => s.id === 'debug');
   const party = scenes.find((s) => s.id === 'party');
   assert.equal(sound(debug, 100), 'error', 'a failure: the scene comes in with its sound');
-  assert.equal(sound(party, 101), null, 'a tap shows the party, which has no sound');
-  assert.equal(sound(debug, 102.6), null, 'the failure scene returns after the tap: silent');
-  assert.equal(sound(debug, 100 + SOUND_GAP_S), 'error', 'a new failure later sounds again');
-  assert.equal(sound(null, 0), null);
+  assert.equal(sound(party, 112), null, 'a tap, late in a long failure, shows the party, which has no sound');
+  assert.equal(sound(debug, 113.6), null, 'the failure scene returns after the tap: silent, however long it had been on');
+  assert.equal(sound(null, 120), null, 'the failure is over: no scene');
+  assert.equal(sound(debug, 120 + SOUND_GAP_S), 'error', 'a new failure after a real pause sounds again');
+  assert.equal(sound(null, 130), null);
+  assert.equal(sound(debug, 131), null, 'back within the gap: still the same moment');
+});
+
+test('a broken box in a scene cannot take the camera away', () => {
+  const broken = { parts: [{ boxes: [[1, 2, 3], null, [NaN, 0, 0, 4, 1, 1], [30, 10, 0, 4, 4, 1]] }, { box: 'x' }] };
+  assert.deepEqual(sceneSpan(broken), [0, 3.2], 'only the whole box counts');
+  for (const span of [sceneSpan(broken), [NaN, NaN], [0, Infinity]]) {
+    const frame = frameFor(2.55, span);
+    assert.ok(Number.isFinite(frame.x) && Number.isFinite(frame.halfWidth), `${span}`);
+  }
+  assert.deepEqual(frameFor(2.55, [NaN, 1]), { x: 0, halfWidth: 2.55 });
 });

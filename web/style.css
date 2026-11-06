@@ -101,9 +101,12 @@ body.with-gallery { overflow-y: auto; }
   content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
   border-radius: 50%; background: var(--status-fail); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55);
 }
-.wake[aria-pressed="true"]::before { background: var(--status-ok); }
+/* on, it also glows: the state is not told by the color alone */
+.wake[aria-pressed="true"]::before {
+  background: var(--status-ok); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(76, 207, 114, .55);
+}
 .wake::after {
-  content: attr(data-tip); position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
+  content: attr(data-tip); position: absolute; right: 4px; top: 42px;      /* under the light, clear of the gear */
   padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .82);
   color: var(--mascot-ink); font: 14px var(--mascot-font); letter-spacing: .04em; white-space: nowrap;
   opacity: 0; pointer-events: none; transition: opacity .15s ease;
@@ -275,7 +278,7 @@ body.with-gallery { overflow-y: auto; }
   flex: none; margin: 0; padding: 10px 20px max(10px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--sheet-line); font-size: 14px; overflow-wrap: anywhere;
 }
-.sheet-note:empty { display: none; }
+.sheet-note:empty { padding-block: 0; border-top-width: 0; }   /* still there (a live region), taking no room */
 
 .settings-group { margin: 0; }
 .settings-group > h3 {
@@ -311,7 +314,9 @@ body.with-gallery { overflow-y: auto; }
 
 /* the voice: one card per way to sound; the chosen one lights up */
 .sheet .settings-voice { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
-.sheet .settings-voice legend { display: none; }                 /* the group title already says "Voice" */
+.sheet .settings-voice legend {          /* the group title already shows "Voice": this one is for screen readers */
+  position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
 .sheet .settings-radio {
   grid-template-columns: 18px 1fr; column-gap: 12px; row-gap: 2px; margin: 0; padding: 12px 14px;
   border: 1px solid var(--sheet-line); border-radius: 14px; cursor: pointer;

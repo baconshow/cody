@@ -50,14 +50,18 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
   const note = el('p', { className: 'sheet-note', role: 'status' });      // what the last change did ("Saved.")
   const sheet = el('div', { className: 'sheet' }, el('header', { className: 'sheet-head' }, title, close), body, note);
   sheet.tabIndex = -1;
+  sheet.setAttribute('role', 'dialog');
+  sheet.setAttribute('aria-modal', 'true');
   const panel = el('section', { className: 'sheet-backdrop', hidden: true }, sheet);
   const opener = el('button', { type: 'button', className: 'settings-open' });   // the gear on the mascot page
   document.body.append(opener, panel);
-  const st = { info: null };
+  // renders: each render's turn (a slower, older one must not paint over a newer one) · draftKey: a key typed and
+  // not saved yet, so redrawing the drawer does not throw it away · pressed: where the pointer went down
+  const st = { info: null, renders: 0, draftKey: '', pressed: null };
 
   function label() {
     title.textContent = t('settings.title');
-    for (const e of [panel, opener]) e.setAttribute('aria-label', t('settings.title'));
+    for (const e of [sheet, opener]) e.setAttribute('aria-label', t('settings.title'));
     opener.dataset.tip = t('settings.title');
     close.setAttribute('aria-label', t('status.close'));
   }
@@ -86,17 +90,19 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     select.addEventListener('change', async () => {
       setLanguage(select.value);
       if (st.info?.local) await change({ language: select.value }, says);
-      render();
+      await render();                                  // every text changes: the drawer is drawn again
+      if (!panel.hidden) body.querySelector('select')?.focus({ preventScroll: true });   // the keyboard stays here
     });
     return field(t('settings.language'), select);
   }
 
   // the four ways to sound, one to pick; what is not offered yet shows, greyed, with "coming soon"
-  function voiceChoice(info, says, onPick = () => {}) {
+  // radios: the radio group's own name (the first-run card and the drawer can be in the page together)
+  function voiceChoice(info, says, onPick = () => {}, radios = 'provider') {
     const box = el('fieldset', { className: 'settings-voice' }, el('legend', { textContent: t('settings.voice') }));
     for (const p of providers(t)) {
       const chosen = info.voice_provider === p.id;
-      const radio = el('input', { type: 'radio', name: 'provider', value: p.id, checked: chosen, disabled: p.soon && !chosen });
+      const radio = el('input', { type: 'radio', name: radios, value: p.id, checked: chosen, disabled: p.soon && !chosen });
       radio.addEventListener('change', async () => { await change({ voice_provider: p.id }, says); onPick(); });
       const name = el('span', { textContent: p.label }, p.soon ? el('em', { className: 'settings-soon', textContent: t('settings.soon') }) : null);
       box.append(el('label', { className: 'settings-radio' }, radio, name, el('small', { textContent: p.note })));
@@ -106,10 +112,16 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
 
   // your own ElevenLabs key, the voice and a test: shown while ElevenLabs is the chosen voice
   function elevenLabsBox(info, says) {
-    const key = el('input', { type: 'password', autocomplete: 'off', placeholder: t(info.has_key ? 'settings.key.saved' : 'settings.key.none') });
+    const key = el('input', { type: 'password', autocomplete: 'off', value: st.draftKey, placeholder: t(info.has_key ? 'settings.key.saved' : 'settings.key.none') });
+    key.addEventListener('input', () => { st.draftKey = key.value; });
     const saveKey = el('button', { type: 'button', textContent: t('settings.key.save') });
     saveKey.addEventListener('click', async () => {
-      try { st.info.has_key = (await api.saveKey(key.value)).has_key; key.value = ''; key.placeholder = t('settings.key.saved'); says.textContent = t('settings.saved'); } catch (e) { says.textContent = String(e?.message || e); }
+      try {
+        st.info.has_key = (await api.saveKey(key.value)).has_key;
+        key.value = st.draftKey = '';
+        key.placeholder = t('settings.key.saved');
+        says.textContent = t('settings.saved');
+      } catch (e) { says.textContent = String(e?.message || e); }
     });
     const voiceId = el('input', { value: info.voice_id || '', placeholder: t('settings.voiceId') });
     voiceId.addEventListener('change', () => change({ voice_id: voiceId.value }, says));
@@ -163,8 +175,13 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
   }
 
   const GROUPS = {
-    voice: (info) => group(t('settings.voice'), voiceChoice(info, note, render),
-      info.voice_provider === 'elevenlabs' ? elevenLabsBox(info, note) : null),
+    // picking a voice only swaps what is under the choice: the radios stay, so the keyboard keeps its place
+    voice: (info) => {
+      const under = el('div');
+      const fill = () => under.replaceChildren(...(st.info?.voice_provider === 'elevenlabs' ? [elevenLabsBox(st.info, note)] : []));
+      fill();
+      return group(t('settings.voice'), voiceChoice(info, note, fill), under);
+    },
     phone: async (info) => group(t('settings.phone'), await phoneBox(info, { heading: false })),
     general: (info) => group(t('settings.group.general'), el('div', { className: 'settings-card' }, languageField(note),
       ...(info?.local ? switches(info, note) : [])),
@@ -178,10 +195,12 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
   };
 
   async function render() {
+    const turn = ++st.renders;
     const info = st.info || await load().catch(() => null);
     label();
     const groups = [];
     for (const id of sections(info)) groups.push(await GROUPS[id](info));
+    if (turn !== st.renders) return;                   // a newer render started meanwhile: its picture wins
     body.replaceChildren(...groups);
   }
 
@@ -192,7 +211,24 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     await render();
     sheet.focus({ preventScroll: true });               // keyboard and screen readers start inside the drawer
   }
-  function closePanel() { panel.hidden = true; if (win.location.hash === '#settings') history.replaceState(null, '', ' '); }
+  function closePanel() {
+    const inside = sheet.contains(document.activeElement);
+    panel.hidden = true;
+    st.draftKey = '';
+    body.replaceChildren();                            // nothing typed stays behind in a hidden field
+    if (win.location.hash === '#settings') history.replaceState(null, '', ' ');
+    if (inside) opener.focus({ preventScroll: true });   // the keyboard goes back to where the drawer came from
+  }
+
+  // Tab stays inside the open drawer: past the last control it goes back to the first, and the other way round
+  function keepInside(e) {
+    const stops = [...sheet.querySelectorAll('button, input, select')].filter((n) => !n.disabled && n.offsetParent !== null);
+    if (!stops.length) return;
+    const at = document.activeElement;
+    const out = !sheet.contains(at) || at === sheet;
+    if (e.shiftKey && (out || at === stops[0])) { e.preventDefault(); stops.at(-1).focus(); }
+    else if (!e.shiftKey && (out || at === stops.at(-1))) { e.preventDefault(); stops[0].focus(); }
+  }
 
   async function firstRun(force = false) {
     const info = st.info || await load().catch(() => null);
@@ -209,7 +245,8 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
       const skip = el('button', { type: 'button', className: 'first-skip', textContent: t('first.skip') });
       skip.addEventListener('click', finish);
       const extra = [];
-      if (step.id === 'hello') extra.push(languageField(el('p')), voiceChoice(info, el('p')));   // the key waits in Settings
+      // the key waits in Settings; the group has its own name, apart from the drawer's radios
+      if (step.id === 'hello') extra.push(languageField(el('p')), voiceChoice(info, el('p'), () => {}, 'first-provider'));
       if (step.id === 'phone') extra.push(await phoneBox(info));
       if (step.id === 'voice') {
         const go = el('button', { type: 'button', textContent: t('status.do.voice') });
@@ -225,9 +262,18 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
   label();
   opener.addEventListener('click', () => { win.location.hash = 'settings'; });
   close.addEventListener('click', closePanel);
-  panel.addEventListener('click', (e) => { if (e.target === panel) closePanel(); });      // a click outside the drawer
-  win.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
-  const route = () => (win.location.hash === '#settings' ? open() : (panel.hidden = true));
+  // a click outside the drawer closes it; a drag that started inside (selecting the address) and ended outside does not
+  panel.addEventListener('pointerdown', (e) => { st.pressed = e.target; });
+  panel.addEventListener('click', (e) => { if (e.target === panel && st.pressed === panel) closePanel(); });
+  win.addEventListener('keydown', (e) => {
+    if (panel.hidden) return;
+    if (e.key === 'Escape') closePanel();
+    else if (e.key === 'Tab') keepInside(e);
+  });
+  const route = () => {
+    if (win.location.hash === '#settings') open();
+    else if (!panel.hidden) closePanel();
+  };
   win.addEventListener('hashchange', route);
   route();
   return { open, close: closePanel, firstRun };

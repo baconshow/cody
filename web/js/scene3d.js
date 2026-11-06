@@ -124,6 +124,7 @@ export function createScene3d(canvas) {
     if (!view) return false;
     const want = frameFor(view.halfWidth, scenes ? scenes.span(sceneId) : NO_SPAN);
     const zoom = want.halfWidth / view.halfWidth;
+    if (!Number.isFinite(want.x) || !Number.isFinite(zoom)) return false;   // never let a bad number into the camera
     const k = quiet ? 1 : Math.min(1, dt * SLIDE);
     const near = (a, b) => Math.abs(a - b) < 0.002;
     if (near(look.x, want.x) && near(look.zoom, zoom)) return false;

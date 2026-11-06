@@ -166,9 +166,10 @@ extent is read from the scene's own boxes, so a community scene gets the same tr
 ## 2026-11-06 · A tap is silent, and only the mascot is tapped
 
 Tapping and holding the face is how you call Cody when the wake word misses, so the pet sound no longer plays on a
-tap; `pet.wav` stays in `web/sounds` (the sound test still remakes it) for a later use. A scene that comes back
-within 10 seconds does not play its sound again: a tap shows the party for a second, and the debug scene behind it
-used to return with its error sound. A tap on a button or a panel drawn over the mascot is not a pat any more (no hop
+tap; `pet.wav` stays in `web/sounds` (the sound test still remakes it) for a later use. A scene that was gone for
+less than 5 seconds returns without its sound: a tap shows the party for a second, and the debug scene behind it
+used to return with its error sound. What counts is how long the scene was away, not when its sound last played, so
+a tap late in a long failure stays silent and a new failure after a real pause sounds again. A tap on a button or a panel drawn over the mascot is not a pat any more (no hop
 and confetti while changing a setting), and Space or Enter typed in a field does not poke it.
 
 ## 2026-11-06 · The wake word light, and Settings as a drawer
@@ -183,3 +184,26 @@ fell through to the device's voice with a notice.
 
 The Status screen, the network screen and the first-run card still use the old full-screen layout: the drawer is the
 direction to be confirmed by the maintainer before the other three follow it.
+
+## 2026-11-06 · Code review of the polish: what changed
+
+- **A broken scene box could take the camera away for good.** A box with missing numbers made the scene's width
+  NaN, the camera slid to NaN and never came back (only "reduce motion" healed it). `sceneSpan` now skips a box it
+  cannot measure, `frameFor` answers "the middle" for a width it cannot use, and the camera refuses a number that is
+  not finite. A community scene still cannot break the page.
+- **Picking a voice no longer redraws the whole drawer.** It redrew everything (two QR codes and a version request
+  per pick), threw away the focused radio so the arrow keys stopped after one press, and two quick picks could
+  paint out of order. Now only the box under the choice changes; a full redraw (a language change) carries a turn
+  number so an older one cannot paint over a newer one, and a key typed but not saved survives it. Closing the
+  drawer empties it, so nothing typed stays in a hidden field.
+- **The drawer is a dialog.** `role="dialog"` and `aria-modal`, Tab stays inside it, closing returns the focus to
+  the gear, the voice group keeps its name for screen readers (the legend is hidden from sight only), and the
+  "Saved." line stays in the page while empty so it is announced. A drag that starts inside the drawer and ends
+  outside does not close it.
+- **The wake word light** keeps one name ("listening for Cody") and says its state with `aria-pressed`; on, it also
+  glows, so the state is not told by red and green alone. Its words show under the light, clear of the gear.
+- The first-run card's voice radios have their own group name: they shared one with the drawer's, and a redraw of
+  the drawer could clear the card's selection.
+- Found by opening the page, not by the review: the first version of the radio-name fix read a variable before its
+  declaration and the drawer opened empty. The unit tests cannot see that (no DOM), so the check in
+  `docs/MANUAL-TESTS.md` section 7 matters.

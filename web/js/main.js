@@ -148,7 +148,7 @@ function announceMood(f, mood) {
 
 function paint(f, q) {
   if (f.scene) {
-    if (f.scene.draw(q) && q.scene) reactions.play(sceneSound(scenes.list.find((s) => s.id === q.scene), q.time));
+    if (f.scene.draw(q)) reactions.play(sceneSound(scenes.list.find((s) => s.id === q.scene) ?? null, q.time));
   } else drawFace(f.ctx, q, f.size, f.geo);
   announceMood(f, q.mood);
 }
@@ -301,10 +301,9 @@ function wireVoice(f, cycle, request) {
       notice.timer = setTimeout(() => notice.classList.remove('visible'), VOICE_NOTICE_MS);
     },
     onListening: (on) => {
-      const say = t(on ? 'mascot.voice.wakeWord' : 'mascot.voice.wakeWordOff');
-      wake.setAttribute('aria-pressed', String(on));
-      wake.setAttribute('aria-label', say);
-      wake.dataset.tip = say;
+      wake.setAttribute('aria-pressed', String(on));   // the name stays the same; pressed or not says the state
+      wake.setAttribute('aria-label', t('mascot.voice.wakeWord'));
+      wake.dataset.tip = t(on ? 'mascot.voice.wakeWord' : 'mascot.voice.wakeWordOff');
       remember(PREF_WAKE_WORD, on);
     },
   });
