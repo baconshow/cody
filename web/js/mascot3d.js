@@ -5,7 +5,8 @@
 //
 //   createMascot(THREE, RoundedBoxGeometry) → { root, eyes: THREE.Vector3 (the middle of the eyes, on the figure), pose(q) }
 //     pose(q)   applies the animator's pose (animator.js): gaze, blink, breathing, hop, tilt, arms, sprout, blush,
-//               talk, the happy face (^ eyes), the touch recoil, turning sideways and the prop in hand: the
+//               talk, the happy face (^ eyes), the touch recoil, turning sideways (the body by q.yaw, the legs
+//               walking after it by q.feet, so they never stay behind) and the prop in hand: the
 //               magnifier in front of the right eye, which grows huge behind the lens, or the keyboard, with the
 //               arms stretched out typing; and grabbing (phone shaking): arms stretched to the screen edges, legs
 //               spread, eyes wide, mouth open and the body trembling
@@ -19,7 +20,8 @@ const COLOR = Object.freeze({
   body: 0xf26a10, leg: 0xd85a0c, eye: 0x0b0b0d, glint: 0xffffff, blush: 0xff8f86, mouth: 0x2a1418,
   stem: 0x4f8a2c, leaf: 0x47b33a,
 });
-const LOOK = Object.freeze({ turnY: 0.32, turnX: 0.14, eyeX: 0.1, eyeY: 0.07 });   // radians and units
+const LOOK = Object.freeze({ turnX: 0.14, eyeX: 0.1, eyeY: 0.07 });   // radians and units (the turn is q.yaw)
+const STEP = Object.freeze({ lift: 0.07, rhythm: 16 });   // the legs walking around: how high, how fast
 const BREATH = 0.018;
 const ARM_RAISE = 1.25;                                  // radians at raise = 1
 const SLEEPY_LID = 0.5;                                  // when sleepy, the eye stays half closed
@@ -124,7 +126,9 @@ export function createMascot(THREE, Rounded) {
   const root = new THREE.Group();
   const spring = new THREE.Group();                      // hop and tilt
   const body = new THREE.Group();                        // on top of the legs; breathes and turns toward the gaze
+  const feet = new THREE.Group();                        // the four legs: they turn together, under the body
   root.add(spring);
+  spring.add(feet);
   // each leg on a pivot at its top (where it joins the body), so it can spread on a startle without leaving the body
   const legs = LEG.xs.map((vx, i) => {
     const pivot = new THREE.Group();
@@ -133,7 +137,7 @@ export function createMascot(THREE, Rounded) {
     pivot.add(leg);
     const inner = i === 1 || i === 2;
     pivot.position.set(x(vx + LEG.width / 2), LEG.height * V, inner ? -0.3 : 0.35);
-    spring.add(pivot);
+    feet.add(pivot);
     return pivot;
   });
   body.position.y = LEG.height * V;
@@ -166,7 +170,7 @@ export function createMascot(THREE, Rounded) {
   face.add(lens);
   const keyboard = createKeyboard(THREE, Rounded);
   body.add(keyboard.group);
-  const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, legs, m };
+  const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, feet, legs, m };
   return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q) };
 }
 
@@ -180,7 +184,8 @@ function applyPose(p, q) {
   p.spring.rotation.z = -q.tilt * 2 - (q.touch || 0) * (q.recoil || 0) * RECOIL.side + (q.turn || 0) * 0.12;
   const stretch = 1 + Math.max(-0.04, Math.min(0.04, q.hop / 700));
   p.body.scale.set(2 - stretch, stretch * (1 + BREATH * q.breath), 1);
-  p.body.rotation.y = q.lookX * LOOK.turnY + (q.turn || 0);
+  p.body.rotation.y = q.yaw || 0;
+  poseFeet(p, q);
   p.body.rotation.x = q.lookY * LOOK.turnX;
   p.face.position.x = q.lookX * LOOK.eyeX;
   // happy: the ^ of the two sticks; resting: the same, upside down and flattened (the ∪ of an eye closed in peace);
@@ -208,6 +213,16 @@ function applyPose(p, q) {
   p.keyboard.pose(q);
   p.leaves.rotation.z = -q.sproutX * 0.5;
   p.leaves.rotation.x = q.sproutY * 0.3;
+}
+
+// the legs turn after the body (q.feet) and, while they do, step in diagonal pairs, like a little trot
+function poseFeet(p, q) {
+  p.feet.rotation.y = q.feet || 0;
+  const stepping = q.stepping || 0;
+  p.legs.forEach((leg, i) => {
+    const up = Math.max(0, Math.sin(q.time * STEP.rhythm + (i % 2) * Math.PI));
+    leg.position.y = LEG.height * V + STEP.lift * stepping * up;
+  });
 }
 
 // the magnifier rises from the hand to the front of the right eye; behind the lens, the eye grows

@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSpring, stepSpring, settleSpring } from '../../web/js/spring.js';
-import { createAnimator, SPRINGS, TIMINGS } from '../../web/js/animator.js';
+import { createAnimator, feetYaw, SPRINGS, TIMINGS, TURN } from '../../web/js/animator.js';
 import { MOODS, EXPRESSION } from '../../web/js/moods.js';
 import { seededRandom } from '../../web/js/seeded-random.js';
 
@@ -223,6 +223,36 @@ test('listening sideways: turns the body to offer the ear and turns back when it
   animator.setListening(false);
   for (let s = 3; s <= 7; s += STEP) q = animator.step(s);
   near(q.turn, 0, 0.03, 'turned back');
+});
+
+test('the feet stay planted while only the head moves and walk around with a real turn', () => {
+  assert.equal(feetYaw(0, 0.5), 0, 'half a glance: planted');
+  assert.equal(feetYaw(0, -TURN.plant / TURN.gaze), 0, 'up to the limit: still planted');
+  near(feetYaw(0, 1), TURN.gaze - TURN.plant, 1e-9, 'past the limit, only the excess drags them');
+  near(feetYaw(0, -1), -(TURN.gaze - TURN.plant), 1e-9, 'the same to the other side');
+  near(feetYaw(0.95, 0), 0.95, 1e-9, 'a real turn takes them all the way');
+
+  const animator = createAnimator({ random: seededRandom(3), quiet: false, mood: 'listening' });
+  run(animator, 0, 1);
+  let q = null;
+  for (let s = 1; s <= 2.5; s += STEP) { animator.lookAt(1, 0, s); q = animator.step(s); }
+  assert.ok(q.yaw > 0.28, `the body turned with the gaze: ${q.yaw}`);
+  assert.ok(Math.abs(q.feet) < 0.15, `the feet barely moved: ${q.feet}`);
+  near(q.stepping, 0, 0.02, 'standing still, no steps');
+
+  animator.setListening(true);
+  let stepped = 0;
+  for (let s = 2.5; s <= 6; s += STEP) { animator.lookAt(1, 0, s); q = animator.step(s); stepped = Math.max(stepped, q.stepping); }
+  assert.ok(q.yaw > 1.1, `turned sideways: ${q.yaw}`);
+  assert.ok(q.yaw - q.feet < TURN.plant + 0.02, `the legs came along: body ${q.yaw}, feet ${q.feet}`);
+  assert.ok(stepped > 0.5, `and stepped on the way: ${stepped}`);
+  near(q.stepping, 0, 0.02, 'arrived: the steps stop');
+
+  const calm = createAnimator({ random: seededRandom(3), quiet: true, mood: 'listening' });
+  calm.setListening(true);
+  q = calm.step(0);
+  near(q.feet, q.turn, 1e-9, 'reduce motion: the feet are already there');
+  assert.equal(q.stepping, 0);
 });
 
 test('the prop in hand: the magnifier comes in (hold reaches 1) and leaves without vanishing at once', () => {

@@ -16,6 +16,10 @@
 //   animator.curse()            the cursing alone (the end of a shake; ?curse=1 shows it)
 //   animator.hearVoice(fn)      fn() → volume of the phrase playing (0 to 1) or null; the mouth follows it
 //
+// The body turns (q.yaw, radians) with the gaze and, listening sideways, with q.turn. The feet (q.feet) stay planted
+// while only the head moves and walk around with a real turn: feetYaw(). While they walk, q.stepping (0 to 1) lifts
+// the legs in turn.
+//
 // The gaze runs from −1 to 1 on both axes, with y pointing down, as in the original.
 
 import { createSpring, stepSpring, settleSpring } from './spring.js';
@@ -29,6 +33,7 @@ export const SPRINGS = Object.freeze({
   recoil: [200, 0.45], turn: [70, 0.8],    // from the 3D mascot: the little hop back on a touch and turning sideways
   hold: [90, 0.75],                        // the prop coming into the hand (and going away)
   grab: [160, 0.5],                        // the startle of a shaking phone: stretch, spread and tremble
+  feet: [140, 0.9],                        // the legs walking around after the body, a little late
 });
 
 export const TIMINGS = Object.freeze({
@@ -44,6 +49,9 @@ export const TIMINGS = Object.freeze({
 
 export const IMPULSE = Object.freeze({ moodChange: 260, pupil: 3, hop: [180, 320], poke: 300, recoil: 9 });
 const TURN_TO_LISTEN = 0.95;   // radians: sideways, with the ear-arm toward the front
+// gaze: how far the body turns with the gaze (radians per unit); plant: up to this much of it, the feet stay where
+// they are; stride: the feet turning this fast (radians per second) is a full step
+export const TURN = Object.freeze({ gaze: 0.32, plant: 0.2, stride: 1.5 });
 const PROPS = new Set(['magnifier', 'keyboard']);
 const LOOK_AT_MAGNIFIER = Object.freeze({ x: 0.08, y: -0.05 });   // through the lens, at whoever is watching
 const LOOK_AT_KEYBOARD = Object.freeze({ x: 0, y: 0.6 });         // down, at the keys
@@ -56,6 +64,13 @@ const VOICE_SILENT = 0.05;     // below this the phrase is in a pause (with "red
 
 const clamp = (v, a = -1, b = 1) => Math.max(a, Math.min(b, v));
 
+// where the feet point (radians): a real turn (listening sideways) takes them all the way; the head following the
+// gaze leaves them planted, and only what goes past TURN.plant drags them along
+export function feetYaw(turn, gaze) {
+  const head = gaze * TURN.gaze;
+  return turn + Math.sign(head) * Math.max(0, Math.abs(head) - TURN.plant);
+}
+
 function createSprings() {
   const s = (value, [stiffness, damping]) => createSpring(value, stiffness, damping);
   return {
@@ -65,6 +80,7 @@ function createSprings() {
     raiseL: s(0, SPRINGS.arm), raiseR: s(0, SPRINGS.arm), stretchL: s(0, SPRINGS.arm), stretchR: s(0, SPRINGS.arm),
     sproutX: s(0, SPRINGS.sprout), sproutY: s(0, SPRINGS.sprout),
     recoil: s(0, SPRINGS.recoil), turn: s(0, SPRINGS.turn), hold: s(0, SPRINGS.hold), grab: s(0, SPRINGS.grab),
+    feet: s(0, SPRINGS.feet),
   };
 }
 
@@ -129,6 +145,7 @@ function advance(ctx, now) {
   drive(st, m.sproutY, m.hop.value, dt);                 // and lags behind on a hop
   drive(st, m.recoil, 0, dt);
   drive(st, m.turn, st.listening ? TURN_TO_LISTEN * st.side : 0, dt);
+  drive(st, m.feet, feetYaw(m.turn.value, m.lookX.value), dt);
   drive(st, m.hold, st.prop ? 1 : 0, dt);
   drive(st, m.grab, st.grab ? 1 : 0, dt);
   if (st.cursing) { st.cursedAt = now; st.cursing = false; }
@@ -281,6 +298,9 @@ function fill(q, st, m, now, closed) {
   q.recoil = m.recoil.value;
   q.touch = st.touch;
   q.turn = m.turn.value;
+  q.yaw = m.lookX.value * TURN.gaze + m.turn.value;
+  q.feet = m.feet.value;
+  q.stepping = st.quiet ? 0 : clamp(Math.abs(m.feet.velocity) / TURN.stride, 0, 1);
   q.hold = clamp(m.hold.value, 0, 1.2);
   q.prop = q.hold > 0.02 ? st.lastProp : null;
   q.grab = clamp(m.grab.value, 0, 1.3);
