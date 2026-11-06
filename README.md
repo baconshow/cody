@@ -147,9 +147,11 @@ sessions are open, Cody says so: only the newest one hears you.
 ## Settings and the first run
 
 The first time you open Cody on the computer, it walks you through three steps, out loud: language and voice, the
-phone (a QR code to scan), and the voice session, ending in "say hi". **Settings** (tray menu, or the page's
-`#settings`) has the rest: language, voice (ElevenLabs with your own key, Cody's hosted voice, the device's voice or
-Cody's sounds), the ElevenLabs key with a **Test** button, privacy, the hooks and starting with Windows.
+phone (a QR code to scan), and the voice session, ending in "say hi". **Settings** (the gear in the top corner of
+the mascot page, the tray menu, or the page's `#settings`) opens beside the mascot and has the rest: voice
+(ElevenLabs with your own key and a **Test** button, the device's voice or Cody's sounds; Cody's hosted voice is
+listed as coming soon), the phone, language, the hooks, starting with Windows and privacy. Next to the gear, a small
+light shows whether Cody is listening for its name (green) or not (red); a tap switches it.
 
 - The key is typed in Settings, saved in Cody's data folder on this computer only (readable only by you), and never
   shown again: the page only learns that a key is there.

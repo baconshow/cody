@@ -212,6 +212,9 @@ function touchSide(f, x) {
   return Math.max(-1, Math.min(1, (x - middle) / Math.max(1, box.width / 3)));
 }
 
+// the mascot itself (its canvas), not something drawn over it: the lights in the corners, a panel, a field
+const onFace = (target) => target instanceof Element && !!target.closest('.face');
+
 // local.at: when the pointer (or finger) on this page last moved; until TIMINGS.live later, it drives the gaze
 function wirePointer(faces, cycle, request, local) {
   const now = () => performance.now() / 1000;
@@ -229,14 +232,16 @@ function wirePointer(faces, cycle, request, local) {
   window.addEventListener('pointerdown', (e) => {
     local.at = now();
     aim(faces, e.clientX, e.clientY, now());
-    poke(e.clientX);
+    if (onFace(e.target)) poke(e.clientX);               // a button or a panel over the mascot is not a pat
   });
   window.addEventListener('pointerup', (e) => {
     if (e.pointerType !== 'touch') return;
     for (const f of faces) f.animator.releaseLook();     // finger off the screen: the gaze wanders again
     request();
   });
-  window.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') poke(); });
+  window.addEventListener('keydown', (e) => {
+    if ((e.key === ' ' || e.key === 'Enter') && e.target === document.body) poke();   // not while typing in a field
+  });
 }
 
 // Claude's activity, read only while the page is visible (a phone in a pocket does not keep asking)
