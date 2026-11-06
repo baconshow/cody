@@ -4,6 +4,7 @@
 // sends back ({ "error": "message" }) is shown as it came.
 
 import { t } from './i18n.js';
+import { reloadIfStale } from './stale-page.js';
 
 const TOKEN = (() => {
   const v = document.querySelector('meta[name="cody-token"]')?.getAttribute('content') || '';
@@ -15,6 +16,11 @@ export class ApiError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+// the server restarted and this page still holds the old token: stale-page.js reloads it
+function session() {
+  try { return window.sessionStorage; } catch { return null; }
 }
 
 async function readBody(resp) {
@@ -43,6 +49,7 @@ async function call(method, path, body, { timeout = 9000 } = {}) {
     clearTimeout(timer);
   }
   const data = await readBody(resp);
+  if (!resp.ok) reloadIfStale(resp.status, data?.error, { storage: session(), reload: () => location.reload() });
   if (!resp.ok) throw new ApiError(resp.status, (data && typeof data.error === 'string' && data.error) || t('api.error', { status: resp.status }));
   return data;
 }

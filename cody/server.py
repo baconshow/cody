@@ -295,11 +295,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         self._json(200, self.app.hooks.read(after))
 
+    def _voice_failed(self, error: voice.VoiceError) -> None:
+        if error.status == 502:                  # the terminal says why the voice changed: nobody reads the phone's log
+            LOG.warning("%s: the phone uses its own voice", error.message)
+        self._error(error.status, error.message)
+
     def _voice_audio(self, seq: str) -> None:
         try:
             body = voice.audio(seq, self.app.config["voice"], self.app.config["language"])
         except voice.VoiceError as error:
-            self._error(error.status, error.message)
+            self._voice_failed(error)
             return
         self._send(200, body, "audio/mpeg", {"Cache-Control": "no-store"})
 
@@ -307,7 +312,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = voice.alert_audio(key, self.app.config["voice"], self.app.config["language"])
         except voice.VoiceError as error:
-            self._error(error.status, error.message)
+            self._voice_failed(error)
             return
         self._send(200, body, "audio/mpeg", {"Cache-Control": "no-store"})
 

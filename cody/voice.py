@@ -151,8 +151,22 @@ def _eleven(text: str, voice: dict, language: str) -> bytes:
     try:
         with urllib.request.urlopen(request, timeout=ELEVEN_TIMEOUT_S) as response:
             return response.read()
+    except urllib.error.HTTPError as error:
+        raise VoiceError(502, _refusal(error)) from error
     except (urllib.error.URLError, OSError) as error:
         raise VoiceError(502, "ElevenLabs did not answer") from error
+
+
+def _refusal(error: urllib.error.HTTPError) -> str:
+    """Why ElevenLabs said no, so a failed payment or a bad key does not look like a network problem. Only the
+    status and the error code from the answer: the key is never part of it."""
+    try:
+        detail = json.loads(error.read(2048)).get("detail")
+        code = detail.get("code") or detail.get("status") if isinstance(detail, dict) else None
+    except (ValueError, AttributeError, OSError):
+        code = None
+    reason = re.sub(r"[^a-z0-9_]", "", str(code or "").casefold())[:40]
+    return f"ElevenLabs refused the voice ({error.code}{' ' + reason if reason else ''})"
 
 
 def audio(seq_raw: str, voice: dict | None, language: str = "en", path: Path | None = None,
