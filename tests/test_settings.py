@@ -1,7 +1,10 @@
 """The Settings screen's side on the computer: saving, the key, the QR route and who may change things."""
+import base64
+import io
 import json
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -63,9 +66,66 @@ class SettingsTest(unittest.TestCase):
         config = {"language": "en", "voice": {"voice_id": "abcdefghij", "model": "eleven_flash_v2_5"}}
         with mock.patch.object(voice, "_eleven", side_effect=voice.VoiceError(502, "ElevenLabs: payment pending")):
             self.assertEqual(settings.test_voice(config), {"ok": False, "reason": "payment pending"})
-        with mock.patch.object(voice, "_eleven", return_value=b"mp3"):
-            self.assertEqual(settings.test_voice(config), {"ok": True})
+        with mock.patch.object(voice, "_eleven", return_value=b"mp3") as eleven:
+            heard = settings.test_voice(config)
+            self.assertEqual(heard["ok"], True)
+            self.assertEqual(base64.b64decode(heard["audio"]), b"mp3", "the screen gets the audio to play")
+            self.assertEqual(eleven.call_args.args[1]["voice_id"], "abcdefghij", "the saved voice")
+            settings.test_voice(config, "zyxwvutsrq98")
+            self.assertEqual(eleven.call_args.args[1], {"voice_id": "zyxwvutsrq98", "model": "eleven_flash_v2_5"},
+                             "a voice being tried, before it is saved")
+            settings.test_voice({"language": "en", "voice": None}, "zyxwvutsrq98")
+            self.assertEqual(eleven.call_args.args[1]["model"], "eleven_flash_v2_5", "no saved voice: the usual model")
         self.assertFalse(settings.test_voice({"language": "en", "voice": None})["ok"])
+        with self.assertRaises(settings.SettingsError):
+            settings.test_voice(config, "../not-an-id")
+
+    def test_a_voice_test_counts_against_the_same_limit_as_replies(self):
+        config = {"language": "en", "voice": {"voice_id": "abcdefghij", "model": "eleven_flash_v2_5"}}
+        with mock.patch.object(voice, "_take_synthesis_slot", side_effect=voice.VoiceError(429, "too many")), \
+                mock.patch.object(voice, "_eleven") as eleven:
+            self.assertEqual(settings.test_voice(config), {"ok": False, "reason": "too many"})
+            eleven.assert_not_called()
+
+    def test_voices_of_the_account_are_listed_by_name(self):
+        answer = {"voices": [
+            {"voice_id": "bbbbbbbbbb22", "name": "  Rachel   Calm ", "labels": {"accent": "american", "gender": "female",
+                                                                              "age": "young", "use case": "narration"}},
+            {"voice_id": "aaaaaaaaaa11", "name": "adam", "labels": None},
+            {"voice_id": "../etc", "name": "Bad id"}, {"voice_id": "cccccccccc33", "name": "  "}, "not a voice",
+            {"voice_id": "dddddddddd44", "name": "Zoe", "labels": {"accent": 7, "gender": ""}},
+        ]}
+        self.assertEqual(voice.voice_list(answer), [
+            {"id": "aaaaaaaaaa11", "name": "adam", "about": ""},
+            {"id": "bbbbbbbbbb22", "name": "Rachel Calm", "about": "american, female, young"},
+            {"id": "dddddddddd44", "name": "Zoe", "about": ""},
+        ])
+        for broken in (None, [], {"voices": "x"}, {"other": 1}):
+            self.assertEqual(voice.voice_list(broken), [])
+
+    def test_listing_voices_needs_a_key_and_reports_why_it_failed(self):
+        self.assertEqual(settings.voices(), {"ok": False, "reason": "no ElevenLabs API key on this computer",
+                                             "voices": []})
+        key = "sk_" + "a" * 40
+        settings.set_key(key)
+        answer = io.BytesIO(json.dumps({"voices": [{"voice_id": "aaaaaaaaaa11", "name": "Adam"}]}).encode())
+        answer.__enter__ = lambda *_: answer
+        answer.__exit__ = lambda *_: False
+        with mock.patch("urllib.request.urlopen", return_value=answer) as opened:
+            self.assertEqual(settings.voices(), {"ok": True, "voices": [{"id": "aaaaaaaaaa11", "name": "Adam",
+                                                                       "about": ""}]})
+            request = opened.call_args.args[0]
+            self.assertEqual(request.full_url, "https://api.elevenlabs.io/v1/voices")
+            self.assertEqual(request.get_method(), "GET")
+            self.assertEqual(request.get_header("Xi-api-key"), key)
+        refused = urllib.error.HTTPError("u", 401, "no", {}, io.BytesIO(
+            b'{"detail": {"status": "missing_permissions", "message": "..."}}'))
+        with mock.patch("urllib.request.urlopen", side_effect=refused):
+            listed = settings.voices()
+        self.assertEqual((listed["ok"], listed["reason"]), (False, "the key lacks permission for this"))
+        self.assertNotIn(key, json.dumps(listed))
+        with mock.patch("urllib.request.urlopen", side_effect=urllib.error.URLError("offline")):
+            self.assertEqual(settings.voices()["reason"], "ElevenLabs did not answer")
 
 
 class SettingsRoutesTest(unittest.TestCase):
@@ -84,6 +144,18 @@ class SettingsRoutesTest(unittest.TestCase):
             status, data = case.request("GET", "/api/settings")
             self.assertEqual(status, 200)
             self.assertNotIn("key", {k for k in data if k != "has_key"})
+            with mock.patch.object(settings, "voices", return_value={"ok": True, "voices": []}), \
+                    mock.patch("cody.doctor.note_phone"):
+                status, data = case.request("GET", "/api/settings/voices")
+                self.assertEqual((status, data), (200, {"ok": True, "voices": []}))
+                status, _ = case.request("GET", "/api/settings/voices", host="pc.example.ts.net")
+                self.assertEqual(status, 403, "the account's voices are shown on the computer only")
+            with mock.patch.object(settings, "test_voice", return_value={"ok": True, "audio": "bXAz"}) as heard:
+                status, data = case.request("POST", "/api/settings/test", body=b'{"voice_id": "zyxwvutsrq98"}')
+                self.assertEqual((status, data["audio"]), (200, "bXAz"))
+                self.assertEqual(heard.call_args.args[1], "zyxwvutsrq98")
+            status, data = case.request("POST", "/api/settings/test", body=b'{"voice_id": "../x"}')
+            self.assertEqual(status, 400)
         finally:
             StatusRoutesTest.tearDownClass()
 

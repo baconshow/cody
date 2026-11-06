@@ -2,11 +2,13 @@
 // right, with the mascot still in view beside it. Settings has its groups (voice, phone, general, about) and opens
 // from the gear in the corner of the mascot page, from the tray menu and from #settings. On the computer everything
 // can be changed; from the phone the drawer only shows the language (this browser) and says where to change the
-// rest. The ElevenLabs key is typed here, saved on the computer only, and never comes back (only "a key is saved").
+// rest. The ElevenLabs key is typed here, saved on the computer only, and never comes back (only "a key is saved");
+// with a key saved, the voices of that account are listed, and picking one makes Cody say hi with it right away.
 // The first run is three steps, said out loud, with Skip and Next at the bottom.
 //
-//   createSettings({ api, t, setLanguage, language, announce, win }) → { open(), close(), firstRun() }
-//   firstRunSteps(info, t), providers(t), sections(info) are pure, for the tests.
+//   createSettings({ api, t, setLanguage, language, announce, play, win }) → { open(), close(), firstRun() }
+//     play   (mp3 bytes) plays a sound through the mascot's voice (the test of a voice)
+//   firstRunSteps(info, t), providers(t), sections(info), mp3Bytes(base64) are pure, for the tests.
 
 import { createSheet, el } from './sheet.js';
 
@@ -21,6 +23,11 @@ export function providers(t) {
 // the groups of the drawer, in order: on the computer all of them; from the phone only what that browser may change
 export function sections(info) {
   return info?.local ? ['voice', 'phone', 'general', 'about'] : ['general'];
+}
+
+// the test of a voice comes from the server as base64 text
+export function mp3Bytes(base64) {
+  return Uint8Array.from(atob(String(base64 || '')), (ch) => ch.charCodeAt(0)).buffer;
 }
 
 // three steps at most, the last one ends in "say hi"
@@ -39,7 +46,7 @@ async function qrImage(api, which) {
   } catch { return null; }
 }
 
-export function createSettings({ api, t, setLanguage, language, announce = () => {}, win = window }) {
+export function createSettings({ api, t, setLanguage, language, announce = () => {}, play = () => {}, win = window }) {
   // renders: each render's turn (a slower, older one must not paint over a newer one) · draftKey: a key typed and
   // not saved yet, so redrawing the drawer does not throw it away · run: the first run's drawer, made when needed
   const st = { info: null, renders: 0, draftKey: '', run: null };
@@ -81,7 +88,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
 
   // after: what to draw again once the language changed (every text on screen is in the old one)
   function languageField(says, after) {
-    const select = el('select');
+    const select = el('select', { className: 'settings-language' });
     for (const [v, name] of [['en', 'English'], ['pt-BR', 'Português (Brasil)']]) select.append(el('option', { value: v, textContent: name, selected: v === language() }));
     select.addEventListener('change', async () => {
       setLanguage(select.value);
@@ -105,33 +112,72 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     return box;
   }
 
-  // your own ElevenLabs key, the voice and a test: shown while ElevenLabs is the chosen voice
+  // your own ElevenLabs key, then the voice: shown while ElevenLabs is the chosen voice. With a key saved, the
+  // voices of that account are listed and picking one is heard at once; if they cannot be listed (a key made for
+  // speech only), the voice id is typed by hand
   function elevenLabsBox(info, says) {
+    let chosen = info.voice_id || '';
     const key = el('input', { type: 'password', autocomplete: 'off', value: st.draftKey, placeholder: t(info.has_key ? 'settings.key.saved' : 'settings.key.none') });
     key.addEventListener('input', () => { st.draftKey = key.value; });
     const saveKey = el('button', { type: 'button', textContent: t('settings.key.save') });
+    const voiceRow = el('div');
+    const test = el('button', { type: 'button', className: 'primary', textContent: t('settings.key.test') });
+
+    // Cody says one short sentence in the chosen voice (the saved one when none is being tried)
+    const hear = async () => {
+      says.textContent = '…';
+      try {
+        const r = await api.testVoice(chosen);
+        if (r.ok && r.audio) play(mp3Bytes(r.audio));
+        says.textContent = r.ok ? t('settings.key.ok') : `ElevenLabs: ${r.reason}`;
+      } catch (e) { says.textContent = String(e?.message || e); }
+    };
+    const choose = async (id) => {
+      chosen = id;
+      await change({ voice_id: id }, says);
+    };
+    const byHand = (reason) => {
+      const voiceId = el('input', { value: chosen, placeholder: t('settings.voiceId') });
+      voiceId.addEventListener('change', () => choose(voiceId.value.trim()));
+      voiceRow.replaceChildren(field(t('settings.voiceId'), voiceId, t('settings.voicePick.byHand', { reason })));
+    };
+    const listVoices = async () => {
+      if (!st.info?.has_key) {
+        voiceRow.replaceChildren(field(t('settings.voicePick'), null, t('settings.voicePick.needKey')));
+        return;
+      }
+      voiceRow.replaceChildren(field(t('settings.voicePick'), null, t('settings.voicePick.loading')));
+      let listed;
+      try { listed = await api.voices(); } catch (e) { listed = { ok: false, reason: String(e?.message || e) }; }
+      if (!listed.ok || !listed.voices?.length) { byHand(listed.reason || t('mascot.voice.unavailable')); return; }
+      const select = el('select');
+      if (!listed.voices.some((v) => v.id === chosen)) {       // none yet, or one that is not in the account's list
+        select.append(el('option', { value: chosen, selected: true, textContent: t(chosen ? 'settings.voicePick.current' : 'settings.voicePick.choose') }));
+      }
+      for (const v of listed.voices) select.append(el('option', { value: v.id, selected: v.id === chosen, textContent: v.about ? `${v.name} · ${v.about}` : v.name }));
+      select.addEventListener('change', async () => {
+        if (!select.value) return;
+        await choose(select.value);
+        hear();
+      });
+      voiceRow.replaceChildren(field(t('settings.voicePick'), select, t('settings.voicePick.hint')));
+    };
+
     saveKey.addEventListener('click', async () => {
       try {
         st.info.has_key = (await api.saveKey(key.value)).has_key;
         key.value = st.draftKey = '';
         key.placeholder = t('settings.key.saved');
         says.textContent = t('settings.saved');
+        listVoices();                                  // the key is in: its voices can be listed now
       } catch (e) { says.textContent = String(e?.message || e); }
     });
-    const voiceId = el('input', { value: info.voice_id || '', placeholder: t('settings.voiceId') });
-    voiceId.addEventListener('change', () => change({ voice_id: voiceId.value }, says));
-    const test = el('button', { type: 'button', className: 'primary', textContent: t('settings.key.test') });
-    test.addEventListener('click', async () => {
-      says.textContent = '…';
-      try {
-        const r = await api.testVoice();
-        says.textContent = r.ok ? t('settings.key.ok') : `ElevenLabs: ${r.reason}`;
-      } catch (e) { says.textContent = String(e?.message || e); }
-    });
+    test.addEventListener('click', hear);
+    listVoices();
     return el('div', { className: 'settings-card' },
       el('div', { className: 'settings-field' }, el('span', { textContent: t('settings.key') }),
         el('div', { className: 'settings-inline' }, key, saveKey), el('small', { textContent: t('settings.key.hint') })),
-      field(t('settings.voiceId'), voiceId), test);
+      voiceRow, test);
   }
 
   function switches(info, says) {
@@ -172,7 +218,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
   // the language changed in Settings: the whole drawer is drawn again, and the keyboard stays on the language
   async function redraw() {
     await render();
-    if (sheet.isOpen) body.querySelector('select')?.focus({ preventScroll: true });
+    if (sheet.isOpen) body.querySelector('.settings-language')?.focus({ preventScroll: true });
   }
 
   const GROUPS = {
@@ -226,19 +272,26 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     });
     const run = st.run;
     const show = async (i) => {
-      const steps = firstRunSteps(info, t);            // read again: the language may have just changed
+      const steps = firstRunSteps(st.info, t);         // read again: the language may have just changed
       const step = steps[i];
       const last = i === steps.length - 1;
       run.setTitle(t('first.title'), t('first.skip'));
+      run.note.textContent = '';
       announce({ text: step.say });
       const next = el('button', { type: 'button', className: 'primary', textContent: t(last ? 'first.done' : 'first.next') });
       next.addEventListener('click', () => (last ? run.close() : show(i + 1)));
       const skip = el('button', { type: 'button', className: 'ghost', textContent: t('first.skip') });
       skip.addEventListener('click', () => run.close());
       const extra = [];
-      // the key waits in Settings; the radios have their own group name, apart from the ones in Settings
-      if (step.id === 'hello') extra.push(languageField(el('p'), () => show(i)), voiceChoice(info, el('p'), () => {}, 'first-provider'));
-      if (step.id === 'phone') extra.push(await phoneBox(info));
+      if (step.id === 'hello') {
+        // with ElevenLabs picked, the key and the voice are asked right here; the radios have their own group name,
+        // apart from the ones in Settings
+        const under = el('div');
+        const fill = () => under.replaceChildren(...(st.info.voice_provider === 'elevenlabs' ? [elevenLabsBox(st.info, run.note)] : []));
+        fill();
+        extra.push(languageField(run.note, () => show(i)), voiceChoice(st.info, run.note, fill, 'first-provider'), under);
+      }
+      if (step.id === 'phone') extra.push(await phoneBox(st.info));
       if (step.id === 'voice') {
         const go = el('button', { type: 'button', className: 'primary', textContent: t('status.do.voice') });
         go.addEventListener('click', async () => { await api.action('voice').catch(() => {}); announce({ text: step.last }); });

@@ -5,7 +5,8 @@
 // so the face's mouth follows the volume.
 //
 //   createVoiceAudio({ api, win, onFallback }) → { unlock(), state(), speak(reply) → Promise, play(name), chime(),
-//                                                  silence(), volume() → 0..1 | null }
+//                                                  silence(), volume() → 0..1 | null, playBytes(mp3) → Promise }
+//     playBytes  an mp3 the page already has (the voice test in Settings), through the same output as a reply
 //     unlock   on a tap: the browser only plays sound after a gesture (call it on every pointerdown)
 //     speak    reply { seq, text } or an alert { alert, text } (a timer ringing, a heads-up: /api/voice/alert):
 //              resolves when it finishes speaking
@@ -134,6 +135,7 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
     state: () => st.ctx?.state ?? (Context ? 'suspended' : null),
     volume,
     chime,
+    playBytes: (bytes) => playMp3(bytes),
     // each output answers true (spoke), false (failed: the next one tries) or null (not for this message, like a
     // text-only announcement for ElevenLabs): only a real failure of the first one tried is announced
     async speak(reply) {

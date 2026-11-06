@@ -524,7 +524,8 @@ async function start() {
     wireTimers(voice, cycle, loop.request);
     wireAlerts(voice, cycle, loop.request);
     createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request });
-    createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m) }).firstRun();
+    createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m),
+      play: (bytes) => voice.playAudio(bytes) }).firstRun();
     createNetwork({ api, t });
   }
   if (!op.gallery) await loadScenes(faces[0], op.scene);

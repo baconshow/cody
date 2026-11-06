@@ -28,6 +28,9 @@ TIMEOUT_S = 3
 _NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 KEY_FILE = Path.home() / ".elevenlabs-key"
 ELEVEN_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128"
+ELEVEN_VOICES_URL = "https://api.elevenlabs.io/v1/voices"
+MAX_VOICES = 300                                 # what the list in Settings shows at most
+MAX_VOICES_BYTES = 4 * 1024 * 1024
 ELEVEN_TIMEOUT_S = 30
 ELEVEN_LANGUAGE = {"en": "en", "pt-BR": "pt"}
 MAX_AUDIOS = 50                                  # as many as the channel keeps; in memory only, never on disk
@@ -171,10 +174,47 @@ def _eleven(text: str, voice: dict, language: str) -> bytes:
     return audio
 
 
+def eleven_voices() -> list[dict]:
+    """The voices of the ElevenLabs account behind the key, by name: [{"id", "name", "about"}], for the list in
+    Settings. Asking costs no credits. A key made for speech only may not be allowed to list voices: that comes
+    back as a VoiceError with ElevenLabs' reason, and Settings falls back to a voice id typed by hand."""
+    key = _api_key()
+    if not key:
+        raise VoiceError(503, "no ElevenLabs API key on this computer")
+    request = urllib.request.Request(ELEVEN_VOICES_URL, headers={"xi-api-key": key, "Accept": "application/json"})
+    try:
+        with urllib.request.urlopen(request, timeout=ELEVEN_TIMEOUT_S) as response:
+            data = json.loads(response.read(MAX_VOICES_BYTES))
+    except urllib.error.HTTPError as error:
+        raise VoiceError(502, f"ElevenLabs: {eleven_reason(error.code, _error_body(error))}") from error
+    except (urllib.error.URLError, OSError, ValueError) as error:
+        raise VoiceError(502, "ElevenLabs did not answer") from error
+    return voice_list(data)
+
+
+def voice_list(data) -> list[dict]:
+    """ElevenLabs' answer to "which voices?" cut down to what the list needs. Anything that is not a voice with a
+    usable id and a name is left out; `about` joins the labels ElevenLabs gives (accent, gender, age)."""
+    from cody.config import VALID_VOICE
+    found = []
+    for entry in (data.get("voices") if isinstance(data, dict) else None) or []:
+        if not isinstance(entry, dict):
+            continue
+        voice_id, name = entry.get("voice_id"), entry.get("name")
+        if not (isinstance(voice_id, str) and VALID_VOICE.match(voice_id) and isinstance(name, str) and name.strip()):
+            continue
+        labels = entry.get("labels") if isinstance(entry.get("labels"), dict) else {}
+        about = ", ".join(str(labels[k]).strip() for k in ("accent", "gender", "age") if isinstance(labels.get(k), str)
+                          and labels[k].strip())
+        found.append({"id": voice_id, "name": " ".join(name.split())[:60], "about": about[:60]})
+    found.sort(key=lambda v: v["name"].casefold())
+    return found[:MAX_VOICES]
+
+
 ELEVEN_REASONS = {
     "payment_required": "payment pending", "payment_issue": "payment pending",
     "quota_exceeded": "monthly characters used up",
-    "invalid_api_key": "the key is not valid", "missing_permissions": "the key lacks text-to-speech permission",
+    "invalid_api_key": "the key is not valid", "missing_permissions": "the key lacks permission for this",
     "voice_not_found": "the voice id does not exist", "too_many_concurrent_requests": "too many requests at once",
     "system_busy": "ElevenLabs is busy",
 }

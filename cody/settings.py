@@ -5,6 +5,7 @@ Never returned: the key itself (only whether there is one).
 """
 from __future__ import annotations
 
+import base64
 import json
 import re
 import sys
@@ -116,13 +117,28 @@ def set_key(key: str) -> bool:
     return voice._api_key() is not None
 
 
-def test_voice(config: dict) -> dict:
-    """Speaks one short sentence with ElevenLabs: {"ok": True} or {"ok": False, "reason": "payment pending"}."""
-    if not config.get("voice"):
-        return {"ok": False, "reason": "no voice id yet"}
+def voices() -> dict:
+    """The ElevenLabs voices to choose from: {"ok": True, "voices": [...]}, or {"ok": False, "reason": ...} when the
+    key cannot list them (the screen then takes a voice id typed by hand)."""
+    try:
+        return {"ok": True, "voices": voice.eleven_voices()}
+    except voice.VoiceError as error:
+        return {"ok": False, "reason": error.message.removeprefix("ElevenLabs: "), "voices": []}
+
+
+def test_voice(config: dict, voice_id: str = "") -> dict:
+    """Speaks one short sentence with ElevenLabs, in `voice_id` (one being tried in Settings) or else the saved
+    voice: {"ok": True, "audio": <the mp3, base64>} for the screen to play, or {"ok": False, "reason": ...}."""
+    voice_id = str(voice_id or "").strip()
+    if voice_id and not VALID_VOICE.match(voice_id):
+        raise SettingsError("that is not an ElevenLabs voice id")
+    saved = config.get("voice")
+    if not voice_id and not saved:
+        return {"ok": False, "reason": "no voice chosen yet"}
+    chosen = {"voice_id": voice_id, "model": (saved or {}).get("model") or "eleven_flash_v2_5"} if voice_id else saved
     try:
         voice._take_synthesis_slot()                  # the same per-minute and per-day limits as spoken replies
-        voice._eleven(TEST_TEXT.get(config["language"], TEST_TEXT["en"]), config["voice"], config["language"])
+        audio = voice._eleven(TEST_TEXT.get(config["language"], TEST_TEXT["en"]), chosen, config["language"])
     except voice.VoiceError as error:
         return {"ok": False, "reason": error.message.removeprefix("ElevenLabs: ")}
-    return {"ok": True}
+    return {"ok": True, "audio": base64.b64encode(audio).decode("ascii")}

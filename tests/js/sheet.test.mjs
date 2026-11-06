@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPage } from './fake-dom.mjs';
 import { createSheet, wrapFocus } from '../../web/js/sheet.js';
-import { createSettings } from '../../web/js/settings.js';
+import { createSettings, mp3Bytes } from '../../web/js/settings.js';
 import { createStatus } from '../../web/js/status.js';
 import { createNetwork } from '../../web/js/network.js';
 import { en, pt } from '../../web/js/strings.js';
@@ -131,7 +131,9 @@ function settingsApi(info = {}) {
     settings: async () => ({ ...state }),
     saveSettings: async (updates) => { calls.push(['save', updates]); Object.assign(state, updates); return { ...updates }; },
     saveKey: async (key) => { calls.push(['key', key]); return { has_key: true }; },
-    testVoice: async () => { calls.push(['test']); return { ok: false, reason: 'payment pending' }; },
+    testVoice: async (id) => { calls.push(['test', id]); return { ok: false, reason: 'payment pending' }; },
+    voices: async () => ({ ok: true, voices: [{ id: 'voice-1', name: 'Adam', about: 'american, male' },
+      { id: 'voice-2', name: 'Bella', about: '' }] }),
     version: async () => ({ version: '1.2.0', update: false }),
     qr: async () => { throw new Error('no picture in this test'); },
     action: async (what) => { calls.push(['action', what]); return {}; },
@@ -204,11 +206,11 @@ test('the ElevenLabs key: a draft survives a language change, is saved once and 
   await s.open();
   const [panel] = open(p);
   panel.querySelector('input[type=password]').enter('sk-draft');
-  panel.querySelector('select').enter('pt-BR', 'change');
+  panel.querySelector('.settings-language').enter('pt-BR', 'change');
   await p.settle();
   assert.equal(panel.querySelector('h2').textContent, 'Configurações', 'the drawer is drawn again in the new language');
   assert.deepEqual(api.calls[0], ['save', { language: 'pt-BR' }]);
-  assert.equal(p.document.activeElement, panel.querySelector('select'), 'the keyboard stays on the language');
+  assert.equal(p.document.activeElement, panel.querySelector('.settings-language'), 'the keyboard stays on the language');
   const key = panel.querySelector('input[type=password]');
   assert.equal(key.value, 'sk-draft', 'what was typed is still there');
 
@@ -226,6 +228,78 @@ test('the ElevenLabs key: a draft survives a language change, is saved once and 
   s.close();
   await s.open();
   assert.equal(open(p)[0].querySelector('input[type=password]').value, '', 'a draft does not outlive the drawer');
+  s.close();
+});
+
+test('with a key saved, the account\'s voices are listed; picking one saves it and Cody says hi with it', async () => {
+  const p = page();
+  const api = settingsApi({ has_key: true, voice_id: 'voice-2' });
+  api.testVoice = async (id) => { api.calls.push(['test', id]); return { ok: true, audio: 'bXAz' }; };
+  const played = [];
+  const s = settings(p, api, { play: (bytes) => played.push(Buffer.from(bytes).toString()) });
+  await s.open();
+  await p.settle();
+  const [panel] = open(p);
+  const voice = panel.querySelectorAll('select').find((e) => !e.classList.contains('settings-language'));
+  assert.deepEqual(voice.children.map((o) => `${o.value}|${o.textContent}|${o.selected}`),
+    ['voice-1|Adam · american, male|false', 'voice-2|Bella|true'], 'by name, the one in use selected');
+
+  voice.enter('voice-1', 'change');
+  await p.settle();
+  assert.deepEqual(api.calls, [['save', { voice_id: 'voice-1' }], ['test', 'voice-1']]);
+  assert.deepEqual(played, ['mp3'], 'the sample is played through the mascot');
+  assert.equal(panel.querySelector('.sheet-note').textContent, en['settings.key.ok']);
+
+  withText(panel, 'button', en['settings.key.test']).click();
+  await p.settle();
+  assert.deepEqual(api.calls.at(-1), ['test', 'voice-1'], 'the button says it again, in the voice just picked');
+  assert.equal(played.length, 2);
+  s.close();
+  assert.equal(Buffer.from(mp3Bytes('bXAz')).toString(), 'mp3');
+  assert.equal(mp3Bytes('').byteLength, 0);
+});
+
+test('a voice that is not in the list stays chosen; without a key the list waits for one', async () => {
+  const p = page();
+  const s = settings(p, settingsApi({ has_key: true, voice_id: 'voice-9' }));
+  await s.open();
+  await p.settle();
+  const voice = open(p)[0].querySelectorAll('select').find((e) => !e.classList.contains('settings-language'));
+  assert.deepEqual(voice.children.map((o) => `${o.value}|${o.textContent}|${o.selected}`).slice(0, 1),
+    [`voice-9|${en['settings.voicePick.current']}|true`]);
+  s.close();
+
+  const q = page();
+  const api = settingsApi({ has_key: false, voice_id: '' });
+  const fresh = settings(q, api);
+  await fresh.open();
+  await q.settle();
+  const [panel] = open(q);
+  assert.ok(withText(panel, 'small', en['settings.voicePick.needKey']));
+  assert.equal(panel.querySelectorAll('select').length, 1, 'only the language: no voices without a key');
+  panel.querySelector('input[type=password]').enter('sk-new');
+  withText(panel, 'button', en['settings.key.save']).click();
+  await q.settle();
+  const listed = panel.querySelectorAll('select').find((e) => !e.classList.contains('settings-language'));
+  assert.deepEqual(listed.children.map((o) => o.textContent), [en['settings.voicePick.choose'], 'Adam · american, male', 'Bella'],
+    'the key is in: its voices show, none chosen yet');
+  fresh.close();
+});
+
+test('when the voices cannot be listed, the voice id is typed by hand, with the reason', async () => {
+  const p = page();
+  const api = settingsApi({ has_key: true, voice_id: 'voice-1' });
+  api.voices = async () => ({ ok: false, reason: 'the key lacks permission for this', voices: [] });
+  const s = settings(p, api);
+  await s.open();
+  await p.settle();
+  const [panel] = open(p);
+  assert.ok(withText(panel, 'small', en['settings.voicePick.byHand']));
+  const typed = panel.querySelectorAll('input').find((e) => e.placeholder === en['settings.voiceId']);
+  assert.equal(typed.value, 'voice-1');
+  typed.enter('  voice-7 ', 'change');
+  await p.settle();
+  assert.deepEqual(api.calls, [['save', { voice_id: 'voice-7' }]]);
   s.close();
 });
 
@@ -254,7 +328,7 @@ test('from the phone the drawer only has the language, and says where the rest i
   assert.deepEqual(panel.querySelectorAll('h3').map((h) => h.textContent), ['General']);
   assert.equal(panel.querySelectorAll('input').length, 0, 'no key, no switches');
   assert.ok(withText(panel, 'p', en['settings.onComputer']));
-  panel.querySelector('select').enter('pt-BR', 'change');
+  panel.querySelector('.settings-language').enter('pt-BR', 'change');
   await p.settle();
   assert.deepEqual(api.calls, [], 'the language of this browser only: the computer is not asked to change');
   assert.equal(s.lang.now, 'pt-BR');
@@ -285,8 +359,14 @@ test('the first run: three steps said out loud, Next to the end, and it is remem
   assert.deepEqual([...new Set(panel.querySelectorAll('input[type=radio]').map((r) => r.name))], ['first-provider'],
     'its radios are a group of their own, apart from the ones in Settings');
   assert.deepEqual(panel.querySelector('.sheet-foot').querySelectorAll('button').map((b) => b.textContent), ['Skip', 'Next']);
+  assert.ok(panel.querySelector('input[type=password]'), 'ElevenLabs is the voice: the key is asked right here');
+  const device = panel.querySelectorAll('input[type=radio]').find((r) => r.value === 'device');
+  device.dispatchEvent({ type: 'change', bubbles: true });
+  await p.settle();
+  assert.equal(panel.querySelector('input[type=password]'), null, 'another voice: no key needed');
+  assert.deepEqual(api.calls.at(-1), ['save', { voice_provider: 'device' }]);
 
-  panel.querySelector('select').enter('pt-BR', 'change');
+  panel.querySelector('.settings-language').enter('pt-BR', 'change');
   await p.settle();
   assert.equal(panel.querySelector('.first-say').textContent, pt['first.hello'], 'the step is said again in the new language');
   assert.equal(panel.querySelector('h2').textContent, 'Primeiros passos');

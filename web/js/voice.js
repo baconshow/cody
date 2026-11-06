@@ -19,6 +19,8 @@
 //                   "didn't catch that"
 //   announce        the mascot says something on its own (a timer ringing, Claude finished): in the caption and
 //                   out loud, in turn with the replies; alert is the key of /api/voice/alert (the mascot's voice)
+//   playAudio       an mp3 the page already has (the voice test in Settings): played in turn with the replies, the
+//                   face talking while it lasts
 
 import { joinTranscript } from './transcript.js';
 import { createVoiceAudio } from './voice-audio.js';
@@ -185,6 +187,16 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     get listening() { return wake.active; },
     announce: ({ text, alert }) => (text ? speak({ text: String(text), alert: String(alert || '') || null }) : st.queue),
     chime: () => audio.chime(),
+    playAudio(bytes) {
+      st.queue = st.queue.then(async () => {
+        wake.pause();
+        onState('talking');
+        try { await audio.playBytes(bytes); } catch { /* sound still locked, or not an mp3: nothing to hear */ }
+        onState(null);
+        wake.resume();
+      });
+      return st.queue;
+    },
     listen(on) {
       if (on && Recognizer) wake.start();
       else wake.stop();

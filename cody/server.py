@@ -369,6 +369,8 @@ class Handler(BaseHTTPRequestHandler):
             "/api/state": lambda: self._json(200, {"claude_open": self.app.claude.is_open()}),
             "/api/status": lambda: self._json(200, {"items": self.app.status(param("lang")), "local": self._local()}),
             "/api/settings": lambda: self._json(200, {**settings.public(self.app.config), "local": self._local()}),
+            "/api/settings/voices": lambda: (self._json(200, settings.voices()) if self._local()
+                                             else self._error(403, "only from the computer itself")),
             "/api/qr": lambda: self._qr(param("for")),
             "/api/version": lambda: self._json(200, updates.status(self.app.config["update_check"])),
             "/api/network": lambda: (self._json(200, self.app.network_state()) if self._local()
@@ -407,7 +409,7 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/settings/key":
                 self._json(200, {"has_key": settings.set_key(str(body.get("key") or ""))})
             else:
-                self._json(200, settings.test_voice(self.app.config))
+                self._json(200, settings.test_voice(self.app.config, str(body.get("voice_id") or "")))
         except settings.SettingsError as error:
             self._error(400, str(error))
 
