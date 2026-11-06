@@ -223,7 +223,8 @@ a browser showed. `tests/js/fake-dom.mjs` is a page small enough to read in one 
 that bubble, focus, a `#hash`), and `tests/js/sheet.test.mjs` runs the drawer and the four screens on it: what
 opens, what a key or a click does, what the server is asked. It found one real bug on its first run (the first run
 could show twice in one visit: the page did not remember it was done). JavaScript line coverage on a developer
-machine went from 80% to 94%; the 85% floor in CI stays.
+machine went from 80% to 96%, measured without the fake page itself (CI leaves it out with
+`--test-coverage-exclude`); the 85% floor in CI stays.
 
 ## 2026-11-06 · Your ElevenLabs key, then a list of your voices to hear
 
@@ -243,4 +244,22 @@ step of the first run, when ElevenLabs is the chosen voice) now asks ElevenLabs 
   refused through Tailscale, like every change to Settings.
 - **The default without a key did not change**: the device's voice, then Cody's sounds. Whether a new install should
   start with Cody's sounds instead is a question for the maintainer (see `docs/BACON-TODO.md`).
+
+## 2026-11-06 · Code review of the drawers: what changed
+
+- **The newest drawer is in front.** The first run sat above the others by a higher `z-index`; "Create your private
+  network" on its second step opened the network drawer underneath, where nobody could see it, while the keyboard
+  already belonged to it. A drawer now moves to the end of the page when it opens, so what is on top of the stack is
+  also what is in front, and the special `z-index` is gone.
+- **The focus finds its way back.** Status draws its rows again after an action and on every look; the button that
+  had the focus was thrown away, the focus fell to the page, and closing then did not return it to the light. Now
+  the rows are only drawn again when something changed, the button of the same check gets the focus back, and
+  closing returns the focus also when it had fallen to the page (but never to an element that is no longer there).
+- Status takes its title and its close label again on each open, so they follow a language change. The private
+  network forgets an old message when it opens again, marks the current step with `aria-current` and says "done" in
+  words on a finished one. The first run keeps the keyboard on the language after saying the step again.
+- **The fake page got stricter**, because it had hidden two of these: only an element that is in the page, shown and
+  enabled takes the focus; the focus falls to the body when its element leaves; `querySelectorAll` returns a list
+  without array methods (a first version of the focus fix called `find()` on it: fine on the fake, nothing in a
+  browser); and a new `#hash` is told a moment later. Each fix has a test that fails without it.
 
