@@ -1,10 +1,13 @@
 // status.js — the Status screen and the light in the corner. The server's checks (GET /api/status: server, voice
 // session, channel, hooks, Tailscale, phone, voice provider; cody/doctor.py) plus the ones only the browser knows:
 // the microphone, speech recognition, the sound and the secure connection. Each item is a traffic light, one plain
-// sentence and what to do; a button where Cody can do it (from the computer itself for server actions).
+// sentence and what to do; a button where Cody can do it (from the computer itself for server actions). The screen
+// is the drawer of sheet.js (#status, or a tap on the light): the mascot stays in view beside it.
 //
 //   createStatus({ api, t, audio, request }) → { refresh(), open(), close() }
 //   worst(items), clientChecks(env, t), summary(items, t) are pure, for the tests.
+
+import { createSheet } from './sheet.js';
 
 const ORDER = { fail: 0, warn: 1, ok: 2 };
 const REFRESH_MS = 15000;
@@ -60,7 +63,7 @@ function row(item, t, act, said) {
   body.append(title, say);
   if (item.fix && item.state !== 'ok') body.append(Object.assign(document.createElement('p'), { className: 'status-fix', textContent: item.fix }));
   if (item.action) {
-    const button = Object.assign(document.createElement('button'), { type: 'button', textContent: t(`status.do.${item.action}`) });
+    const button = Object.assign(document.createElement('button'), { type: 'button', className: 'primary', textContent: t(`status.do.${item.action}`) });
     button.addEventListener('click', () => act(item.action, button, item.id));
     body.append(button);
   }
@@ -71,13 +74,14 @@ function row(item, t, act, said) {
 
 export function createStatus({ api, t, lang = () => 'en', audio, request = () => {}, win = window }) {
   const chip = Object.assign(document.createElement('button'), { type: 'button', className: 'status-chip' });
-  const panel = Object.assign(document.createElement('section'), { className: 'status-panel', hidden: true });
-  panel.setAttribute('aria-label', t('status.title'));
-  const heading = Object.assign(document.createElement('h2'), { textContent: t('status.title') });
+  const sheet = createSheet({
+    win,
+    onClose: () => { if (win.location.hash === '#status') history.replaceState(null, '', ' '); },
+  });
+  sheet.setTitle(t('status.title'), t('status.close'));
   const list = Object.assign(document.createElement('ul'), { className: 'status-list' });
-  const close = Object.assign(document.createElement('button'), { type: 'button', className: 'status-close', textContent: t('status.close') });
-  panel.append(heading, list, close);
-  document.body.append(chip, panel);
+  sheet.body.append(list);
+  document.body.append(chip);
   const st = { items: [], local: false, timer: 0, said: new Map() };   // said: an action's answer, by item
 
   async function act(action, button, id) {
@@ -102,7 +106,7 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     chip.dataset.state = light;
     chip.textContent = summary(st.items, t);
     chip.setAttribute('aria-label', `${t('status.title')}: ${chip.textContent}`);
-    if (panel.hidden) return;
+    if (!sheet.isOpen) return;
     list.replaceChildren(...st.items.map((it) => row(st.local || !['voice', 'hooks'].includes(it.action) ? it : { ...it, action: null }, t, act, st.said.get(it.id))));
   }
 
@@ -123,14 +127,12 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     request();
   }
 
-  function open() { panel.hidden = false; paint(); refresh(); }
-  function closePanel() { panel.hidden = true; if (win.location.hash === '#status') history.replaceState(null, '', ' '); }
+  function open() { sheet.open(); paint(); refresh(); }
   chip.addEventListener('click', () => { win.location.hash = 'status'; });
-  close.addEventListener('click', closePanel);
-  const route = () => (win.location.hash === '#status' ? open() : (panel.hidden = true));
+  const route = () => (win.location.hash === '#status' ? open() : sheet.close());
   win.addEventListener('hashchange', route);
   route();
   refresh();
   st.timer = setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
-  return { refresh, open, close: closePanel };
+  return { refresh, open, close: () => sheet.close() };
 }

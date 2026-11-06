@@ -185,7 +185,7 @@ body.with-gallery { overflow-y: auto; }
   font: 13px/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace; pointer-events: none;
 }
 
-/* the Status light in the corner and the Status screen (status.js) */
+/* the Status light in the corner (status.js): green, yellow or red, and a few words when something needs you */
 .status-chip {
   position: fixed; left: 12px; bottom: 12px; z-index: 30;
   display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px);
@@ -196,59 +196,20 @@ body.with-gallery { overflow-y: auto; }
 .status-chip[data-state="warn"]::before { background: var(--status-warn); }
 .status-chip[data-state="fail"]::before { background: var(--status-fail); }
 .status-chip[data-state="fail"] { color: var(--mascot-ink); }
-:root { --status-ok: #4ccf72; --status-warn: #f2b33d; --status-fail: #ef5350; }
-.status-panel {
-  position: fixed; inset: 0; z-index: 40; overflow-y: auto; padding: 20px 16px 72px;
-  background: rgba(0, 0, 0, 0.94); font: 16px/1.25 var(--mascot-font);
+:root {
+  --status-ok: #4ccf72; --status-warn: #f2b33d; --status-fail: #ef5350;
+  --sheet-line: #221d2b; --sheet-field: #0c0b10; --cody-accent: #e8762d;
 }
-.status-panel h2 { margin: 0 0 12px; font-size: 26px; font-weight: 400; }
-.status-list { list-style: none; margin: 0 auto; padding: 0; max-width: 720px; display: grid; gap: 10px; }
-.status-row { display: grid; grid-template-columns: 14px 1fr; gap: 12px; padding: 10px 12px;
-  border: 1px solid var(--mascot-border); border-radius: 10px; }
-.status-row p { margin: 2px 0 0; color: var(--mascot-ink-2); overflow-wrap: anywhere; }
-.status-row .status-fix { color: var(--mascot-ink); }
-.status-row strong { font-weight: 400; }
-.status-dot { width: 14px; height: 14px; margin-top: 4px; border-radius: 50%; background: var(--status-ok); }
-.status-warn .status-dot { background: var(--status-warn); }
-.status-fail .status-dot { background: var(--status-fail); }
-.status-panel button { margin-top: 8px; padding: 6px 14px; border: 0; border-radius: 8px; cursor: pointer;
-  background: var(--mascot-ink); color: #000; font: 14px var(--mascot-font); }
-.status-panel .status-close { position: fixed; right: 16px; bottom: 16px; }
 
-/* Settings (settings.js) and the first run */
-.settings-panel, .first-run {
-  position: fixed; inset: 0; z-index: 45; overflow-y: auto; padding: 20px max(16px, calc(50vw - 360px)) 80px;
-  background: rgba(0, 0, 0, 0.96); font: 16px/1.3 var(--mascot-font);
-}
-.first-run { z-index: 50; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
-.settings-panel h2, .first-run h2 { font-size: 24px; font-weight: 400; margin: 8px auto 12px; }
-.settings-panel h3 { font-size: 19px; font-weight: 400; margin: 18px 0 6px; }
-.settings-field, .settings-check, .settings-radio { display: grid; gap: 4px; margin: 10px 0; }
-.settings-check, .settings-radio { grid-template-columns: auto 1fr; align-items: center; column-gap: 10px; }
-.settings-check small, .settings-radio small { grid-column: 2; }
-.settings-panel small, .first-run small, .settings-privacy, .first-step { color: var(--mascot-ink-2); }
-.settings-voice { border: 1px solid var(--mascot-border); border-radius: 10px; padding: 8px 12px; text-align: left; }
-.settings-panel input:not([type="checkbox"]):not([type="radio"]), .settings-panel select, .first-run select,
-.first-run input:not([type="radio"]) {
-  width: 100%; padding: 8px 10px; border: 1px solid var(--mascot-border); border-radius: 8px;
-  background: #0d0b12; color: var(--mascot-ink); font: 14px var(--mascot-font);
-}
-.settings-panel button, .first-run button { margin: 6px 6px 0 0; padding: 6px 14px; border: 0; border-radius: 8px;
-  cursor: pointer; background: var(--mascot-ink); color: #000; font: 14px var(--mascot-font); }
-.first-run .first-skip { background: transparent; color: var(--mascot-ink-2); border: 1px solid var(--mascot-border); }
-.settings-qr { display: block; width: 180px; height: 180px; margin: 8px 0; image-rendering: pixelated; }
-.first-run .settings-qr { margin: 8px auto; }
-.settings-phone code { overflow-wrap: anywhere; }
-.settings-panel .settings-close { position: fixed; right: 16px; bottom: 16px; }
-
-/* Settings as a drawer (settings.js): the page dims, the mascot stays in view on the left, and the drawer holds a
-   title bar with the close button, the groups (scrolling) and, at the bottom, what the last change did */
-:root { --sheet-line: #221d2b; --sheet-field: #0c0b10; --cody-accent: #e8762d; }
+/* The drawer (sheet.js), for Settings, Status, the private network and the first run: the page dims, the mascot
+   stays in view on the left, and the drawer holds a title bar with the close button, the content (scrolling), a row
+   of buttons when there is one and, at the bottom, what the last action did */
 .sheet-backdrop {
   position: fixed; inset: 0; z-index: 45; display: flex; justify-content: flex-end;
   background: rgba(0, 0, 0, .5); font: 15px/1.35 var(--mascot-font); color: var(--mascot-ink);
 }
 .sheet-backdrop[hidden] { display: none; }
+.sheet-backdrop.first-run { z-index: 50; }
 .sheet {
   display: flex; flex-direction: column; width: min(440px, 100vw); height: 100%;
   background: #000; border-left: 1px solid var(--sheet-line); animation: sheet-in .18s ease-out;
@@ -274,26 +235,20 @@ body.with-gallery { overflow-y: auto; }
 .sheet-close:hover { background: #15121b; }
 .sheet-close:hover::before, .sheet-close:hover::after { background: var(--mascot-ink); }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 20px max(28px, env(safe-area-inset-bottom)); }
+.sheet-foot {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 20px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--sheet-line);
+}
+.sheet-foot:empty { display: none; }
 .sheet-note {
   flex: none; margin: 0; padding: 10px 20px max(10px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--sheet-line); font-size: 14px; overflow-wrap: anywhere;
 }
 .sheet-note:empty { padding-block: 0; border-top-width: 0; }   /* still there (a live region), taking no room */
 
-.settings-group { margin: 0; }
-.settings-group > h3 {
-  margin: 22px 2px 8px; font-size: 12px; font-weight: 400; letter-spacing: .14em; text-transform: uppercase;
-  color: var(--mascot-ink-2);
-}
+/* what goes in a drawer: words, fields and buttons */
 .sheet small { font-size: 13px; line-height: 1.3; color: var(--mascot-ink-2); }
 .sheet p { margin: 8px 2px; }
-.sheet .settings-privacy { font-size: 13px; }
-.settings-card { margin: 8px 0 0; padding: 4px 14px; border: 1px solid var(--sheet-line); border-radius: 14px; }
-.settings-card > * + * { border-top: 1px solid var(--sheet-line); }
-.settings-card > button { margin: 12px 0; }
-.sheet .settings-field { gap: 6px; margin: 0; padding: 12px 0; }
-.settings-inline { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-
 .sheet input:not([type="checkbox"]):not([type="radio"]), .sheet select {
   width: 100%; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid #2a2532; border-radius: 10px;
   background: var(--sheet-field); color: var(--mascot-ink); font: 14px var(--mascot-font);
@@ -310,63 +265,115 @@ body.with-gallery { overflow-y: auto; }
 .sheet button.primary:hover { background: #fff; }
 .sheet button.ghost { height: auto; padding: 6px 2px; border: 0; color: var(--mascot-ink-2); text-decoration: underline; }
 .sheet button.ghost:hover { background: none; color: var(--mascot-ink); }
+.sheet button:disabled { opacity: .5; cursor: default; }
 .sheet button:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
 
+/* Settings (settings.js): groups with a small title, cards inside */
+.settings-group { margin: 0; }
+.settings-group > h3 {
+  margin: 22px 2px 8px; font-size: 12px; font-weight: 400; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--mascot-ink-2);
+}
+.settings-privacy { font-size: 13px; color: var(--mascot-ink-2); }
+.settings-card { margin: 8px 0 0; padding: 4px 14px; border: 1px solid var(--sheet-line); border-radius: 14px; }
+.settings-card > * + * { border-top: 1px solid var(--sheet-line); }
+.settings-card > button { margin: 12px 0; }
+.settings-field { display: grid; gap: 6px; margin: 0; padding: 12px 0; }
+.settings-inline { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+
 /* the voice: one card per way to sound; the chosen one lights up */
-.sheet .settings-voice { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
-.sheet .settings-voice legend {          /* the group title already shows "Voice": this one is for screen readers */
+.settings-voice { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
+.settings-voice legend {                  /* the title above already shows "Voice": this one is for screen readers */
   position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
 }
-.sheet .settings-radio {
-  grid-template-columns: 18px 1fr; column-gap: 12px; row-gap: 2px; margin: 0; padding: 12px 14px;
-  border: 1px solid var(--sheet-line); border-radius: 14px; cursor: pointer;
+.settings-radio {
+  display: grid; grid-template-columns: 18px 1fr; align-items: center; column-gap: 12px; row-gap: 2px;
+  margin: 0; padding: 12px 14px; border: 1px solid var(--sheet-line); border-radius: 14px; cursor: pointer;
 }
-.sheet .settings-radio:has(input:checked) { border-color: var(--cody-accent); background: rgba(232, 118, 45, .09); }
-.sheet .settings-radio:has(input:disabled) { cursor: default; opacity: .55; }
-.sheet .settings-radio input {
+.settings-radio small { grid-column: 2; }
+.settings-radio:has(input:checked) { border-color: var(--cody-accent); background: rgba(232, 118, 45, .09); }
+.settings-radio:has(input:disabled) { cursor: default; opacity: .55; }
+.settings-radio input {
   appearance: none; width: 18px; height: 18px; margin: 0; border: 2px solid #4a4356; border-radius: 50%; cursor: inherit;
 }
-.sheet .settings-radio input:checked { border-color: var(--cody-accent); background: var(--cody-accent); box-shadow: inset 0 0 0 3px #000; }
-.sheet .settings-radio input:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+.settings-radio input:checked { border-color: var(--cody-accent); background: var(--cody-accent); box-shadow: inset 0 0 0 3px #000; }
+.settings-radio input:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
 .settings-soon {
   margin-left: 8px; padding: 1px 8px; border: 1px solid #3a3346; border-radius: 999px;
   font-size: 12px; font-style: normal; color: var(--mascot-ink-2);
 }
 
 /* a switch: the words on the left, the switch on the right */
-.sheet .settings-check { grid-template-columns: 1fr auto; column-gap: 14px; row-gap: 2px; margin: 0; padding: 12px 0; cursor: pointer; }
-.sheet .settings-check span { grid-column: 1; grid-row: 1; }
-.sheet .settings-check small { grid-column: 1; grid-row: 2; }
-.sheet .settings-check input {
+.settings-check {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 14px; row-gap: 2px;
+  margin: 0; padding: 12px 0; cursor: pointer;
+}
+.settings-check span { grid-column: 1; grid-row: 1; }
+.settings-check small { grid-column: 1; grid-row: 2; }
+.settings-check input {
   grid-column: 2; grid-row: 1 / span 2; align-self: center; position: relative; appearance: none;
   width: 38px; height: 22px; margin: 0; border-radius: 999px; background: #2a2532; cursor: inherit;
   transition: background-color .15s ease;
 }
-.sheet .settings-check input::after {
+.settings-check input::after {
   content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%;
   background: #cfc9d6; transition: transform .15s ease;
 }
-.sheet .settings-check input:checked { background: var(--cody-accent); }
-.sheet .settings-check input:checked::after { transform: translateX(16px); background: #fff; }
-.sheet .settings-check input:disabled { opacity: .5; cursor: default; }
-.sheet .settings-check input:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+.settings-check input:checked { background: var(--cody-accent); }
+.settings-check input:checked::after { transform: translateX(16px); background: #fff; }
+.settings-check input:disabled { opacity: .5; cursor: default; }
+.settings-check input:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
-  .sheet .settings-check input, .sheet .settings-check input::after { transition: none; }
+  .settings-check input, .settings-check input::after { transition: none; }
 }
 
 /* the phone: the codes on white tiles, the address to copy under them */
-.sheet .settings-phone { padding: 4px 14px 12px; border: 1px solid var(--sheet-line); border-radius: 14px; }
-.sheet .settings-qr { width: 168px; height: 168px; margin: 10px auto; padding: 8px; border-radius: 12px; background: #fff; }
-.sheet .settings-phone code {
-  display: block; padding: 8px 10px; border-radius: 8px; background: var(--sheet-field);
+.settings-phone { margin: 8px 0 0; padding: 4px 14px 12px; border: 1px solid var(--sheet-line); border-radius: 14px; }
+.settings-qr {
+  display: block; width: 168px; height: 168px; margin: 10px auto; padding: 8px; border-radius: 12px; background: #fff;
+  image-rendering: pixelated;
+}
+.settings-phone code {
+  display: block; padding: 8px 10px; border-radius: 8px; background: var(--sheet-field); overflow-wrap: anywhere;
   font: 13px/1.3 ui-monospace, 'Cascadia Mono', Consolas, monospace; text-align: center; user-select: all;
 }
 
-/* Create your private network (network.js) */
-.network-steps { padding-left: 24px; color: var(--mascot-ink-2); }
-.network-steps .done { color: var(--status-ok); }
+/* Status (status.js): one card per check, its light on the left */
+.status-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.status-row {
+  display: grid; grid-template-columns: 12px 1fr; gap: 12px; padding: 12px 14px;
+  border: 1px solid var(--sheet-line); border-radius: 14px;
+}
+.status-row strong { font-weight: 400; }
+.sheet .status-row p { margin: 2px 0 0; font-size: 14px; color: var(--mascot-ink-2); overflow-wrap: anywhere; }
+.sheet .status-row .status-fix { color: var(--mascot-ink); }
+.status-row button { margin-top: 10px; }
+.status-dot { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; background: var(--status-ok); }
+.status-warn .status-dot { background: var(--status-warn); }
+.status-fail .status-dot { background: var(--status-fail); }
+.status-fail { border-color: rgba(239, 83, 80, .45); }
+
+/* Create your private network (network.js): the steps, numbered; done ones ticked, the current one lit */
+.network-steps { list-style: none; counter-reset: step; margin: 16px 0; padding: 0; display: grid; gap: 8px; }
+.network-steps li {
+  counter-increment: step; display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 10px;
+  color: var(--mascot-ink-2);
+}
+.network-steps li::before {
+  content: counter(step); display: grid; place-items: center; width: 24px; height: 24px;
+  border: 1px solid #3a3346; border-radius: 50%; font-size: 13px;
+}
+.network-steps .done::before { content: '\2713'; border-color: var(--status-ok); background: var(--status-ok); color: #000; }
 .network-steps .now { color: var(--mascot-ink); }
-.network-say { font-size: 18px; }
+.network-steps .now::before { border-color: var(--cody-accent); color: var(--cody-accent); }
+.sheet .network-say { margin: 16px 2px; font-size: 17px; line-height: 1.3; }
+.network-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+
+/* the first run (settings.js): which step, what Cody says, the choices; Skip and Next in the row at the bottom */
+.sheet .first-step { margin: 20px 2px 0; font-size: 12px; letter-spacing: .14em; color: var(--mascot-ink-2); }
+.sheet .first-say { margin: 6px 2px 16px; font-size: 21px; line-height: 1.25; }
+.first-run .sheet-body > .settings-field { padding-top: 0; }
+.first-run .sheet-body > button { margin-top: 4px; }
 
 /* a voice that failed and the next one that took over (voice-audio.js) */
 .voice-notice {
