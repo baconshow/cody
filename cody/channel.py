@@ -28,6 +28,7 @@ import secrets
 import sys
 import threading
 import time
+from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -211,14 +212,23 @@ def screenshot_tool(texts: dict) -> dict:
     }
 
 
+def local_clock(now: datetime | None = None) -> str:
+    """This computer's time, the way it rides on every utterance: "2026-11-07 15:02 -03:00 (Friday)". Claude only
+    knows the date otherwise, and answered "what time is it" with the time of some other clock."""
+    moment = now or datetime.now().astimezone()
+    offset = moment.strftime("%z") or "+0000"
+    return f"{moment:%Y-%m-%d %H:%M} {offset[:3]}:{offset[3:]} ({moment:%A})"
+
+
 class Channel:
     """The channel state and the MCP side. `write` takes bytes (stdout; a list in the tests)."""
 
-    def __init__(self, write, lang: str = "en", capture=None, abilities: Abilities | None = None):
+    def __init__(self, write, lang: str = "en", capture=None, abilities: Abilities | None = None, clock=None):
         self._write = write
         self._lang = lang if lang in TEXTS else "en"
         self._texts = TEXTS[self._lang]
         self._capture = capture or _capture_screen
+        self._clock = clock or (lambda: datetime.now().astimezone())
         self.abilities = abilities or Abilities(self._lang)
         # a new id on each start: the phone notices the voice session restarted (the reply count starts over)
         self.session = secrets.token_hex(4)
@@ -241,7 +251,7 @@ class Channel:
         yes or no becomes the verdict of the most recent one, and the request_id comes back empty."""
         if self.verdict(text):
             return ""
-        meta = {"source": "mascot"}
+        meta = {"source": "mascot", "now": local_clock(self._clock())}
         with self._lock:
             self._requests += 1
             request = str(self._requests)

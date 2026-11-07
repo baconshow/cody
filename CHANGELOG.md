@@ -24,6 +24,8 @@
   voice moves from the device's voice to Cody's sounds; pick the device's voice in Settings to keep it). With your
   ElevenLabs key saved (in Settings or on the first run), the voices of your account are listed: pick one and Cody
   says hi with it.
+- The voice session knows what time it is here: everything you say carries this computer's date, time and UTC
+  offset, so *"Cody, what time is it?"* is answered with your clock (Claude only knew the date, and guessed).
 - **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping. What Cody wears (the nightcap,
   the headphones, the coffee in its hand, the bug on its head) moves with it; the camera slides to keep the monitor
   and the debug sign in the picture on any screen.

@@ -7,6 +7,7 @@ import tempfile
 import threading
 import time
 import unittest
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from cody import voice
@@ -47,6 +48,18 @@ class ChannelTest(unittest.TestCase):
         request = self.channel.utterance("what time is it")
         self.assertEqual(self.sent[-1]["method"], "notifications/claude/channel")
         self.assertEqual(self.sent[-1]["params"]["meta"]["request_id"], request)
+
+    def test_every_utterance_carries_this_computers_clock(self):
+        # Claude only knows the date on its own; asked the time, it answered with some other clock's hour
+        brasilia = timezone(timedelta(hours=-3))
+        ticking = iter([datetime(2026, 11, 7, 15, 2, tzinfo=brasilia), datetime(2026, 11, 7, 15, 9, tzinfo=brasilia)])
+        channel = self.make(lambda line: self.sent.append(json.loads(line)), clock=lambda: next(ticking))
+        channel.utterance("what time is it")
+        self.assertEqual(self.sent[-1]["params"]["meta"]["now"], "2026-11-07 15:02 -03:00 (Saturday)")
+        channel.utterance("and now?")
+        self.assertEqual(self.sent[-1]["params"]["meta"]["now"], "2026-11-07 15:09 -03:00 (Saturday)")
+        self.assertRegex(self.channel.utterance("real clock") and self.sent[-1]["params"]["meta"]["now"],
+                         r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2} [+-]\d{2}:\d{2} \([A-Z][a-z]+day\)$")
 
     def test_reply_tool_stores_what_to_say_and_show(self):
         self.channel.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
