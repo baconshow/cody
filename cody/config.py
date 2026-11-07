@@ -110,6 +110,7 @@ def load_config(path: Path | None = None, system=system_language) -> dict:
         "update_check": data.get("update_check") is True,
         "music": data.get("music") is not False,           # headphones when something plays (Windows); on unless off
         "notifications": data.get("notifications") is True,   # read the important Windows notifications: opt-in
+        "typing": data.get("typing") is True,                 # type along when you type in a Claude window: opt-in
         "notification_apps": [x.strip() for x in data.get("notification_apps") if isinstance(x, str) and x.strip()]
                               if isinstance(data.get("notification_apps"), list) else [],
     }

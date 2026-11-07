@@ -416,3 +416,13 @@ tangle, and from the side one leg looked loose.
   voice or Cody's sounds say "app: title" locally; ElevenLabs is given only "Something new on {app}." (the server
   makes that text from the event's seq, `notice:<seq>`), so the title never leaves the computer. Documented in
   PRIVACY.md and the README; off by default.
+
+## 2026-11-07 · Typing along: input with the pointer still, never a key
+
+- The rule was "detect that there is typing, never which key". No keyboard hook, no key state: `cody/typist.py`
+  reads `GetLastInputInfo` (one tick for any input), the pointer position and whether the front window's title
+  has "Claude" in it, a few times a second. The tick moved and the pointer did not: that was the keyboard. A
+  click without a move counts too, which is fine. The title is checked for the word and dropped.
+- The flag rides on `/api/activity` (`typing`), and the page's `claudeProp` puts the keyboard in hand before
+  anything else while it is on, so Cody types with you. Opt-in (`"typing": true`, the Settings checkbox), Windows
+  only, documented in the README and PRIVACY.md.

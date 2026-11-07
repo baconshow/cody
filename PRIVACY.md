@@ -8,7 +8,9 @@ tool name and whether a command failed: never commands, paths, output or convers
 on Windows, Cody asks the system whether any player is playing: one yes or no, never the song, the artist or the
 app (off in Settings). Reading your Windows notifications is off by default; on, Cody reads the app's name and
 the first line (the title) of the important ones, never the body, and keeps them on this computer (with
-ElevenLabs, only the app's name is sent for the voice).
+ElevenLabs, only the app's name is sent for the voice). Typing along is off by default; on, Cody checks only
+that input arrived while the pointer stayed put and a Claude window was in front: never which keys, no keyboard
+hook, nothing recorded.
 
 What leaves your computer, and only because you use it:
 

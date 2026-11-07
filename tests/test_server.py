@@ -86,8 +86,9 @@ class ServerTest(unittest.TestCase):
         response, body = self.request("GET", "/api/activity?cursor=0", {"X-Cody-Token": self.token()})
         self.assertEqual(response.status, 200)
         data = json.loads(body)
-        self.assertEqual(set(data), {"cursor", "events", "sessions", "music"})
+        self.assertEqual(set(data), {"cursor", "events", "sessions", "music", "typing"})
         self.assertIs(data["music"], False)          # the test app has the music reader off
+        self.assertIs(data["typing"], False)         # and the typing watcher
 
     def test_timers_events_and_alerts(self):
         token = {"X-Cody-Token": self.token()}

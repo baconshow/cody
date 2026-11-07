@@ -192,6 +192,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     check(t('settings.updates'), info.update_check, (on) => ({ update_check: on }), t('settings.updates.hint'));
     if (info.music !== null && info.music !== undefined) check(t('settings.music'), info.music, (on) => ({ music: on }), t('settings.music.hint'));
     if (info.notifications !== null && info.notifications !== undefined) check(t('settings.notices'), info.notifications, (on) => ({ notifications: on }), t('settings.notices.hint'));
+    if (info.typing !== null && info.typing !== undefined) check(t('settings.typing'), info.typing, (on) => ({ typing: on }), t('settings.typing.hint'));
     return out;
   }
 

@@ -41,6 +41,7 @@ from cody.config import load_config
 from cody.hooks import HookFeed
 from cody.media import MediaWatcher
 from cody.notices import NoticeWatcher
+from cody.typist import TypistWatcher
 
 LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
@@ -95,6 +96,7 @@ class App:
         self.voice_limit = RateLimit(VOICE_MESSAGES_PER_MINUTE)
         self.hooks = HookFeed(language=config["language"])
         self.notices = NoticeWatcher(config.get("notifications") is True, self.hooks, config.get("notification_apps"))
+        self.typist = TypistWatcher(config.get("typing") is True)
         self._status: dict[str, tuple[float, list]] = {}
         self._status_lock = threading.Lock()
         self._phone_noted = 0.0
@@ -123,7 +125,7 @@ class App:
 
     def change_settings(self, body: dict) -> dict:
         """Saves what changed and applies it now where it can (the voice channel reads the language at its start)."""
-        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder", "music", "notifications"}
+        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder", "music", "notifications", "typing"}
         changed = {k: v for k, v in body.items() if k in keys}
         if changed:
             fresh = settings.save(changed)
@@ -131,6 +133,7 @@ class App:
             self.hooks._language = self.config["language"]
             self.media.set_enabled(self.config.get("music") is True)
             self.notices.set_enabled(self.config.get("notifications") is True)
+            self.typist.set_enabled(self.config.get("typing") is True)
         notes = settings.apply_switches(body)
         self.forget_status()
         return {**settings.public(self.config), "notes": notes}
@@ -456,7 +459,8 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             self._error(400, "invalid cursor")
             return
-        self._json(200, {**self.app.activity.state(position), "music": self.app.media.playing()})
+        self._json(200, {**self.app.activity.state(position), "music": self.app.media.playing(),
+                         "typing": self.app.typist.typing()})
 
     def _events(self, raw: str) -> None:
         try:
@@ -548,6 +552,7 @@ def start(config: dict) -> tuple[App, Server]:
     app.activity.start()
     app.media.start()
     app.notices.start()
+    app.typist.start()
     return app, server
 
 
@@ -584,5 +589,6 @@ def main(argv=None) -> int:
         app.activity.stop()
         app.media.stop()
         app.notices.stop()
+        app.typist.stop()
         server.server_close()
     return 0

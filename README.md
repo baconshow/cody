@@ -281,6 +281,14 @@ the talking.
 
 Prefer to add them by hand? Each one is a command hook running `"<python>" "<path to>/cody.py" --hook`.
 
+### Typing along (opt-in)
+
+Turn on **Type along when I type to Claude** in Settings and Cody's keyboard comes out while you type in a
+window with "Claude" in its title (the Claude app, or Claude Code in a terminal). What Cody checks, a few
+times a second: whether input arrived on the computer and the pointer did not move (so it was the keyboard),
+and whether the front window is a Claude one. There is no keyboard hook: Cody never learns which keys, and
+nothing is recorded. Off by default.
+
 ### Your Windows notifications, read aloud (opt-in)
 
 Turn on **Read my important Windows notifications** in Settings (Windows asks you to allow it, under Privacy >

@@ -49,6 +49,7 @@ def public(config: dict, settings_path: Path | None = None) -> dict:
         "update_check": config["update_check"], "voice_folder": config.get("voice_folder") or "",
         "music": config.get("music", True) if sys.platform == "win32" else None,
         "notifications": config.get("notifications", False) if sys.platform == "win32" else None,
+        "typing": config.get("typing", False) if sys.platform == "win32" else None,
         "autostart": autostart.enabled() if sys.platform == "win32" else None,
         "hooks": {"on": plugin or setup.hooks_installed(settings_path), "plugin": plugin},
         "phone_url": phone_url(config), "first_run_done": first_run_done(),
@@ -93,6 +94,8 @@ def save(updates: dict, path: Path | None = None) -> dict:
         data["music"] = updates["music"] is not False
     if "notifications" in updates:
         data["notifications"] = updates["notifications"] is True
+    if "typing" in updates:
+        data["typing"] = updates["typing"] is True
     if "voice_folder" in updates:
         folder = str(updates["voice_folder"] or "").strip()
         if folder and not Path(folder).expanduser().is_dir():

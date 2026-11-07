@@ -11,7 +11,7 @@ import { claudeMood, claudeProp, SLEEP } from '../../web/js/claude-mood.js';
 // the fake API: each activity read returns the next batch; the clock is moved by hand. A batch item is a tool
 // name, or { tool, code } for an event the server flags as a code edit
 function scenario({ token = true } = {}) {
-  const st = { now: 0, seq: 0, batches: [], sessions: [], open: true, music: undefined };
+  const st = { now: 0, seq: 0, batches: [], sessions: [], open: true, music: undefined, typing: undefined };
   const api = {
     hasToken: () => token,
     state: async () => ({ claude_open: st.open }),
@@ -19,7 +19,7 @@ function scenario({ token = true } = {}) {
       const events = (st.batches.shift() ?? []).map((e) => (
         typeof e === 'string' ? { seq: ++st.seq, tool: e, code: false } : { seq: ++st.seq, ...e }
       ));
-      return { cursor: st.seq || cursor, events, sessions: st.sessions, music: st.music };
+      return { cursor: st.seq || cursor, events, sessions: st.sessions, music: st.music, typing: st.typing };
     },
   };
   const signal = createSignal({ api, clock: () => st.now });
@@ -111,6 +111,8 @@ test('the default rule: sleeps with Claude closed, sleepy at 2 min, zzZ at 10, a
   assert.equal(mood({ working: true, code: true }), 'listening', 'writing code: focused on the keyboard');
   assert.equal(claudeProp({ ...base, working: true, code: true }), 'keyboard');
   assert.equal(claudeProp({ ...base, code: true, search: true }), 'magnifier', 'searching comes first');
+  assert.equal(claudeProp({ ...base, search: true, typing: true }), 'keyboard', 'you typing comes before everything');
+  assert.equal(claudeProp({ ...base, claudeOpen: false, typing: true }), null, 'no Claude, no keyboard');
   assert.equal(mood({ working: true, away: true }), 'pointing');
 });
 

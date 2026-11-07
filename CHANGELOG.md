@@ -30,6 +30,8 @@
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.
+- **Typing along** (opt-in): while you type in a Claude window, Cody types on its keyboard too. It only learns that
+  keys are being pressed, never which; no keyboard hook, nothing recorded.
 - **Your Windows notifications, read aloud** (opt-in): the important ones (messages, mail, calendar, calls, or an
   urgent word) make Cody knock and say the app and the title; the title never leaves the computer.
 - **Toc-toc**: when Claude is waiting for your permission, Cody knocks on the screen (the fist in front of its
