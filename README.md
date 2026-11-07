@@ -127,11 +127,14 @@ Windows app keeps its `config.json` in `%LOCALAPPDATA%\cody`):
 
 What Cody does around itself follows what Claude really does: a monitor full of code while Claude edits files, a
 speech bubble with "..." while a command runs, a black bug and a `> DEBUG MODE` sign when a command or a test fails,
-confetti when a long task finishes, a coffee mug after a quiet while, a nightcap when it sleeps, and headphones for
-music (once music detection lands). Scenes are data, in `web/scenes/scenes.json`: voxel boxes, a trigger, simple
-clips, a sound and a priority (the highest one whose trigger is on wins), so new scenes and skins are a JSON edit.
-Try one with `?scene=debug` (or `coding`, `thinking`, `coffee`, `party`, `headphones`, `sleeping`). With "reduce
-motion" on, scenes appear without moving. Only the failure itself is read from the transcripts, never its output.
+confetti when a long task finishes, a coffee mug after a quiet while, a nightcap when it sleeps, and headphones
+while music plays on the computer (Windows: Cody asks the system whether any player is playing, Spotify, a browser
+tab, anything; it never learns what. Off in Settings). The headphones go over whatever else is going on. Scenes are
+data, in `web/scenes/scenes.json`: voxel boxes, a trigger, simple clips, a sound and a priority (the highest one
+whose trigger is on wins; one marked `"over"` is worn on top), so new scenes and skins are a JSON edit. Try one with
+`?scene=debug` (or `coding`, `thinking`, `coffee`, `party`, `sleeping`), and `?over=headphones` with any of them.
+With "reduce motion" on, scenes appear without moving. Only the failure itself is read from the transcripts, never
+its output.
 
 ## Is everything on?
 

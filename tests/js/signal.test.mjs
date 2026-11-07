@@ -11,7 +11,7 @@ import { claudeMood, claudeProp, SLEEP } from '../../web/js/claude-mood.js';
 // the fake API: each activity read returns the next batch; the clock is moved by hand. A batch item is a tool
 // name, or { tool, code } for an event the server flags as a code edit
 function scenario({ token = true } = {}) {
-  const st = { now: 0, seq: 0, batches: [], sessions: [], open: true };
+  const st = { now: 0, seq: 0, batches: [], sessions: [], open: true, music: undefined };
   const api = {
     hasToken: () => token,
     state: async () => ({ claude_open: st.open }),
@@ -19,7 +19,7 @@ function scenario({ token = true } = {}) {
       const events = (st.batches.shift() ?? []).map((e) => (
         typeof e === 'string' ? { seq: ++st.seq, tool: e, code: false } : { seq: ++st.seq, ...e }
       ));
-      return { cursor: st.seq || cursor, events, sessions: st.sessions };
+      return { cursor: st.seq || cursor, events, sessions: st.sessions, music: st.music };
     },
   };
   const signal = createSignal({ api, clock: () => st.now });
@@ -144,4 +144,16 @@ test('the server\'s code flag: an edit on a code file brings the keyboard for 5 
   assert.equal(claudeProp(signal.read()), 'keyboard');
   st.now = 6500;
   assert.equal(signal.read().code, false);
+});
+
+test('music: the server says whether something is playing, and the reading carries it (the headphones)', async () => {
+  const { st, signal } = scenario();
+  await signal.readNow();
+  assert.equal(signal.read().music, false, 'an older server without the flag: no music');
+  st.music = true;
+  await signal.readNow();
+  assert.equal(signal.read().music, true);
+  st.music = 'yes';
+  await signal.readNow();
+  assert.equal(signal.read().music, false, 'only a true counts');
 });

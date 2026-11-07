@@ -47,6 +47,7 @@ def public(config: dict, settings_path: Path | None = None) -> dict:
         "language": config["language"], "voice_provider": config["voice_provider"],
         "voice_id": (config.get("voice") or {}).get("voice_id", ""), "has_key": voice._api_key() is not None,
         "update_check": config["update_check"], "voice_folder": config.get("voice_folder") or "",
+        "music": config.get("music", True) if sys.platform == "win32" else None,
         "autostart": autostart.enabled() if sys.platform == "win32" else None,
         "hooks": {"on": plugin or setup.hooks_installed(settings_path), "plugin": plugin},
         "phone_url": phone_url(config), "first_run_done": first_run_done(),
@@ -87,6 +88,8 @@ def save(updates: dict, path: Path | None = None) -> dict:
                          else "eleven_flash_v2_5"} if voice_id else None
     if "update_check" in updates:
         data["update_check"] = updates["update_check"] is True
+    if "music" in updates:
+        data["music"] = updates["music"] is not False
     if "voice_folder" in updates:
         folder = str(updates["voice_folder"] or "").strip()
         if folder and not Path(folder).expanduser().is_dir():

@@ -85,7 +85,9 @@ class ServerTest(unittest.TestCase):
     def test_activity_shape(self):
         response, body = self.request("GET", "/api/activity?cursor=0", {"X-Cody-Token": self.token()})
         self.assertEqual(response.status, 200)
-        self.assertEqual(set(json.loads(body)), {"cursor", "events", "sessions"})
+        data = json.loads(body)
+        self.assertEqual(set(data), {"cursor", "events", "sessions", "music"})
+        self.assertIs(data["music"], False)          # the test app has the music reader off
 
     def test_timers_events_and_alerts(self):
         token = {"X-Cody-Token": self.token()}

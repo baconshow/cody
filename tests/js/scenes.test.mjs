@@ -1,12 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validScenes, pickScene, anchorOf, pivotOf, sceneSpan, frameFor, createSceneSounds, MASCOT_REACH, TRIGGERS,
-  IDLE_COFFEE_S, SOUND_GAP_S } from '../../web/js/scenes.js';
+import { validScenes, pickScene, pickOver, anchorOf, pivotOf, sceneSpan, frameFor, createSceneSounds, MASCOT_REACH,
+  TRIGGERS, IDLE_COFFEE_S, SOUND_GAP_S } from '../../web/js/scenes.js';
 
 const data = JSON.parse(readFileSync(new URL('../../web/scenes/scenes.json', import.meta.url)));
 const scenes = validScenes(data);
-const pick = (s) => pickScene(scenes, { mood: 'listening', reading: {}, idleSeconds: 0, happy: false, ...s })?.id ?? null;
+const situation = (s) => ({ mood: 'listening', reading: {}, idleSeconds: 0, happy: false, ...s });
+const pick = (s) => pickScene(scenes, situation(s))?.id ?? null;
+const over = (s) => pickOver(scenes, situation(s))?.id ?? null;
 
 test('the seven essential scenes are there, all valid', () => {
   assert.deepEqual(scenes.map((s) => s.id).sort(),
@@ -22,13 +24,22 @@ test('each trigger shows its scene', () => {
   assert.equal(pick({ idleSeconds: IDLE_COFFEE_S - 1 }), null);
   assert.equal(pick({ reading: { failed: true } }), 'debug');
   assert.equal(pick({ happy: true }), 'party');
-  assert.equal(pick({ reading: { music: true } }), 'headphones');
+  assert.equal(over({ reading: { music: true } }), 'headphones');
   assert.equal(pick({ mood: 'resting' }), 'sleeping');
 });
 
 test('the highest priority wins: a failure beats coding, a party beats sleeping', () => {
   assert.equal(pick({ reading: { code: true, failed: true } }), 'debug');
   assert.equal(pick({ mood: 'resting', happy: true }), 'party');
+});
+
+test('the headphones go over whatever else is going on, and never take its place', () => {
+  const music = { reading: { music: true, code: true } };
+  assert.equal(pick(music), 'coding', 'the monitor stays up');
+  assert.equal(over(music), 'headphones', 'and the headphones are on');
+  assert.equal(pick({ reading: { music: true } }), null, 'music alone is not a scene of its own');
+  assert.equal(over({ reading: { code: true } }), null);
+  assert.equal(over({ mood: 'resting', reading: { music: true } }), 'headphones', 'asleep with the music on: both');
 });
 
 test('a scene with an unknown trigger is left out (community scenes cannot break the page)', () => {

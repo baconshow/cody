@@ -354,3 +354,22 @@ tangle, and from the side one leg looked loose.
   Pure function, tested in `tests/js/legs.test.mjs`.
 - The thinking leg is pulled up into the body (0.14 units) and swung 0.55 rad forward, like a paw held up: still
   clearly up from the side, no longer a stilt from the front.
+
+## 2026-11-07 · Headphones when music plays (Windows), worn over the other scenes
+
+- Music is read from the system's own list of media sessions (SMTC, what the volume flyout shows), so any
+  player counts: Spotify, a browser tab, a desktop app. No account, no key, no player-specific integration, and
+  nothing leaves the machine. A Spotify OAuth integration (client id and secret, tokens per user) was on the
+  table; it would need the maintainer to keep a backend with the users' refresh tokens, which the privacy rule
+  forbids, and a Spotify app in development mode serves 25 users at most. If a player-specific link ever comes,
+  it is PKCE on the user's own machine, with the token in `%LOCALAPPDATA%\cody`; not now.
+- The reader is one Windows PowerShell child process (`cody/media.py`: the newer pwsh cannot load the WinRT
+  types; `powershell.exe` loads them in about 3 s, so it stays up instead of being run per poll) that prints one
+  word every 2 s, `playing` or `silent`. It reads nothing else: no title, no artist, no app name (the tests check
+  the script never names those properties). A word older than 15 s counts as silent; the child is restarted after
+  5, 30 and 120 s if it dies, then left down until Cody starts again. `/api/activity` carries `music` (polled
+  every 3 s), so the headphones come and go within a few seconds. On by default, off with the Settings checkbox
+  "Headphones when music plays" (`"music": false` in config.json); the checkbox only shows on Windows.
+- A scene can now be worn over another: `"over": true` in `scenes.json` (`pickOver` beside `pickScene`), so the
+  headphones stay on while the monitor is up or the thought bubble floats; `?over=headphones` shows it for a
+  look. Before this, the headphones (priority 20) would have lost to coding and thinking nearly all the time.

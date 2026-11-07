@@ -18,7 +18,7 @@ class ConfigTest(unittest.TestCase):
         config = load_config(Path("does-not-exist.json"), system=lambda: "en")
         self.assertEqual(config, {"port": DEFAULT_PORT, "extra_hosts": [], "allowed_logins": [], "language": "en",
                                   "voice": None, "voice_folder": None,
-                                  "voice_provider": "sounds", "update_check": False})
+                                  "voice_provider": "sounds", "update_check": False, "music": True})
 
     def test_invalid_values_fall_back(self):
         config = self.load({"port": 80, "extra_hosts": ["ok.ts.net", "bad host/"], "language": "fr",

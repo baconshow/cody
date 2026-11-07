@@ -38,7 +38,7 @@ import { createAlerts } from './alerts.js';
 import { createStatus } from './status.js';
 import { createSettings } from './settings.js';
 import { createNetwork } from './network.js';
-import { validScenes, pickScene, createSceneSounds } from './scenes.js';
+import { validScenes, pickScene, pickOver, createSceneSounds } from './scenes.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -73,6 +73,7 @@ function readOptions(search) {
     grab: q.get('grab') === '1',
     curse: q.get('curse') === '1',
     scene: q.get('scene'),
+    over: q.get('over'),                                   // ?over=headphones: worn over the scene, for a look
     sensor: q.get('sensor') === '1',
     seed: Number.isFinite(seed) ? seed : Math.floor(Math.random() * 2 ** 31),
   };
@@ -154,7 +155,7 @@ function paint(f, q) {
 }
 
 // the scenes (scenes.js, web/scenes/scenes.json): loaded once; ?scene=<id> shows one all the time
-const scenes = { list: [], forced: null };
+const scenes = { list: [], forced: null, forcedOver: null };
 
 function drawOne(f, now, cycle) {
   if (!f.size) return;
@@ -163,16 +164,21 @@ function drawOne(f, now, cycle) {
     f.animator.setProp(cycle.prop());
   }
   const q = f.animator.step(now);
-  if (f.scenes) q.scene = scenes.forced || (cycle ? pickScene(scenes.list, cycle.situation(now))?.id : null) || null;
+  if (f.scenes) {
+    const situation = cycle && !scenes.forced ? cycle.situation(now) : null;
+    q.scene = scenes.forced || (situation ? pickScene(scenes.list, situation)?.id : null) || null;
+    q.over = scenes.forcedOver || (situation ? pickOver(scenes.list, situation)?.id : null) || null;   // worn over it (the headphones)
+  }
   paint(f, q);
 }
 
-async function loadScenes(face, forced) {
+async function loadScenes(face, forced, over) {
   try {
     const resp = await fetch('/web/scenes/scenes.json', { cache: 'no-cache' });
     scenes.list = validScenes(await resp.json());
   } catch { scenes.list = []; }
   scenes.forced = scenes.list.some((s) => s.id === forced) ? forced : null;
+  scenes.forcedOver = scenes.list.some((s) => s.id === over && s.over) ? over : null;
   if (face?.scene?.setScenes && scenes.list.length) {
     face.scene.setScenes(scenes.list);
     face.scenes = true;
@@ -528,7 +534,7 @@ async function start() {
       play: (bytes) => voice.playAudio(bytes) }).firstRun();
     createNetwork({ api, t });
   }
-  if (!op.gallery) await loadScenes(faces[0], op.scene);
+  if (!op.gallery) await loadScenes(faces[0], op.scene, op.over);
   faces.forEach(measureFace);
   loop.request();
 }

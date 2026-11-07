@@ -190,6 +190,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     check(t('settings.hooks'), info.hooks.on, (on) => ({ hooks: on }), info.hooks.plugin ? t('settings.hooks.plugin') : t('settings.hooks.hint'), info.hooks.plugin);
     if (info.autostart !== null) check(t('settings.autostart'), info.autostart, (on) => ({ autostart: on }));
     check(t('settings.updates'), info.update_check, (on) => ({ update_check: on }), t('settings.updates.hint'));
+    if (info.music !== null && info.music !== undefined) check(t('settings.music'), info.music, (on) => ({ music: on }), t('settings.music.hint'));
     return out;
   }
 

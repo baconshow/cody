@@ -1,8 +1,11 @@
 // scenes.js — which scene the mascot is in. A scene is data (web/scenes/scenes.json: voxel pieces, trigger, clips,
 // sound, priority), so a skin or a community scene is just another entry. This file only decides: of the scenes
-// whose trigger is on, the one with the highest priority. Pure logic, run in Node by the tests.
+// whose trigger is on, the one with the highest priority. A scene marked "over": true is worn over whatever else
+// is going on (the headphones while the monitor is up): it is picked apart, by pickOver. Pure logic, run in Node
+// by the tests.
 //
-//   pickScene(scenes, situation) → scene | null
+//   pickScene(scenes, situation) → scene | null       the scene of the moment (never an "over" one)
+//   pickOver(scenes, situation) → scene | null        what is worn over it, if anything
 //   situation: { mood, reading, idleSeconds, happy } (cycle.js situation())
 //   anchorOf(part) → 'body' (worn: it moves with the mascot) | 'world' (it stands around it)
 //   pivotOf(part) → [x, y, z] in voxels: where a part grows from and sways around
@@ -19,7 +22,7 @@ export const TRIGGERS = Object.freeze({
   sleeping: (s) => s.mood === 'resting',
   coding: (s) => !!s.reading?.code,
   thinking: (s) => s.mood === 'thinking',
-  music: (s) => !!s.reading?.music,                         // music playing on the computer (comes with P1.3)
+  music: (s) => !!s.reading?.music,                         // something playing on the computer (cody/media.py)
   idle: (s) => s.mood === 'listening' && s.idleSeconds >= IDLE_COFFEE_S,
 });
 
@@ -82,10 +85,14 @@ export function validScenes(data) {
     && Array.isArray(s.parts));
 }
 
-export function pickScene(scenes, situation) {
+function pickAmong(scenes, situation, over) {
   let best = null;
   for (const scene of scenes) {
+    if (!!scene.over !== over) continue;
     if (TRIGGERS[scene.trigger](situation) && (!best || scene.priority > best.priority)) best = scene;
   }
   return best;
 }
+
+export const pickScene = (scenes, situation) => pickAmong(scenes, situation, false);
+export const pickOver = (scenes, situation) => pickAmong(scenes, situation, true);

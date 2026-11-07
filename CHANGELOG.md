@@ -30,6 +30,8 @@
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.
+- **Headphones when music plays** (Windows): Cody asks the system whether any player is playing, never what, and
+  wears the headphones over whatever else is going on. Off in Settings.
 - Opt-in update check (off by default). three.js and the font ship with Cody: the page works offline.
 - CI on Windows, macOS and Linux.
 

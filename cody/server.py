@@ -39,6 +39,7 @@ from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
 from cody.hooks import HookFeed
+from cody.media import MediaWatcher
 
 LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
@@ -88,6 +89,7 @@ class App:
         self.hosts = {f"127.0.0.1:{self.port}", f"localhost:{self.port}"} | extra
         self.origins = {f"http://{h}" for h in self.hosts} | {f"https://{h}" for h in extra}
         self.activity = ActivityMonitor()
+        self.media = MediaWatcher(config.get("music") is True)
         self.claude = ClaudeWatcher(self.activity.last_signal)
         self.voice_limit = RateLimit(VOICE_MESSAGES_PER_MINUTE)
         self.hooks = HookFeed(language=config["language"])
@@ -119,12 +121,13 @@ class App:
 
     def change_settings(self, body: dict) -> dict:
         """Saves what changed and applies it now where it can (the voice channel reads the language at its start)."""
-        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder"}
+        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder", "music"}
         changed = {k: v for k, v in body.items() if k in keys}
         if changed:
             fresh = settings.save(changed)
             self.config.update({k: fresh[k] for k in (*keys - {"voice_id"}, "voice")})
             self.hooks._language = self.config["language"]
+            self.media.set_enabled(self.config.get("music") is True)
         notes = settings.apply_switches(body)
         self.forget_status()
         return {**settings.public(self.config), "notes": notes}
@@ -443,7 +446,7 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             self._error(400, "invalid cursor")
             return
-        self._json(200, self.app.activity.state(position))
+        self._json(200, {**self.app.activity.state(position), "music": self.app.media.playing()})
 
     def _events(self, raw: str) -> None:
         try:
@@ -533,6 +536,7 @@ def start(config: dict) -> tuple[App, Server]:
     app = App(config)
     server = Server(app)
     app.activity.start()
+    app.media.start()
     return app, server
 
 
@@ -567,5 +571,6 @@ def main(argv=None) -> int:
         LOG.info("bye")
     finally:
         app.activity.stop()
+        app.media.stop()
         server.server_close()
     return 0

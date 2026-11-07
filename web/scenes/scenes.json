@@ -523,6 +523,7 @@
    "id": "headphones",
    "trigger": "music",
    "priority": 20,
+   "over": true,
    "parts": [
     {
      "color": "#2f62e8",

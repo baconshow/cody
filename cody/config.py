@@ -108,4 +108,5 @@ def load_config(path: Path | None = None, system=system_language) -> dict:
         "voice_folder": _folder(data.get("voice_folder")),
         "voice_provider": _provider(data.get("voice_provider"), data.get("voice")),
         "update_check": data.get("update_check") is True,
+        "music": data.get("music") is not False,           # headphones when something plays (Windows); on unless off
     }

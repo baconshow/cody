@@ -150,7 +150,7 @@ export function createScene3d(canvas) {
       decorations.update(q);
       const dt = lastTime === null ? 0 : Math.min(0.1, Math.max(0, q.time - lastTime));
       lastTime = q.time;
-      const changed = scenes ? scenes.update(q, q.scene, dt) : false;
+      const changed = scenes ? scenes.update(q, q.scene, dt, q.over) : false;
       follow(q.scene, dt, q.quiet);
       renderer.render(scene, camera);
       return changed;

@@ -7,9 +7,10 @@
 // nightcap, the headphones: "on": "body"). Worn parts live in a second group that goes on the mascot's body, so they
 // turn, hop, tilt and breathe with it instead of floating where the head used to be.
 //
-//   createScenes3d(THREE, data) → { group, worn, update(q, sceneId), span(sceneId) }
+//   createScenes3d(THREE, data) → { group, worn, update(q, sceneId, dt, overId), span(sceneId) }
 //     group   what stands around the mascot (add it to the room)
 //     worn    what the mascot wears (hand it to mascot.wear)
+//     update  shows the scene (and the one worn over it, overId: the headphones); true when the scene changed
 //     span    [left, right] in units: how far the scene reaches to each side (scenes.js sceneSpan), for the camera
 
 import { anchorOf, pivotOf, sceneSpan } from './scenes.js';
@@ -101,9 +102,9 @@ export function createScenes3d(THREE, data) {
   }
 
   let last = null;
-  function update(q, sceneId, dt = 1 / 60) {
+  function update(q, sceneId, dt = 1 / 60, overId = null) {
     for (const [id, s] of built) {
-      const target = id === sceneId ? 1 : 0;
+      const target = id === sceneId || id === overId ? 1 : 0;
       s.grow = q.quiet ? target : Math.max(0, Math.min(1, s.grow + Math.sign(target - s.grow) * GROW * dt));
       s.roots.world.visible = s.roots.body.visible = s.grow > 0.001;
       if (!s.roots.world.visible) continue;
