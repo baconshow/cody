@@ -20,12 +20,13 @@
 - **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping. What Cody wears (the nightcap,
   the headphones, the coffee in its hand, the bug on its head) moves with it; the camera slides to keep the monitor
   and the debug sign in the picture on any screen.
-- The legs turn with the body instead of staying behind when Cody listens sideways.
+- The legs turn with the body instead of staying behind when Cody listens sideways, and stay on the body when it
+  looks up or down.
 - **Settings, Status, the private network and the first run** are one drawer beside the mascot (a dialog: the X,
   Esc and a click outside close it), instead of full-screen lists with a Close button in the corner. A gear in the
   corner opens Settings. The wake word state is a small light (green on, red off) instead of words. A tap on Cody is
   silent.
-- The sleeping Z is one piece, and after a shake Cody swears (`&#$*%@!`). Thinking, Cody lifts a front leg, and
+- The sleeping Z is one piece, and after a shake Cody swears (`&#$*%@!`). Thinking, Cody holds a front leg up, and
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.

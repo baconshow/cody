@@ -341,3 +341,16 @@ tangle, and from the side one leg looked loose.
   typing. Reading the person's own typing is item 13 of the refinement list and has its rule: it may tell that
   keys are being pressed, never which ones.
 
+
+## 2026-11-07 · The hips follow the body, and the thinking leg is held up, not swung out
+
+- From the front, the thinking leg swung 0.95 rad forward looked splayed outward (the camera is close, so the
+  foot coming toward it projects further from the middle) and the front leg under the bubble looked loose: the
+  body pitches back to look up at the bubble (`body.rotation.x`, applied about the figure's x axis after the
+  body's yaw), so its underside rose off the front legs by about 0.04 units, a thin dark gap.
+- Now each hip follows the body's underside at its own place (`hipRise()` in `mascot3d.js`: the leg's z in the
+  figure after the feet's turn, times the tangent of the pitch) and the leg stretches or shrinks so the foot stays
+  on the floor. Looking down does the opposite, so the keyboard look no longer sinks the body into the front legs.
+  Pure function, tested in `tests/js/legs.test.mjs`.
+- The thinking leg is pulled up into the body (0.14 units) and swung 0.55 rad forward, like a paw held up: still
+  clearly up from the side, no longer a stilt from the front.

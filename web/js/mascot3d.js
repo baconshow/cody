@@ -34,9 +34,10 @@ const RECOIL = Object.freeze({ move: 0.8, tip: 0.5, side: 0.45 });   // per unit
 // hand's lower edge rests on the keys instead of going through them (the keyboard's tilt is in keyboard3d.js);
 // each hand lifts (radians) in its turn, to KEYBOARD.rhythm
 const TYPING = Object.freeze({ forward: 1.3, lift: 0.14, inward: 0.25, stretch: 1.3, thin: 0.4 });
-// thinking: the front leg opposite the thought bubble (which floats at the mascot's left, +x) comes up, swung
-// forward (radians), and taps in the air now and then
-const LIFT = Object.freeze({ leg: 0, swing: 0.95, tap: 0.12, rhythm: 2.6 });
+// thinking: the front leg opposite the thought bubble (which floats at the mascot's left, +x) comes up, pulled up
+// into the body (units) and swung a little forward (radians), like a paw held up, and taps in the air now and
+// then; a big swing looked like a leg splayed out from the front, the camera being so close
+const LIFT = Object.freeze({ leg: 0, up: 0.14, swing: 0.55, tap: 0.12, rhythm: 2.6 });
 const GRAB = Object.freeze({ stretch: 1.9, spread: 0.4, eye: 0.28, shake: 0.05, rhythm: 27 }); // the shake startle
 // the swearing after a shake: the symbols come out one by one in the open mouth and jump about, comic-strip style
 const CURSE = Object.freeze({ text: '&#$*%@!', colors: ['#ffd23f', '#ff6b5b', '#7ee081', '#6ec3ff', '#ff9de2'],
@@ -229,17 +230,31 @@ function applyPose(p, q) {
   p.leaves.rotation.x = q.sproutY * 0.3;
 }
 
-// the legs turn after the body (q.feet) and, while they do, step in diagonal pairs, like a little trot; thinking
-// (q.lift), one front leg stays up in the air
+// The body pitches with the gaze (body.rotation.x: three.js applies it about the figure's x axis, after the body's
+// own yaw), so its underside rises at the front when the mascot looks up and sinks there when it looks down.
+// Each hip follows the underside at its own place (the leg's z in the figure, after the feet's turn), so no leg
+// comes loose from the body: hipRise(leg, feetYaw, lookY) → units above the resting hip, for a leg at {x, z}
+export function hipRise(leg, feetYaw, lookY) {
+  const z = -leg.x * Math.sin(feetYaw) + leg.z * Math.cos(feetYaw);
+  return -z * Math.tan(lookY * LOOK.turnX);
+}
+
+// the legs turn after the body (q.feet) and, while they do, step in diagonal pairs, like a little trot; each hip
+// follows the body's underside and the leg stretches or shrinks so the foot stays on the floor; thinking (q.lift),
+// one front leg is held up in the air
 function poseFeet(p, q) {
-  p.feet.rotation.y = q.feet || 0;
+  const yaw = q.feet || 0;
+  p.feet.rotation.y = yaw;
   const stepping = q.stepping || 0;
   const lift = Math.max(0, q.lift || 0);
   const tap = q.quiet ? 0 : Math.max(0, Math.sin(q.time * LIFT.rhythm)) * LIFT.tap;
   p.legs.forEach((leg, i) => {
     const up = Math.max(0, Math.sin(q.time * STEP.rhythm + (i % 2) * Math.PI));
-    leg.position.y = LEG.height * V + STEP.lift * stepping * up;
-    leg.rotation.x = i === LIFT.leg ? -lift * (LIFT.swing + tap) : 0;
+    const hip = LEG.height * V + hipRise(leg.position, yaw, q.lookY || 0);
+    const held = i === LIFT.leg ? lift : 0;
+    leg.position.y = hip + STEP.lift * stepping * up + held * LIFT.up;
+    leg.scale.y = hip / (LEG.height * V);
+    leg.rotation.x = -held * (LIFT.swing + tap);
   });
 }
 
