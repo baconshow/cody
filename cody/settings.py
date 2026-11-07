@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-from cody import autostart, hooks, voice
+from cody import autostart, hooks, usage, voice
 from cody.config import LANGUAGES, PROVIDERS, VALID_MODEL, VALID_VOICE, config_file, load_config
 from cody.store import Unreadable, data_dir, read_for_update, read_json, write_atomic, write_private
 
@@ -52,6 +52,7 @@ def public(config: dict, settings_path: Path | None = None) -> dict:
         "typing": config.get("typing", False) if sys.platform == "win32" else None,
         "autostart": autostart.enabled() if sys.platform == "win32" else None,
         "hooks": {"on": plugin or setup.hooks_installed(settings_path), "plugin": plugin},
+        "statusline": usage.installed(settings_path),
         "phone_url": phone_url(config), "first_run_done": first_run_done(),
     }
 
@@ -112,6 +113,8 @@ def apply_switches(updates: dict) -> list[str]:
         autostart.set_enabled(updates["autostart"] is True)
     if "hooks" in updates:
         notes.append(hooks.install(remove=updates["hooks"] is not True))
+    if "statusline" in updates:
+        notes.append(usage.install(remove=updates["statusline"] is not True))
     if updates.get("first_run_done") is True:
         write_private(data_dir() / FIRST_RUN_FILE, json.dumps({"done": True}))
     return notes

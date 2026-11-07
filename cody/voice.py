@@ -21,7 +21,7 @@ import urllib.request
 from collections import OrderedDict, deque
 from pathlib import Path
 
-from cody import hooks, screen, timers
+from cody import hooks, screen, timers, usage
 from cody.channel import channel_file
 
 MAX_TEXT = 500
@@ -121,6 +121,8 @@ def say(body: dict, path: Path | None = None, language: str = "en", capture=scre
     text = validate_text((body or {}).get("text"))
     if is_print_command(text):
         return quick_print(language, capture)
+    if usage.is_usage_question(text):              # "how much usage do I have left?": from usage.json, no Claude
+        return {"request_id": "", "quick": {"text": usage.phrase(usage.read(), language), "image": None}}
     channel = _channel(path)
     if channel is None:
         raise VoiceError(503, "the voice channel is not open")

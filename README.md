@@ -281,6 +281,16 @@ the talking.
 
 Prefer to add them by hand? Each one is a command hook running `"<python>" "<path to>/cody.py" --hook`.
 
+### "Cody, how much usage do I have left?" (opt-in)
+
+Turn on **Usage limits** in Settings and Cody becomes Claude Code's status line: on every refresh, Claude Code
+hands the status line your plan's session (five-hour) and week usage, and Cody keeps those two numbers (nothing
+else of what the status line gets) in `usage.json` in its data folder. The status line you had still shows:
+Cody runs it right after, with the same input, and puts it back when you turn the switch off. Then ask, by
+voice, *"Cody, how much usage do I have left?"* (*"Cody, quanto resta de uso?"*): it says and shows the session
+and the week, with when each resets. No API call, no token read, nothing leaves the computer. Subscription
+plans only: an API account gets no usage numbers from Claude Code.
+
 ### Typing along (opt-in)
 
 Turn on **Type along when I type to Claude** in Settings and Cody's keyboard comes out while you type in a

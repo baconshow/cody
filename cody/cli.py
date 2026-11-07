@@ -3,6 +3,8 @@
     (no option)                 the mascot server; see `--help` for its options (--open, --port, --setup...)
     --hook                      what the Claude Code hooks run (reads the hook's JSON on stdin, always exits 0)
     --install-hooks             adds those hooks to Claude Code's user settings (--uninstall-hooks removes them)
+    --statusline                what Claude Code's status line runs when Cody is it (cody/usage.py): keeps your
+                                plan's usage windows, then runs the status line you had
     --voice [folder]            the voice session: Claude Code with Cody's voice channel, in this terminal
     --voice-window [folder]     the same, in a new terminal window (what /cody:voice runs)
     --start                     starts the mascot server in the background and opens it (what /cody:setup runs)
@@ -27,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
     if argv == ["--hook"]:                  # fast path: a hook must not import the whole server
         from cody.hooks import run_hook
         return run_hook()
+    if argv == ["--statusline"]:            # the same: Claude Code runs it on every status line refresh
+        from cody.usage import run_statusline
+        return run_statusline()
     if argv in (["--install-hooks"], ["--uninstall-hooks"]):
         from cody.hooks import install
         print(install(remove=argv[0] == "--uninstall-hooks"))

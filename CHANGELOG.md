@@ -30,6 +30,8 @@
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.
+- **"Cody, how much usage do I have left?"** (opt-in): Cody as Claude Code's status line keeps your plan's session
+  and week usage (and runs the status line you had); the question is answered on the spot.
 - **Typing along** (opt-in): while you type in a Claude window, Cody types on its keyboard too. It only learns that
   keys are being pressed, never which; no keyboard hook, nothing recorded.
 - **Your Windows notifications, read aloud** (opt-in): the important ones (messages, mail, calendar, calls, or an

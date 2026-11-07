@@ -426,3 +426,20 @@ tangle, and from the side one leg looked loose.
 - The flag rides on `/api/activity` (`typing`), and the page's `claudeProp` puts the keyboard in hand before
   anything else while it is on, so Cody types with you. Opt-in (`"typing": true`, the Settings checkbox), Windows
   only, documented in the README and PRIVACY.md.
+
+## 2026-11-07 · Usage limits from Claude Code's status line, not from the API
+
+- There is no `claude usage` command and nothing in the transcripts or the config folder carries the plan's
+  windows. The one local, stable source is the status line: Claude Code hands its command a JSON with
+  `rate_limits.five_hour` and `rate_limits.seven_day` (`used_percentage`, `resets_at`: epoch seconds or ISO
+  8601, both handled) on subscription plans. The alternative, calling the OAuth usage endpoint with the token
+  from `.credentials.json`, reads a credential file and leans on an undocumented endpoint: no.
+- So Cody offers to be the status line (`cody/usage.py`, `cody.py --statusline`, the Settings switch "Usage
+  limits"): it keeps only the two windows in `usage.json` (private file, data folder), then runs the status line
+  the person had, with the same input, printing its output (the previous `statusLine` is kept in config.json
+  under `statusline_previous` and put back on removal); with none, it prints "Cody · session 42% · week 10%".
+  Always exit 0: a status line must never break the terminal.
+- "How much usage do I have left?" (≤ 9 words with a usage word and a "mine" word, `is_usage_question`) is
+  answered on the spot by the server, like the quick screenshot: session and week with their reset times, and
+  how old the numbers are when Claude Code has not refreshed them for six hours. Without the switch on, Cody
+  says how to turn it on.
