@@ -99,11 +99,12 @@ test('heads-up: the first read only marks the place, later events are announced 
     { cursor: 5, events: [{ seq: 4, kind: 'done', seconds: 60, say: 'Done!' }, { seq: 5, kind: 'needs_you', say: 'Come!' }] },
     { cursor: 0, events: [] },                                   // the server restarted
     { cursor: 1, events: [{ seq: 1, kind: 'needs_you', say: 'Again!' }] },
+    { cursor: 3, events: [{ seq: 2, kind: 'notice', say: 'WhatsApp: Ana', app: 'WhatsApp' }, { seq: 3, kind: 'moon', say: 'no' }] },
   ];
   const asked = [];
   const api = { hasToken: () => true, events: async (after) => { asked.push(after); return answers.shift(); } };
   const alerts = createAlerts({ api, onAlert: (e) => seen.push(e.say) });
-  for (let i = 0; i < 4; i++) await alerts.readNow();
-  assert.deepEqual(seen, ['Done!', 'Come!', 'Again!']);
-  assert.deepEqual(asked, [0, 3, 5, 0]);
+  for (let i = 0; i < 5; i++) await alerts.readNow();
+  assert.deepEqual(seen, ['Done!', 'Come!', 'Again!', 'WhatsApp: Ana'], 'a notice is announced; an unknown kind is not');
+  assert.deepEqual(asked, [0, 3, 5, 0, 1]);
 });

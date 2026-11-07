@@ -31,9 +31,10 @@ function scenario({ failWithStatus = null } = {}) {
     voice: async (text) => {
       if (failWithStatus) throw Object.assign(new Error('closed'), { status: failWithStatus });
       st.sent.push(text);
-      return { request_id: '1' };
+      return st.quick ? { request_id: '', quick: st.quick } : { request_id: '1' };
     },
     voiceReplies: async (after) => ({ channel: true, session: st.session, replies: st.replies.filter((r) => r.seq > after) }),
+    settings: async () => ({ voice_provider: 'device' }),   // these tests listen to the device's voice (the fake speechSynthesis)
   };
   const target = new EventTarget();
   st.attachments = [];
@@ -298,4 +299,23 @@ test('an alert mood holds above a pat for its seconds, below the voice', () => {
   assert.notEqual(cycle.mood(7), 'pointing');
   cycle.cheer(10);
   assert.equal(cycle.mood(10.5), 'happy');
+});
+
+test('"Cody, take a screenshot" is answered on the spot: the picture shows and the word is spoken, no thinking, no poll', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice, target } = scenario();
+  st.quick = { text: 'Screenshot taken. Tap share to send it.', image: 'q1' };
+  voice.start();
+  await flush();
+  target.dispatchEvent(new Event('pointerdown'));
+  t.mock.timers.tick(VOICE.hold + 1);
+  st.recognition.onresult({ results: [[{ transcript: 'take a screenshot' }]] });
+  target.dispatchEvent(new Event('pointerup'));
+  await flush();
+  assert.deepEqual(st.sent, ['take a screenshot']);
+  assert.ok(!st.states.includes('thinking'), 'no round trip through Claude');
+  assert.deepEqual(st.images, ['q1']);
+  assert.equal(st.spoken.at(-1).text, 'Screenshot taken. Tap share to send it.');
+  assert.equal(st.states.at(-1), 'talking');
+  voice.stop();
 });

@@ -19,6 +19,8 @@
 //                   "didn't catch that"
 //   announce        the mascot says something on its own (a timer ringing, Claude finished): in the caption and
 //                   out loud, in turn with the replies; alert is the key of /api/voice/alert (the mascot's voice)
+//   playAudio       an mp3 the page already has (the voice test in Settings): played in turn with the replies, the
+//                   face talking while it lasts
 
 import { joinTranscript } from './transcript.js';
 import { createVoiceAudio } from './voice-audio.js';
@@ -31,9 +33,16 @@ export const VOICE = Object.freeze({
   hold: 350, wait: 180000, caption: 9000, fast: 1200, slow: 4000, lowVoice: 2200, didntCatch: 3000,
 });
 
-export function createVoice({ api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {}, onSide = () => {}, t }) {
+export function createVoice({ api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {}, onSide = () => {}, onNotice = () => {}, t }) {
   const Recognizer = win.SpeechRecognition || win.webkitSpeechRecognition;
-  const audio = createVoiceAudio({ api, win });
+  const said = new Set();                             // each fallback is told once per visit, not on every reply
+  const audio = createVoiceAudio({ api, win, onFallback: ({ from, to, reason }) => {
+    const key = `${from}>${to}:${reason}`;
+    if (said.has(key)) return;
+    said.add(key);
+    onNotice(t('mascot.voice.fallback', { from: t(`settings.voice.${from}`), to: t(`settings.voice.${to}`),
+      reason: reason || t('mascot.voice.unavailable') }));
+  } });
   const st = { hold: 0, recognition: null, text: '', after: null, session: null, waitUntil: 0, poll: 0, clear: 0, on: false, queue: Promise.resolve(), side: 0 };
 
   // listening sideways: the count starts when it begins to listen; the first word undoes it; "didn't catch that"
@@ -126,8 +135,15 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     }
     side(false);
     try {
-      await api.voice(text);
+      const r = await api.voice(text);
+      if (r?.quick) {                                    // answered on the spot ("Cody, take a screenshot"): the shutter, then the word
+        caption(t('mascot.voice.you', { text }), false);
+        await audio.play('snap');
+        speak({ text: String(r.quick.text || ''), show: null, image: r.quick.image ? String(r.quick.image) : null });
+        return;
+      }
       onState('thinking');
+      audio.play('thinking');
       caption(t('mascot.voice.you', { text }), false);
       st.waitUntil = Date.now() + VOICE.wait;
       clearTimeout(st.poll);
@@ -135,6 +151,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     } catch (error) {
       onState(null);
       caption(error?.status === 503 ? t('mascot.voice.noChannel') : String(error?.message || error));
+      audio.play('error');
     }
   }
 
@@ -171,9 +188,21 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
 
   return {
     volume: () => audio.volume(),
+    sound: { unlock: () => audio.unlock(), state: () => audio.state() },
+    play: (name) => audio.play(name),
     get listening() { return wake.active; },
     announce: ({ text, alert }) => (text ? speak({ text: String(text), alert: String(alert || '') || null }) : st.queue),
     chime: () => audio.chime(),
+    playAudio(bytes) {
+      st.queue = st.queue.then(async () => {
+        wake.pause();
+        onState('talking');
+        try { await audio.playBytes(bytes); } catch { /* sound still locked, or not an mp3: nothing to hear */ }
+        onState(null);
+        wake.resume();
+      });
+      return st.queue;
+    },
     listen(on) {
       if (on && Recognizer) wake.start();
       else wake.stop();

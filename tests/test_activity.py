@@ -96,3 +96,16 @@ class MonitorTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FailureEventTest(unittest.TestCase):
+    def test_a_failed_tool_result_is_one_content_free_event(self):
+        from cody.activity import FAILED, tool_events
+        line = json.dumps({"type": "user", "timestamp": "2026-11-05T10:00:00Z", "message": {"content": [
+            {"type": "tool_result", "tool_use_id": "x", "is_error": True, "content": "secret output"}]}})
+        self.assertEqual(tool_events(line), [{"tool": FAILED, "code": False}])
+        ok = line.replace('"is_error": true', '"is_error": false')
+        self.assertEqual(tool_events(ok), [])
+        self.assertNotIn("secret", json.dumps(tool_events(line)))
+        said_no = line.replace("secret output", "The user doesn't want to proceed with this tool use.")
+        self.assertEqual(tool_events(said_no), [])

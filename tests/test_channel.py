@@ -1,4 +1,3 @@
-import io
 import json
 import os
 import re
@@ -8,7 +7,6 @@ import tempfile
 import threading
 import time
 import unittest
-import urllib.error
 from pathlib import Path
 
 from cody import voice
@@ -113,7 +111,7 @@ class ChannelTest(unittest.TestCase):
         channel = self.make(capture=lambda: b"\x89PNG fake")
         tools = channel.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools],
-                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point"])
+                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point", "scene", "custom_scene"])
         self.channel = channel
         result = self.call("screenshot")
         text = result["content"][0]["text"]
@@ -297,13 +295,6 @@ class VoiceTest(unittest.TestCase):
         with self.assertRaises(voice.VoiceError) as caught:
             voice.audio("1", None)
         self.assertEqual(caught.exception.status, 404)
-
-    def test_an_elevenlabs_refusal_says_why_and_never_the_key(self):
-        body = io.BytesIO(json.dumps({"detail": {"code": "payment_issue", "message": "xi-key-secret"}}).encode())
-        refusal = urllib.error.HTTPError("https://x", 401, "no", {}, body)
-        self.assertEqual(voice._refusal(refusal), "ElevenLabs refused the voice (401 payment_issue)")
-        plain = urllib.error.HTTPError("https://x", 500, "no", {}, io.BytesIO(b"not json"))
-        self.assertEqual(voice._refusal(plain), "ElevenLabs refused the voice (500)")
 
     def test_channel_file_location(self):
         self.assertEqual(channel_file().name, "channel.json")

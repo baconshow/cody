@@ -1,0 +1,15 @@
+{
+  "name": "cody",
+  "description": "Cody, an unofficial desk mascot for Claude Code.",
+  "owner": {
+    "name": "Cody contributors",
+    "url": "https://github.com/baconshow/cody"
+  },
+  "plugins": [
+    {
+      "name": "cody",
+      "source": "./",
+      "description": "Cody, an unofficial desk mascot for Claude Code: heads-up hooks and the /cody:setup, /cody:status and /cody:voice commands."
+    }
+  ]
+}

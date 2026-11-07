@@ -1,0 +1,14 @@
+name: Idea or scene
+description: Something Cody could do, or a scene it could act out
+labels: [idea]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like Cody to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: When would it help?

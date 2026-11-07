@@ -4,7 +4,9 @@ Routes:
   GET  /                       the mascot page, with this run's token
   GET  /web/<file>             static files (no token needed: they hold no data)
   GET  /api/state              {"claude_open"}
-  GET  /api/activity?cursor=N  tool events and recent sessions (cody/activity.py)
+  GET  /api/activity?cursor=N  tool events and recent sessions (cody/activity.py), plus music, typing, the scene
+                               asked for by voice and the custom scenes' version
+  GET  /api/scenes             the custom scenes Claude made by voice (cody/custom.py)
   GET  /api/cursor             the mouse position, -1..1 (Windows only), or the spot the mini Cody points at
   GET  /api/timers             timers and reminders set by voice (cody/timers.py)
   GET  /api/events?after=N     heads-up from the Claude Code hooks: done, needs you (cody/hooks.py)
@@ -30,14 +32,19 @@ import threading
 import time
 import webbrowser
 from collections import deque
+from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, page, pointer, setup, timers, voice
+from cody import cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, settings, setup, timers, updates, voice
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
 from cody.hooks import HookFeed
+from cody.media import MediaWatcher
+from cody.notices import NoticeWatcher
+from cody.typist import TypistWatcher
+from cody.custom import CustomScenes
 
 LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
@@ -46,6 +53,14 @@ MAX_CONNECTIONS = 48        # concurrent connections; beyond that they are close
 SAME_SITE = ("", "same-origin", "none")     # accepted Sec-Fetch-Site values (empty = not a browser)
 ENTRY_PAGES = ("/",)        # the only route a link from elsewhere may open (top-level GET navigation)
 VOICE_MESSAGES_PER_MINUTE = 20
+STATUS_CACHE_S = 10
+# headers Tailscale serve always sets on what it forwards (and overwrites when a client sends them)
+PROXY_HEADERS = ("X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Host", "Tailscale-User-Login",
+                 "Tailscale-User-Name", "Tailscale-Funnel-Request")
+PHONE_NOTE_S = 30
+ACTIONS = ("voice", "hooks")
+SETTINGS_POSTS = ("/api/settings", "/api/settings/key", "/api/settings/test", "/api/network")
+NETWORK_STEPS = ("install", "login", "serve")
 
 
 class RateLimit:
@@ -79,9 +94,112 @@ class App:
         self.hosts = {f"127.0.0.1:{self.port}", f"localhost:{self.port}"} | extra
         self.origins = {f"http://{h}" for h in self.hosts} | {f"https://{h}" for h in extra}
         self.activity = ActivityMonitor()
+        self.media = MediaWatcher(config.get("music") is True)
         self.claude = ClaudeWatcher(self.activity.last_signal)
         self.voice_limit = RateLimit(VOICE_MESSAGES_PER_MINUTE)
         self.hooks = HookFeed(language=config["language"])
+        self.notices = NoticeWatcher(config.get("notifications") is True, self.hooks, config.get("notification_apps"))
+        self.typist = TypistWatcher(config.get("typing") is True)
+        self.custom = CustomScenes()
+        self._status: dict[str, tuple[float, list]] = {}
+        self._status_lock = threading.Lock()
+        self._phone_noted = 0.0
+
+    def status(self, language: str = "", clock=time.monotonic) -> list[dict]:
+        """The doctor's report in the page's language, at most every STATUS_CACHE_S (it runs tailscale)."""
+        language = language if language in doctor.TEXT else self.config["language"]
+        with self._status_lock:
+            when, items = self._status.get(language, (0.0, []))
+            if not items or clock() - when > STATUS_CACHE_S:
+                items = doctor.report(self.config, server_running=True, language=language)
+                self._status[language] = (clock(), items)
+            return items
+
+    def forget_status(self) -> None:
+        with self._status_lock:
+            self._status = {}
+
+    def phone_seen(self, clock=time.monotonic) -> None:
+        if clock() - self._phone_noted > PHONE_NOTE_S:
+            self._phone_noted = clock()
+            try:
+                doctor.note_phone()
+            except OSError:
+                pass
+
+    def change_settings(self, body: dict) -> dict:
+        """Saves what changed and applies it now where it can (the voice channel reads the language at its start)."""
+        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder", "music", "notifications", "typing"}
+        changed = {k: v for k, v in body.items() if k in keys}
+        if changed:
+            fresh = settings.save(changed)
+            self.config.update({k: fresh[k] for k in (*keys - {"voice_id"}, "voice")})
+            self.hooks._language = self.config["language"]
+            self.media.set_enabled(self.config.get("music") is True)
+            self.notices.set_enabled(self.config.get("notifications") is True)
+            self.typist.set_enabled(self.config.get("typing") is True)
+        notes = settings.apply_switches(body)
+        self.forget_status()
+        return {**settings.public(self.config), "notes": notes}
+
+    def notice_phrase(self, key: str) -> str | None:
+        """The hosted voice's words for a notice alert ("notice:<seq>"): the app's name only, never the title."""
+        if not key.startswith("notice:") or not key[7:].isdigit():
+            return None
+        event = self.hooks.event(int(key[7:]))
+        return notices.phrase(event["app"], self.config["language"]) if event and event.get("app") else None
+
+    def network_state(self) -> dict:
+        facts = network.state(self.port)
+        if facts["served"]:
+            self.add_hosts(facts["served"])
+        return {**facts, "step": network.next_step(facts), "admin_dns": network.ADMIN_DNS_URL,
+                "download": network.DOWNLOAD_URL}
+
+    def network_step(self, step: str) -> dict:
+        """Runs one step of "Create your private network" and returns the new state (plus a page to open)."""
+        if step not in NETWORK_STEPS:
+            raise settings.SettingsError("unknown step")
+        opened = None
+        if step == "install":
+            opened = network.install()["open"]
+        elif step == "login":
+            opened = network.login()["open"]
+        else:
+            self.add_hosts(network.serve(self.port)["hosts"])
+        doctor.forget_network()
+        self.forget_status()
+        return {**self.network_state(), "open": opened}
+
+    def add_hosts(self, hosts: list[str]) -> None:
+        """A new Tailscale address for Cody: allowed from now on, for your own login only."""
+        new = [h for h in hosts if h not in self.config["extra_hosts"]]
+        if not new:
+            return
+        self.config["extra_hosts"] = [*self.config["extra_hosts"], *new]
+        self.hosts |= set(new)
+        self.origins |= {f"https://{h}" for h in new} | {f"http://{h}" for h in new}
+        if not self.config["allowed_logins"]:
+            login = network.identity_login()
+            if login:
+                self.config["allowed_logins"] = [login]
+            else:
+                LOG.warning("no Tailscale login found (tagged device?): every device in the tailnet can use Cody; "
+                            "set allowed_logins in config.json")
+
+    def act(self, what: str) -> dict:
+        """A button on the Status screen (from this computer only)."""
+        if what == "voice":
+            if launcher.voice_session_running():
+                return {"ok": True, "message": ""}
+            problem = launcher.open_voice_window(launcher.voice_folder(None, self.config, Path.home()))
+            result = {"ok": problem is None, "message": problem or ""}
+        elif what == "hooks":
+            result = {"ok": True, "message": hooks.install()}
+        else:
+            return {"ok": False, "message": "unknown action"}
+        self.forget_status()
+        return result
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -132,14 +250,21 @@ class Handler(BaseHTTPRequestHandler):
     def _host_ok(self) -> bool:
         return (self.headers.get("Host") or "").strip().casefold() in self.app.hosts
 
+    def _via_tailnet(self) -> bool:
+        """The request came through Tailscale serve. Serve passes the client's Host header through unchanged, so the
+        Host alone cannot tell: serve always adds forwarding headers (and the login headers), which a browser on this
+        computer never sends. Either sign, or a Tailscale host name, counts."""
+        if any(self.headers.get(name) is not None for name in PROXY_HEADERS):
+            return True
+        return (self.headers.get("Host") or "").strip().casefold() in self.app.config["extra_hosts"]
+
     def _tailnet_refusal(self) -> str | None:
         """Refuses Tailscale Funnel (the public internet) always, and, when allowed_logins is set, anyone else coming
         through Tailscale serve. Serve sets Tailscale-User-Login itself; tagged devices carry none and are refused."""
         if self.headers.get("Tailscale-Funnel-Request") is not None:
             return "Tailscale Funnel is not allowed: use tailscale serve"
-        host = (self.headers.get("Host") or "").strip().casefold()
         allowed = self.app.config["allowed_logins"]
-        if allowed and host in self.app.config["extra_hosts"]:
+        if allowed and self._via_tailnet():
             login = (self.headers.get("Tailscale-User-Login") or "").strip().casefold()
             if login not in allowed:
                 return "this Tailscale login is not allowed"
@@ -229,18 +354,24 @@ class Handler(BaseHTTPRequestHandler):
         if refusal:
             self._error(403, refusal)
             return
-        if path != "/api/voice":
+        if path not in ("/api/voice", "/api/action") and path not in SETTINGS_POSTS:
             self._error(404, "not found")
             return
         body = self._json_body()
         if isinstance(body, tuple):
             self._error(*body)
             return
+        if path == "/api/action":
+            self._action(body)
+            return
+        if path in SETTINGS_POSTS:
+            self._settings_post(path, body if isinstance(body, dict) else {})
+            return
         if not self.app.voice_limit.allow():
             self._error(429, "too many voice messages this minute")
             return
         try:
-            self._json(202, voice.say(body))
+            self._json(202, voice.say(body, language=self.app.config["language"]))
         except voice.VoiceError as error:
             self._error(error.status, error.message)
 
@@ -251,10 +382,21 @@ class Handler(BaseHTTPRequestHandler):
         if path.startswith("/api/") and not self._token_ok():
             self._error(403, "missing or invalid token")
             return
+        if path.startswith("/api/") and not self._local():
+            self.app.phone_seen()
         routes = {
             "/": self._index,
             "/api/state": lambda: self._json(200, {"claude_open": self.app.claude.is_open()}),
+            "/api/status": lambda: self._json(200, {"items": self.app.status(param("lang")), "local": self._local()}),
+            "/api/settings": lambda: self._json(200, {**settings.public(self.app.config), "local": self._local()}),
+            "/api/settings/voices": lambda: (self._json(200, settings.voices()) if self._local()
+                                             else self._error(403, "only from the computer itself")),
+            "/api/qr": lambda: self._qr(param("for")),
+            "/api/version": lambda: self._json(200, updates.status(self.app.config["update_check"])),
+            "/api/network": lambda: (self._json(200, self.app.network_state()) if self._local()
+                                     else self._error(403, "only from the computer itself")),
             "/api/activity": lambda: self._activity(param("cursor")),
+            "/api/scenes": lambda: self._json(200, {"scenes": self.app.custom.list(), "version": self.app.custom.version()}),
             "/api/cursor": lambda: self._json(200, pointer.pointed() or cursor.position() or {"x": None, "y": None}),
             "/api/timers": lambda: self._json(200, timers.for_phone(language=self.app.config["language"])),
             "/api/events": lambda: self._events(param("after")),
@@ -271,6 +413,43 @@ class Handler(BaseHTTPRequestHandler):
             self._error(404, "not found")
 
     # ---- routes ----------------------------------------------------------
+    def _local(self) -> bool:
+        """The request came from this computer, not through Tailscale (see _via_tailnet)."""
+        host = (self.headers.get("Host") or "").strip().casefold()
+        return not self._via_tailnet() and host in (f"127.0.0.1:{self.app.port}", f"localhost:{self.app.port}")
+
+    def _settings_post(self, path: str, body: dict) -> None:
+        if not self._local():
+            self._error(403, "settings change only on the computer itself")
+            return
+        try:
+            if path == "/api/settings":
+                self._json(200, {**self.app.change_settings(body), "local": True})
+            elif path == "/api/network":
+                self._json(200, self.app.network_step(str(body.get("step") or "")))
+            elif path == "/api/settings/key":
+                self._json(200, {"has_key": settings.set_key(str(body.get("key") or ""))})
+            else:
+                self._json(200, settings.test_voice(self.app.config, str(body.get("voice_id") or "")))
+        except settings.SettingsError as error:
+            self._error(400, str(error))
+
+    def _qr(self, which: str) -> None:
+        target = {"phone": settings.phone_url(self.app.config), "tailscale": settings.TAILSCALE_APP}.get(which)
+        if not target:
+            self._error(404, "nothing to show")
+            return
+        self._send(200, qr.svg(target).encode("utf-8"), "image/svg+xml")
+
+    def _action(self, body: dict) -> None:
+        what = body.get("do") if isinstance(body, dict) else None
+        if what not in ACTIONS:
+            self._error(400, "unknown action")
+        elif not self._local():
+            self._error(403, "only from the computer itself")
+        else:
+            self._json(200, self.app.act(what))
+
     def _index(self) -> None:
         body = page.index_page(self.app.token)
         if body is None:
@@ -285,7 +464,9 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError:
             self._error(400, "invalid cursor")
             return
-        self._json(200, self.app.activity.state(position))
+        self._json(200, {**self.app.activity.state(position), "music": self.app.media.playing(),
+                         "typing": self.app.typist.typing(), "wanted": self.app.custom.wanted(),
+                         "custom": self.app.custom.version()})
 
     def _events(self, raw: str) -> None:
         try:
@@ -310,7 +491,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _voice_alert(self, key: str) -> None:
         try:
-            body = voice.alert_audio(key, self.app.config["voice"], self.app.config["language"])
+            body = voice.alert_audio(key, self.app.config["voice"], self.app.config["language"], lookup=self.app.notice_phrase)
         except voice.VoiceError as error:
             self._voice_failed(error)
             return
@@ -370,6 +551,17 @@ def _arguments(argv):
     return parser.parse_args(argv)
 
 
+def start(config: dict) -> tuple[App, Server]:
+    """The app and its HTTP server, bound and watching the transcripts (OSError when the port is taken)."""
+    app = App(config)
+    server = Server(app)
+    app.activity.start()
+    app.media.start()
+    app.notices.start()
+    app.typist.start()
+    return app, server
+
+
 def main(argv=None) -> int:
     args = _arguments(argv)
     if hasattr(sys.stderr, "reconfigure"):
@@ -384,14 +576,12 @@ def main(argv=None) -> int:
         config, notes = setup.prepare(config, ask=ask, again=args.setup)
         for note in notes:
             LOG.info("%s", note)
-    app = App(config)
     url = f"http://127.0.0.1:{config['port']}/"
     try:
-        server = Server(app)
+        app, server = start(config)
     except OSError:
         LOG.error("port %s is already in use: is Cody already running?", config["port"])
         return 1
-    app.activity.start()
     LOG.info("Cody is up at %s (watching %s)", url, app.activity.projects_dir)
     for host in config["extra_hosts"]:
         LOG.info("phone: https://%s/ (through Tailscale serve)", host)
@@ -403,5 +593,8 @@ def main(argv=None) -> int:
         LOG.info("bye")
     finally:
         app.activity.stop()
+        app.media.stop()
+        app.notices.stop()
+        app.typist.stop()
         server.server_close()
     return 0

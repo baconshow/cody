@@ -4,7 +4,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSpring, stepSpring, settleSpring } from '../../web/js/spring.js';
-import { createAnimator, SPRINGS, TIMINGS } from '../../web/js/animator.js';
+import { knockTap } from '../../web/js/mascot3d.js';
+import { createAnimator, feetYaw, SPRINGS, TIMINGS, TURN } from '../../web/js/animator.js';
 import { MOODS, EXPRESSION } from '../../web/js/moods.js';
 import { seededRandom } from '../../web/js/seeded-random.js';
 
@@ -225,6 +226,53 @@ test('listening sideways: turns the body to offer the ear and turns back when it
   near(q.turn, 0, 0.03, 'turned back');
 });
 
+test('the feet stay planted while only the head moves and walk around with a real turn', () => {
+  assert.equal(feetYaw(0, 0.5), 0, 'half a glance: planted');
+  assert.equal(feetYaw(0, -TURN.plant / TURN.gaze), 0, 'up to the limit: still planted');
+  near(feetYaw(0, 1), TURN.gaze - TURN.plant, 1e-9, 'past the limit, only the excess drags them');
+  near(feetYaw(0, -1), -(TURN.gaze - TURN.plant), 1e-9, 'the same to the other side');
+  near(feetYaw(0.95, 0), 0.95, 1e-9, 'a real turn takes them all the way');
+
+  const animator = createAnimator({ random: seededRandom(3), quiet: false, mood: 'listening' });
+  run(animator, 0, 1);
+  let q = null;
+  for (let s = 1; s <= 2.5; s += STEP) { animator.lookAt(1, 0, s); q = animator.step(s); }
+  assert.ok(q.yaw > 0.28, `the body turned with the gaze: ${q.yaw}`);
+  assert.ok(Math.abs(q.feet) < 0.15, `the feet barely moved: ${q.feet}`);
+  near(q.stepping, 0, 0.02, 'standing still, no steps');
+
+  animator.setListening(true);
+  let stepped = 0;
+  for (let s = 2.5; s <= 6; s += STEP) { animator.lookAt(1, 0, s); q = animator.step(s); stepped = Math.max(stepped, q.stepping); }
+  assert.ok(q.yaw > 1.1, `turned sideways: ${q.yaw}`);
+  assert.ok(q.yaw - q.feet < TURN.plant + 0.02, `the legs came along: body ${q.yaw}, feet ${q.feet}`);
+  assert.ok(stepped > 0.5, `and stepped on the way: ${stepped}`);
+  near(q.stepping, 0, 0.02, 'arrived: the steps stop');
+
+  const calm = createAnimator({ random: seededRandom(3), quiet: true, mood: 'listening' });
+  calm.setListening(true);
+  q = calm.step(0);
+  near(q.feet, q.turn, 1e-9, 'reduce motion: the feet are already there');
+  assert.equal(q.stepping, 0);
+});
+
+test('thinking brings a front leg up (q.lift), and it comes down again when the thought is over', () => {
+  const animator = fresh('listening', 3);
+  let q = run(animator, 0, 1);
+  near(q.lift, 0, 1e-6, 'listening: all four on the floor');
+  animator.setMood('thinking');
+  q = run(animator, 1, 1.1);
+  assert.ok(q.lift > 0.05 && q.lift < 0.9, `on its way up, not at once: ${q.lift}`);
+  q = run(animator, 1.1, 3);
+  near(q.lift, 1, 0.03, 'thinking: the leg is up');
+  animator.setMood('listening');
+  q = run(animator, 3, 5);
+  near(q.lift, 0, 0.03, 'back on the floor');
+
+  q = fresh('thinking', 3, true).step(0);
+  assert.equal(q.lift, 1, 'reduce motion: already up');
+});
+
 test('the prop in hand: the magnifier comes in (hold reaches 1) and leaves without vanishing at once', () => {
   const animator = createAnimator({ random: seededRandom(3), quiet: false, mood: 'listening' });
   animator.setProp('magnifier');
@@ -239,4 +287,41 @@ test('the prop in hand: the magnifier comes in (hold reaches 1) and leaves witho
   assert.equal(q.prop, null);
   animator.setProp('hammer');
   assert.equal(animator.step(5.1).prop, null, 'an unknown prop does not come in');
+});
+
+test('when the shaking stops it swears for TIMINGS.curse seconds; quiet never swears', () => {
+  const a = createAnimator({ random: seededRandom(3) });
+  a.step(0);
+  a.setGrab(true);
+  assert.equal(a.step(0.5).curse, 0, 'no swearing while it clings');
+  a.setGrab(false);
+  a.step(1);
+  assert.ok(a.step(1 + TIMINGS.curse / 2).curse > 0.4);
+  assert.equal(a.step(1 + TIMINGS.curse + 0.1).curse, 0, 'and then it is over');
+  a.setGrab(false);
+  assert.equal(a.step(5).curse, 0, 'no shake, no swearing');
+  const calm = createAnimator({ random: seededRandom(3), quiet: true });
+  calm.step(0);
+  calm.curse();
+  assert.equal(calm.step(0.5).curse, 0);
+});
+
+test('knocking on the screen: the knock spring rises with setKnock and falls after; the raps come in pairs', () => {
+  const a = createAnimator({ random: () => 0.5 });
+  a.step(0);
+  assert.equal(a.step(0.5).knock, 0);
+  a.setKnock(true);
+  for (let t = 0.5; t < 2; t += 1 / 60) a.step(t);
+  assert.ok(Math.abs(a.step(2).knock - 1) < 0.02, 'up');
+  a.setKnock(false);
+  for (let t = 2; t < 4; t += 1 / 60) a.step(t);
+  assert.ok(a.step(4).knock < 0.02, 'down again');
+  assert.equal(createAnimator({ quiet: true }).step(0).knock, 0);
+  // two bumps early in each period, nothing after
+  assert.equal(knockTap(0), 0);
+  assert.ok(knockTap(0.066) > 0.95, 'first rap');
+  assert.ok(knockTap(0.154) < 0.01, 'between the raps');
+  assert.ok(knockTap(0.242) > 0.95, 'second rap');
+  assert.equal(knockTap(0.6), 0);
+  assert.equal(knockTap(1.1 + 0.6), 0);
 });

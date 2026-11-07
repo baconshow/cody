@@ -1,5 +1,25 @@
 /* style.css — the mascot page: pure black background, the face filling the screen; in the gallery, the grid of the
-   seven moods with captions in the block font (Jersey 10). */
+   seven moods with captions in Varela Round. */
+
+/* the rounded font (Varela Round), served from web/fonts (SIL Open Font License, see web/fonts/OFL.txt): no font service at run time */
+@font-face {
+  font-family: 'Varela Round';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/web/fonts/varelaround-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF,
+    U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Varela Round';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/web/fonts/varelaround-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root {
   color-scheme: dark;
@@ -7,7 +27,7 @@
   --mascot-ink: #f7f4ee;
   --mascot-ink-2: #9c96a8;
   --mascot-border: #1b1722;
-  --mascot-font: 'Jersey 10', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --mascot-font: 'Varela Round', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -33,14 +53,14 @@ body.with-gallery { overflow-y: auto; }
 .full canvas { touch-action: none; }
 
 .with-gallery .mascot { max-width: 1680px; margin: 0 auto; padding: 16px; }
-.mascot h1 { margin: 4px 0 14px; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: .06em; }
+.mascot h1 { margin: 4px 0 14px; font-weight: 400; font-size: 24px; line-height: 1; letter-spacing: .06em; }
 .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .grid canvas { aspect-ratio: 3 / 2; outline: 2px solid var(--mascot-border); touch-action: manipulation; }
 .grid figcaption {
-  padding-top: 6px; font-size: 22px; line-height: 1; letter-spacing: .06em; text-align: center;
+  padding-top: 6px; font-size: 18px; line-height: 1; letter-spacing: .06em; text-align: center;
   text-transform: uppercase; color: var(--mascot-ink-2);
 }
-.hint { margin: 16px 0 0; font-size: 18px; letter-spacing: .04em; color: var(--mascot-ink-2); }
+.hint { margin: 16px 0 0; font-size: 14px; letter-spacing: .04em; color: var(--mascot-ink-2); }
 
 @media (max-width: 900px) {
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -53,7 +73,7 @@ body.with-gallery { overflow-y: auto; }
 .caption {
   position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%);
   max-width: min(92vw, 900px); margin: 0; padding: 6px 14px; border-radius: 8px;
-  background: rgba(0, 0, 0, .62); color: var(--mascot-ink); font-size: 26px; line-height: 1.1; letter-spacing: .03em;
+  background: rgba(0, 0, 0, .62); color: var(--mascot-ink); font-size: 21px; line-height: 1.1; letter-spacing: .03em;
   text-align: center; pointer-events: none; opacity: 0; transition: opacity .25s ease;
 }
 .caption.visible { opacity: 1; }
@@ -67,16 +87,58 @@ body.with-gallery { overflow-y: auto; }
   overflow-wrap: anywhere; text-align: left; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .25s ease;
 }
 .attachment.visible { opacity: 1; pointer-events: auto; }
-.attachment:focus-visible, .wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+.attachment:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+.wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: -8px; }
 
-/* the wake word button, in the corner: lit while the phone is listening for "mascot" */
+/* the wake word light, in the corner: green while the phone is listening for "Cody", red when it is off. A tap
+   switches it. No words on screen: they show on hover, on keyboard focus and for a moment after a switch. The
+   button is a full 44 px target around a 12 px dot */
 .wake {
-  position: fixed; right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top));
-  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .55);
-  color: var(--mascot-ink-2); font-family: var(--mascot-font); font-size: 18px; letter-spacing: .04em; cursor: pointer;
+  position: fixed; right: max(2px, env(safe-area-inset-right)); top: max(2px, env(safe-area-inset-top)); z-index: 20;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
 }
-.wake[aria-pressed="true"] { color: var(--mascot-ink); border-color: #e8762d; box-shadow: 0 0 0 1px #e8762d inset; }
-@media (prefers-reduced-motion: reduce) { .attachment { transition: none; } }
+.wake::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  border-radius: 50%; background: var(--status-fail); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55);
+}
+/* on, it also glows: the state is not told by the color alone */
+.wake[aria-pressed="true"]::before {
+  background: var(--status-ok); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(76, 207, 114, .55);
+}
+.wake::after {
+  content: attr(data-tip); position: absolute; right: 4px; top: 42px;      /* under the light, clear of the gear */
+  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .82);
+  color: var(--mascot-ink); font: 14px var(--mascot-font); letter-spacing: .04em; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .15s ease;
+}
+.wake:focus-visible::after, .wake.told::after { opacity: 1; }
+@media (hover: hover) { .wake:hover::after { opacity: 1; } }
+
+/* the gear beside the wake word light: opens Settings (settings.js). Quiet until the pointer comes near; its name
+   shows on hover and on keyboard focus, like the light's */
+.settings-open {
+  position: fixed; right: calc(max(2px, env(safe-area-inset-right)) + 40px); top: max(2px, env(safe-area-inset-top));
+  z-index: 20; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+}
+.settings-open::before {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  background: var(--mascot-ink-2); opacity: .7; transition: opacity .15s ease, background-color .15s ease;
+  -webkit-mask: url('/web/icons/settings.svg') center / contain no-repeat;
+  mask: url('/web/icons/settings.svg') center / contain no-repeat;
+}
+.settings-open:hover::before, .settings-open:focus-visible::before { background: var(--mascot-ink); opacity: 1; }
+.settings-open::after {
+  content: attr(data-tip); position: absolute; right: 4px; top: 42px;
+  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .82);
+  color: var(--mascot-ink); font: 14px var(--mascot-font); letter-spacing: .04em; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity .15s ease;
+}
+.settings-open:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: -8px; }
+.settings-open:focus-visible::after { opacity: 1; }
+@media (hover: hover) { .settings-open:hover::after { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .attachment, .wake::after, .settings-open::before, .settings-open::after { transition: none; }
+}
 
 /* a screenshot Claude took on request: the picture over the face, with Share, Save and Close below it */
 .shot {
@@ -90,7 +152,7 @@ body.with-gallery { overflow-y: auto; }
 .shot-bar { display: flex; gap: 10px; }
 .shot-button {
   min-height: 44px; padding: 6px 18px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(10, 8, 14, .9);
-  color: var(--mascot-ink); font-family: var(--mascot-font); font-size: 20px; letter-spacing: .04em; cursor: pointer;
+  color: var(--mascot-ink); font-family: var(--mascot-font); font-size: 16px; letter-spacing: .04em; cursor: pointer;
 }
 .shot-button:first-child { border-color: #e8762d; box-shadow: 0 0 0 1px #e8762d inset; }
 .shot-button[hidden] { display: none; }
@@ -106,9 +168,9 @@ body.with-gallery { overflow-y: auto; }
   display: flex; flex-direction: column; padding: 4px 12px 6px; border: 1px solid #3a3346; border-radius: 10px;
   background: rgba(0, 0, 0, .55); color: var(--mascot-ink);
 }
-.timer-time { font-size: 46px; line-height: 1; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
-.timer.reminder .timer-time { font-size: 30px; }
-.timer-label { font-size: 18px; line-height: 1.1; color: var(--mascot-ink-2); overflow-wrap: anywhere; }
+.timer-time { font-size: 37px; line-height: 1; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.timer.reminder .timer-time { font-size: 24px; }
+.timer-label { font-size: 14px; line-height: 1.1; color: var(--mascot-ink-2); overflow-wrap: anywhere; }
 .timer-label:empty { display: none; }
 .timer.ringing { border-color: #e8762d; box-shadow: 0 0 0 1px #e8762d inset; cursor: pointer; animation: timer-ring 1s ease-in-out infinite; }
 .timer.ringing .timer-time { color: #ffb070; }
@@ -122,3 +184,205 @@ body.with-gallery { overflow-y: auto; }
   padding: 4px 8px; border-radius: 6px; background: rgba(0, 0, 0, .7); color: #9fe39f;
   font: 13px/1.2 ui-monospace, 'Cascadia Mono', Consolas, monospace; pointer-events: none;
 }
+
+/* the Status light in the corner (status.js): green, yellow or red, and a few words when something needs you */
+.status-chip {
+  position: fixed; left: 12px; bottom: 12px; z-index: 30;
+  display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px);
+  padding: 6px 12px; border: 1px solid var(--mascot-border); border-radius: 999px;
+  background: rgba(10, 8, 14, 0.82); color: var(--mascot-ink-2); font: 14px var(--mascot-font); cursor: pointer;
+}
+.status-chip::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--status-ok); }
+.status-chip[data-state="warn"]::before { background: var(--status-warn); }
+.status-chip[data-state="fail"]::before { background: var(--status-fail); }
+.status-chip[data-state="fail"] { color: var(--mascot-ink); }
+:root {
+  --status-ok: #4ccf72; --status-warn: #f2b33d; --status-fail: #ef5350;
+  --sheet-line: #221d2b; --sheet-field: #0c0b10; --cody-accent: #e8762d;
+}
+
+/* The drawer (sheet.js), for Settings, Status, the private network and the first run: the page dims, the mascot
+   stays in view on the left, and the drawer holds a title bar with the close button, the content (scrolling), a row
+   of buttons when there is one and, at the bottom, what the last action did */
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 45; display: flex; justify-content: flex-end;
+  background: rgba(0, 0, 0, .5); font: 15px/1.35 var(--mascot-font); color: var(--mascot-ink);
+}
+.sheet-backdrop[hidden] { display: none; }
+.sheet {
+  display: flex; flex-direction: column; width: min(440px, 100vw); height: 100%;
+  background: #000; border-left: 1px solid var(--sheet-line); animation: sheet-in .18s ease-out;
+}
+.sheet:focus { outline: 0; }
+@keyframes sheet-in { from { transform: translateX(18px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
+.sheet-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none;
+  padding: max(10px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 10px 20px;
+  border-bottom: 1px solid var(--sheet-line);
+}
+.sheet-head h2 { margin: 0; font-size: 20px; font-weight: 400; letter-spacing: .02em; }
+.sheet-close {
+  position: relative; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+  background: none; cursor: pointer;
+}
+.sheet-close::before, .sheet-close::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 16px; height: 2px; margin: -1px 0 0 -8px;
+  border-radius: 2px; background: var(--mascot-ink-2); transform: rotate(45deg);
+}
+.sheet-close::after { transform: rotate(-45deg); }
+.sheet-close:hover { background: #15121b; }
+.sheet-close:hover::before, .sheet-close:hover::after { background: var(--mascot-ink); }
+.sheet-body { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 20px max(28px, env(safe-area-inset-bottom)); }
+.sheet-foot {
+  flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 20px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid var(--sheet-line);
+}
+.sheet-foot:empty { display: none; }
+.sheet .sheet-note {
+  flex: none; margin: 0; padding: 10px 20px max(10px, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--sheet-line); font-size: 14px; overflow-wrap: anywhere;
+}
+.sheet .sheet-note:empty { padding-block: 0; border-top-width: 0; }   /* still there (a live region), taking no room */
+/* for screen readers only: in the page, not on the screen */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* what goes in a drawer: words, fields and buttons */
+.sheet small { font-size: 13px; line-height: 1.3; color: var(--mascot-ink-2); }
+.sheet p { margin: 8px 2px; }
+.sheet input:not([type="checkbox"]):not([type="radio"]), .sheet select {
+  width: 100%; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid #2a2532; border-radius: 10px;
+  background: var(--sheet-field); color: var(--mascot-ink); font: 14px var(--mascot-font);
+}
+.sheet input:focus-visible, .sheet select:focus-visible {
+  outline: 0; border-color: var(--cody-accent); box-shadow: 0 0 0 3px rgba(232, 118, 45, .25);
+}
+.sheet button:not(.sheet-close) {
+  height: 40px; padding: 0 14px; border: 1px solid #3a3346; border-radius: 10px; background: none;
+  color: var(--mascot-ink); font: 14px var(--mascot-font); cursor: pointer; white-space: nowrap;
+}
+.sheet button:not(.sheet-close):hover { background: #15121b; }
+.sheet button.primary { border-color: var(--mascot-ink); background: var(--mascot-ink); color: #000; }
+.sheet button.primary:hover { background: #fff; }
+.sheet button.ghost { height: auto; padding: 6px 2px; border: 0; color: var(--mascot-ink-2); text-decoration: underline; }
+.sheet button.ghost:hover { background: none; color: var(--mascot-ink); }
+.sheet button:disabled { opacity: .5; cursor: default; }
+.sheet button:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+
+/* Settings (settings.js): groups with a small title, cards inside */
+.settings-group { margin: 0; }
+.settings-group > h3 {
+  margin: 22px 2px 8px; font-size: 12px; font-weight: 400; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--mascot-ink-2);
+}
+.settings-privacy { font-size: 13px; color: var(--mascot-ink-2); }
+.settings-card { margin: 8px 0 0; padding: 4px 14px; border: 1px solid var(--sheet-line); border-radius: 14px; }
+.settings-card > * + * { border-top: 1px solid var(--sheet-line); }
+.settings-card > button { margin: 12px 0; }
+.settings-field { display: grid; gap: 6px; margin: 0; padding: 12px 0; }
+.settings-inline { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+
+/* the voice: one card per way to sound; the chosen one lights up */
+.settings-voice { margin: 0; padding: 0; border: 0; display: grid; gap: 8px; }
+.settings-voice legend {                  /* the title above already shows "Voice": this one is for screen readers */
+  position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.settings-radio {
+  display: grid; grid-template-columns: 18px 1fr; align-items: center; column-gap: 12px; row-gap: 2px;
+  margin: 0; padding: 12px 14px; border: 1px solid var(--sheet-line); border-radius: 14px; cursor: pointer;
+}
+.settings-radio small { grid-column: 2; }
+.settings-radio:has(input:checked) { border-color: var(--cody-accent); background: rgba(232, 118, 45, .09); }
+.settings-radio:has(input:disabled) { cursor: default; opacity: .55; }
+.settings-radio input {
+  appearance: none; width: 18px; height: 18px; margin: 0; border: 2px solid #4a4356; border-radius: 50%; cursor: inherit;
+}
+.settings-radio input:checked { border-color: var(--cody-accent); background: var(--cody-accent); box-shadow: inset 0 0 0 3px #000; }
+.settings-radio input:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+.settings-soon {
+  margin-left: 8px; padding: 1px 8px; border: 1px solid #3a3346; border-radius: 999px;
+  font-size: 12px; font-style: normal; color: var(--mascot-ink-2);
+}
+
+/* a switch: the words on the left, the switch on the right */
+.settings-skin { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.settings-skin small { display: block; opacity: 0.7; }
+.settings-check {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 14px; row-gap: 2px;
+  margin: 0; padding: 12px 0; cursor: pointer;
+}
+.settings-check span { grid-column: 1; grid-row: 1; }
+.settings-check small { grid-column: 1; grid-row: 2; }
+.settings-check input {
+  grid-column: 2; grid-row: 1 / span 2; align-self: center; position: relative; appearance: none;
+  width: 38px; height: 22px; margin: 0; border-radius: 999px; background: #2a2532; cursor: inherit;
+  transition: background-color .15s ease;
+}
+.settings-check input::after {
+  content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%;
+  background: #cfc9d6; transition: transform .15s ease;
+}
+.settings-check input:checked { background: var(--cody-accent); }
+.settings-check input:checked::after { transform: translateX(16px); background: #fff; }
+.settings-check input:disabled { opacity: .5; cursor: default; }
+.settings-check input:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .settings-check input, .settings-check input::after { transition: none; }
+}
+
+/* the phone: the codes on white tiles, the address to copy under them */
+.settings-phone { margin: 8px 0 0; padding: 4px 14px 12px; border: 1px solid var(--sheet-line); border-radius: 14px; }
+.settings-qr {
+  display: block; width: 168px; height: 168px; margin: 10px auto; padding: 8px; border-radius: 12px; background: #fff;
+  image-rendering: pixelated;
+}
+.settings-phone code {
+  display: block; padding: 8px 10px; border-radius: 8px; background: var(--sheet-field); overflow-wrap: anywhere;
+  font: 13px/1.3 ui-monospace, 'Cascadia Mono', Consolas, monospace; text-align: center; user-select: all;
+}
+
+/* Status (status.js): one card per check, its light on the left */
+.status-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 8px; }
+.status-row {
+  display: grid; grid-template-columns: 12px 1fr; gap: 12px; padding: 12px 14px;
+  border: 1px solid var(--sheet-line); border-radius: 14px;
+}
+.status-row strong { font-weight: 400; }
+.sheet .status-row p { margin: 2px 0 0; font-size: 14px; color: var(--mascot-ink-2); overflow-wrap: anywhere; }
+.sheet .status-row .status-fix { color: var(--mascot-ink); }
+.status-row button { margin-top: 10px; }
+.status-dot { width: 12px; height: 12px; margin-top: 4px; border-radius: 50%; background: var(--status-ok); }
+.status-warn .status-dot { background: var(--status-warn); }
+.status-fail .status-dot { background: var(--status-fail); }
+.status-fail { border-color: rgba(239, 83, 80, .45); }
+
+/* Create your private network (network.js): the steps, numbered; done ones ticked, the current one lit */
+.network-steps { list-style: none; counter-reset: step; margin: 16px 0; padding: 0; display: grid; gap: 8px; }
+.network-steps li {
+  counter-increment: step; display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 10px;
+  color: var(--mascot-ink-2);
+}
+.network-steps li::before {
+  content: counter(step); display: grid; place-items: center; width: 24px; height: 24px;
+  border: 1px solid #3a3346; border-radius: 50%; font-size: 13px;
+}
+.network-steps .done::before { content: '\2713'; border-color: var(--status-ok); background: var(--status-ok); color: #000; }
+.network-steps .now { color: var(--mascot-ink); }
+.network-steps .now::before { border-color: var(--cody-accent); color: var(--cody-accent); }
+.sheet .network-say { margin: 16px 2px; font-size: 17px; line-height: 1.3; }
+.network-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+
+/* the first run (settings.js): which step, what Cody says, the choices; Skip and Next in the row at the bottom */
+.sheet .first-step { margin: 20px 2px 0; font-size: 12px; letter-spacing: .14em; color: var(--mascot-ink-2); }
+.sheet .first-say { margin: 6px 2px 16px; font-size: 21px; line-height: 1.25; }
+.first-run .sheet-body > .settings-field { padding-top: 0; }
+.first-run .sheet-body > button { margin-top: 4px; }
+
+/* a voice that failed and the next one that took over (voice-audio.js) */
+.voice-notice {
+  position: fixed; left: 50%; top: 12px; z-index: 25; transform: translateX(-50%); max-width: min(92vw, 640px);
+  margin: 0; padding: 6px 12px; border-radius: 8px; background: rgba(40, 30, 10, 0.92); color: var(--status-warn);
+  font: 14px var(--mascot-font); text-align: center; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.voice-notice.visible { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .voice-notice { transition: none; } }
