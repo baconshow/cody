@@ -30,6 +30,8 @@
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.
+- **Your Windows notifications, read aloud** (opt-in): the important ones (messages, mail, calendar, calls, or an
+  urgent word) make Cody knock and say the app and the title; the title never leaves the computer.
 - **Toc-toc**: when Claude is waiting for your permission, Cody knocks on the screen (the fist in front of its
   face, little impact marks, two raps) before saying it needs you.
 - **"Cody, take a screenshot"** ("Cody, printa"): a screenshot on the spot, with a shutter click, shown with Share;

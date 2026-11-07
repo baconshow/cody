@@ -281,6 +281,16 @@ the talking.
 
 Prefer to add them by hand? Each one is a command hook running `"<python>" "<path to>/cody.py" --hook`.
 
+### Your Windows notifications, read aloud (opt-in)
+
+Turn on **Read my important Windows notifications** in Settings (Windows asks you to allow it, under Privacy >
+Notifications) and Cody knocks on the screen and says the app and the title of the important ones: messages,
+mail, calendar and calls (WhatsApp, Telegram, Teams, Slack, Outlook, Mail, Calendar, Phone Link and the like, or
+your own list in `notification_apps` in config.json), or any toast with an urgent word in the title. Cody reads
+the title only, never the body; the same one is said once, and at most one every 15 seconds. The title never
+leaves the computer: with the device's voice or Cody's sounds it is spoken locally, and with ElevenLabs only the
+app's name is sent (*"Something new on Outlook."*), the title stays in the caption. Off by default.
+
 ### Four ways to sound
 
 Settings > Voice picks the first one to try; when it fails, the next one speaks and the screen says so (for example

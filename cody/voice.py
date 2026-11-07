@@ -345,11 +345,12 @@ def alert_text(key: str, language: str = "en", timers_path: Path | None = None) 
 
 
 def alert_audio(key: str, voice: dict | None, language: str = "en", timers_path: Path | None = None,
-                synthesize=_eleven) -> bytes:
-    """GET /api/voice/alert?key=K -> the mp3 of a timer ringing or a heads-up (404 without a configured voice)."""
+                synthesize=_eleven, lookup=None) -> bytes:
+    """GET /api/voice/alert?key=K -> the mp3 of a timer ringing or a heads-up (404 without a configured voice).
+    lookup(key) → text | None comes first: the server's own alerts (a Windows notification: the app's name)."""
     if voice is None:
         raise VoiceError(404, "no voice configured")
-    text = alert_text(key, language, timers_path)
+    text = (lookup(key) if lookup else None) or alert_text(key, language, timers_path)
     if text is None:
         raise VoiceError(404, "unknown alert")
     return _spoken(text, voice, language, synthesize)

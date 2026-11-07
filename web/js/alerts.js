@@ -1,11 +1,13 @@
 // alerts.js — heads-up from the Claude Code sessions on the computer, through Claude Code hooks (cody/hooks.py): a
-// long task finished ("done") or Claude is waiting for permission ("needs_you"). Reads /api/events every few
+// long task finished ("done"), Claude is waiting for permission ("needs_you") or, if you turned it on, an
+// important Windows notification came in ("notice": the app and the title). Reads /api/events every few
 // seconds; the first read only marks where the list is, so the past is never announced.
 //
 //   createAlerts({ api, onAlert }) → { start(), stop(), readNow() }
-//     onAlert   ({ seq, kind: 'done' | 'needs_you', seconds, say }) once per event
+//     onAlert   ({ seq, kind: 'done' | 'needs_you' | 'notice', seconds, say, app }) once per event
 
 export const ALERTS = Object.freeze({ poll: 3000, slow: 30000 });
+const KINDS = new Set(['done', 'needs_you', 'notice']);
 
 export function createAlerts({ api, onAlert }) {
   const st = { after: null, timer: 0, on: false };
@@ -16,7 +18,7 @@ export function createAlerts({ api, onAlert }) {
     if (!Number.isFinite(cursor)) return;
     if (st.after !== null && cursor >= st.after) {
       for (const e of Array.isArray(r?.events) ? r.events : []) {
-        if (Number(e?.seq) > st.after && (e.kind === 'done' || e.kind === 'needs_you')) onAlert(e);
+        if (Number(e?.seq) > st.after && KINDS.has(e.kind)) onAlert(e);
       }
     }
     st.after = cursor;                                   // also when the server restarted and counts from 0 again

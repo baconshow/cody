@@ -6,7 +6,9 @@ What stays on your computer: timers, memory, hook events (time, kind and the fir
 settings, the ElevenLabs key, screenshots (in memory). What the page learns from Claude Code's transcripts is the
 tool name and whether a command failed: never commands, paths, output or conversation text. For the headphones,
 on Windows, Cody asks the system whether any player is playing: one yes or no, never the song, the artist or the
-app (off in Settings).
+app (off in Settings). Reading your Windows notifications is off by default; on, Cody reads the app's name and
+the first line (the title) of the important ones, never the body, and keeps them on this computer (with
+ElevenLabs, only the app's name is sent for the voice).
 
 What leaves your computer, and only because you use it:
 

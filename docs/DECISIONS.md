@@ -399,3 +399,20 @@ tangle, and from the side one leg looked loose.
 - The arm's Euler order is now YXZ (out to the side, forward, then across), so a forward arm can turn toward
   the middle of the face; every older pose has rotation.y = 0, so nothing else moved.
 - Item 12 (the notification reader) reuses the same knock for an important notification.
+
+## 2026-11-07 · Windows notifications, read aloud: opt-in, the title only, nothing leaves
+
+- The reader is `UserNotificationListener` through a Windows PowerShell child (`cody/notices.py`, on the shared
+  `cody/winrt.py` plumbing that `media.py` now uses too): it asks for access (Windows shows the permission under
+  Privacy > Notifications; denied, the child says so once and stays down), remembers the newest toast id at its
+  start, and prints one JSON line per new toast: id, app name and the first text line. The notification database
+  on disk was the other way in; it holds every toast's whole payload, so it was not touched.
+- Important (`notices.important`, pure): the app's name contains one of a short list of messaging, mail, calendar
+  and phone apps (`notification_apps` in config.json replaces the list), or the title has an urgent word. The rest
+  is dropped before it becomes an event. The same app and title within a minute is said once; at most one notice
+  per 15 s, the rest of a burst dropped, not queued.
+- A notice is an event on the hooks feed (`HookFeed.add`, same cursor as done and needs you), so the page's
+  alerts reader needed one more kind; the mascot knocks on the screen for it, as for "needs you". The device's
+  voice or Cody's sounds say "app: title" locally; ElevenLabs is given only "Something new on {app}." (the server
+  makes that text from the event's seq, `notice:<seq>`), so the title never leaves the computer. Documented in
+  PRIVACY.md and the README; off by default.

@@ -5,7 +5,7 @@ import time
 import unittest
 from unittest import mock
 
-from cody import media
+from cody import media, winrt
 
 
 class FakeChild:
@@ -68,7 +68,7 @@ class MediaWatcherTest(unittest.TestCase):
         def spawn():
             spawns.append(1)
             return FakeChild(["playing\n"])
-        with mock.patch.object(media, "RETRY_S", (0.01, 0.01, 0.01)):
+        with mock.patch.object(winrt, "RETRY_S", (0.01, 0.01, 0.01)):
             w = media.MediaWatcher(True, spawn=spawn)
             w.start()
             w._thread.join(3)
@@ -87,7 +87,7 @@ class MediaWatcherTest(unittest.TestCase):
         self.assertEqual(cmd[0], "powershell.exe")
         self.assertIn("-NoProfile", cmd)
         script = base64.b64decode(cmd[-1]).decode("utf-16-le")
-        self.assertEqual(script, media.SCRIPT)
+        self.assertTrue(script.endswith(media.SCRIPT))
         self.assertIn("GlobalSystemMediaTransportControlsSessionManager", script)
         self.assertIn("'playing'", script)
         for private in ("Title", "Artist", "SourceAppUserModelId", "GetMediaPropertiesAsync"):

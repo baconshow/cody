@@ -156,6 +156,18 @@ class HookFeed:
         self._events.append({"seq": self._seq, "kind": kind, "seconds": seconds,
                              "say": phrase(kind, self._language)})
 
+    def add(self, kind: str, say: str, **extra) -> dict:
+        """An event from elsewhere on this computer (a Windows notification, cody/notices.py), in the same list."""
+        with self._lock:
+            self._seq += 1
+            event = {"seq": self._seq, "kind": kind, "seconds": None, "say": say, **extra}
+            self._events.append(event)
+            return event
+
+    def event(self, seq: int) -> dict | None:
+        with self._lock:
+            return next((e for e in self._events if e["seq"] == seq), None)
+
     def read(self, after: int) -> dict:
         """GET /api/events?after=N -> {"cursor", "events"}."""
         with self._lock:

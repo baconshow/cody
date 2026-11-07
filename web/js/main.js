@@ -352,7 +352,7 @@ function wireTimers(voice, cycle, request) {
 }
 
 // heads-up from the Claude Code hooks (alerts.js): a long task done, a hop and "done!"; Claude waiting for
-// permission, the mascot knocks on the screen (toc-toc) and calls you
+// permission, or an important Windows notification (opt-in), the mascot knocks on the screen (toc-toc) and says it
 function wireAlerts(voice, cycle, request) {
   const alerts = createAlerts({
     api,
@@ -362,7 +362,8 @@ function wireAlerts(voice, cycle, request) {
       else cycle.alert('pointing', NEEDS_YOU_S, now, 'knock');   // knocks on the screen (the arm and the knock scene)
       request();
       voice.play(e.kind === 'done' ? 'done' : 'knock');
-      voice.announce({ text: e.say, alert: e.kind });
+      // a notice is spoken by its seq: the hosted voice gets the app's name from the server, never the title
+      voice.announce({ text: e.say, alert: e.kind === 'notice' ? `notice:${e.seq}` : e.kind });
     },
   });
   const sync = () => (document.hidden ? alerts.stop() : alerts.start());

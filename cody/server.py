@@ -34,12 +34,13 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, doctor, hooks, launcher, network, page, pointer, qr, settings, setup, timers, updates, voice
+from cody import cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, settings, setup, timers, updates, voice
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
 from cody.hooks import HookFeed
 from cody.media import MediaWatcher
+from cody.notices import NoticeWatcher
 
 LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
@@ -93,6 +94,7 @@ class App:
         self.claude = ClaudeWatcher(self.activity.last_signal)
         self.voice_limit = RateLimit(VOICE_MESSAGES_PER_MINUTE)
         self.hooks = HookFeed(language=config["language"])
+        self.notices = NoticeWatcher(config.get("notifications") is True, self.hooks, config.get("notification_apps"))
         self._status: dict[str, tuple[float, list]] = {}
         self._status_lock = threading.Lock()
         self._phone_noted = 0.0
@@ -121,16 +123,24 @@ class App:
 
     def change_settings(self, body: dict) -> dict:
         """Saves what changed and applies it now where it can (the voice channel reads the language at its start)."""
-        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder", "music"}
+        keys = {"language", "voice_provider", "voice_id", "update_check", "voice_folder", "music", "notifications"}
         changed = {k: v for k, v in body.items() if k in keys}
         if changed:
             fresh = settings.save(changed)
             self.config.update({k: fresh[k] for k in (*keys - {"voice_id"}, "voice")})
             self.hooks._language = self.config["language"]
             self.media.set_enabled(self.config.get("music") is True)
+            self.notices.set_enabled(self.config.get("notifications") is True)
         notes = settings.apply_switches(body)
         self.forget_status()
         return {**settings.public(self.config), "notes": notes}
+
+    def notice_phrase(self, key: str) -> str | None:
+        """The hosted voice's words for a notice alert ("notice:<seq>"): the app's name only, never the title."""
+        if not key.startswith("notice:") or not key[7:].isdigit():
+            return None
+        event = self.hooks.event(int(key[7:]))
+        return notices.phrase(event["app"], self.config["language"]) if event and event.get("app") else None
 
     def network_state(self) -> dict:
         facts = network.state(self.port)
@@ -471,7 +481,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _voice_alert(self, key: str) -> None:
         try:
-            body = voice.alert_audio(key, self.app.config["voice"], self.app.config["language"])
+            body = voice.alert_audio(key, self.app.config["voice"], self.app.config["language"], lookup=self.app.notice_phrase)
         except voice.VoiceError as error:
             self._voice_failed(error)
             return
@@ -537,6 +547,7 @@ def start(config: dict) -> tuple[App, Server]:
     server = Server(app)
     app.activity.start()
     app.media.start()
+    app.notices.start()
     return app, server
 
 
@@ -572,5 +583,6 @@ def main(argv=None) -> int:
     finally:
         app.activity.stop()
         app.media.stop()
+        app.notices.stop()
         server.server_close()
     return 0
