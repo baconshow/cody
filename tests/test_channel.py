@@ -111,7 +111,7 @@ class ChannelTest(unittest.TestCase):
         channel = self.make(capture=lambda: b"\x89PNG fake")
         tools = channel.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools],
-                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point"])
+                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point", "scene", "custom_scene"])
         self.channel = channel
         result = self.call("screenshot")
         text = result["content"][0]["text"]

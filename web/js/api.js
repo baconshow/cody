@@ -69,6 +69,7 @@ async function bytes(path) {
 export const api = {
   state: () => call('GET', '/api/state'),
   activity: (cursor) => call('GET', `/api/activity?cursor=${encodeURIComponent(cursor)}`),
+  scenes: () => call('GET', '/api/scenes'),
   cursor: () => call('GET', '/api/cursor', undefined, { timeout: 3000 }),
   voice: (text) => call('POST', '/api/voice', { text }, { timeout: 6000 }),
   voiceReplies: (after) => call('GET', `/api/voice/replies?after=${encodeURIComponent(after)}`),

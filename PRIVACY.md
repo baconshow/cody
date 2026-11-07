@@ -2,7 +2,7 @@
 
 Short version: **Cody sends nothing to its author.** No account, no analytics, no tracking.
 
-What stays on your computer: timers, memory, hook events (time, kind and the first characters of a session id),
+What stays on your computer: timers, memory, custom scenes, hook events (time, kind and the first characters of a session id),
 settings, the ElevenLabs key, screenshots (in memory). What the page learns from Claude Code's transcripts is the
 tool name and whether a command failed: never commands, paths, output or conversation text. For the headphones,
 on Windows, Cody asks the system whether any player is playing: one yes or no, never the song, the artist or the

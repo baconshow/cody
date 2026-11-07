@@ -30,6 +30,8 @@
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.
+- **Scenes on request** (*"Cody, put your headphones on"*) and **scenes of Cody's own** (*"make yourself a rainbow"*):
+  Claude writes scene data, never code, checked field by field and kept in Cody's data folder; *"undo"* removes it.
 - **Skin shop**, with Jack-o'-Cody for Halloween (ridges, a glowing grin, a witch hat). Skins are data, like the
   scenes; all free while Cody is Cody.
 - **"Cody, how much usage do I have left?"** (opt-in): Cody as Claude Code's status line keeps your plan's session

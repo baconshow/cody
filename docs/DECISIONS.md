@@ -458,3 +458,21 @@ tangle, and from the side one leg looked loose.
 - The shop is a group in the Settings drawer, on the computer and on the phone: name, "free", Wear. No prices,
   no payment, no account (the rule: no real charge until a character of Cody's own). The choice is the viewer's,
   in localStorage, so each screen picks its own; `?skin=<id>` for a look.
+
+## 2026-11-07 · Scenes on request, and Cody writing scenes for itself (data, never code)
+
+- Two voice tools in `abilities.py`. `scene` shows a built-in or custom scene for a while because the person
+  asked ("put your headphones on"): the channel writes `custom/wanted.json` (id, until) in the data folder, the
+  server hands the id on `/api/activity` (`wanted`), and the page puts it above the pick (`wantedScene` in
+  `scenes.js`: in the over slot when the scene is worn over the others, else in the scene slot). The maintainer
+  asked for exactly this: Cody putting its headphones on and taking them off when told.
+- `custom_scene` writes a scene of Claude's own: the same shape as `scenes.json` (boxes, colors, clips, a sign,
+  `on`, a pivot, a trigger, a priority, `over`), validated field by field in `custom.py` (every problem named,
+  unknown keys dropped, limits on count, boxes, reach and sizes), saved as `custom/<id>.json`, twelve at most.
+  Never JavaScript, never a file of any repository. `trigger: "request"` (the default) shows only when asked;
+  a custom scene may also take a built-in trigger and compete on priority. Created, it shows at once; "undo"
+  removes the newest (or a named one). The server lists them on `/api/scenes` and carries a version number on
+  `/api/activity`; the page rebuilds its scenes when the number changes (`setScenes` again: the old groups are
+  removed, `mascot.unwear`).
+- The channel's tool list and the instructions name the two tools, so Claude knows the ids it may show (the
+  built-in ids are read from `scenes.json` when the channel starts).

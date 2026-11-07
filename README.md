@@ -228,6 +228,14 @@ The voice session lets Cody's harmless tools run without asking (reply, timers, 
 capture your screen, `screenshot` and `look`, always ask first, by voice too (the quick "take a screenshot" is
 the exception: there, your words are the permission).
 
+**Scenes on request, and scenes of Cody's own.** *"Cody, put your headphones on"*, *"show the party for a
+minute"*: Claude calls the `scene` tool and the page shows it for a while (30 seconds unless you say), over
+whatever else is going on. *"Cody, make yourself a rainbow"*: Claude writes a scene of its own with
+`custom_scene`, as data only (the same voxel boxes, colors and clips as `web/scenes/scenes.json`, never code),
+which Cody checks field by field, refuses with the reasons if anything is off, and keeps in `custom/` in its data
+folder, loaded with the built-in scenes; it shows right away. *"Cody, undo"* removes the newest one. Twelve at
+most. Nothing of this ever touches the files of your project.
+
 **Your other MCP servers work by voice too.** The voice session is a normal Claude Code session with Cody's channel
 added, so whatever you already connected to Claude Code (Airtable, a calendar, your smart home) is there: *"Cody,
 what is on my roadmap this week?"*. Cody pre-approves only its own harmless tools; a tool from another server asks

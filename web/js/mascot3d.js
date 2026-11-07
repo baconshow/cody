@@ -4,7 +4,7 @@
 // come from the voxel drawing (measures.js), at 0.1 unit per voxel; the front faces +z and the floor is y = 0.
 //
 //   createMascot(THREE, RoundedBoxGeometry) → { root, eyes: THREE.Vector3 (the middle of the eyes, on the figure), pose(q),
-//                                              wear(group), recolor(colors), setSkin({ smile, mouth }) }
+//                                              wear(group), unwear(group), recolor(colors), setSkin({ smile, mouth }) }
 //     wear(group)   puts a group on the body, so it turns, hops and breathes with it (a cap, headphones: scenes3d.js);
 //                   the group keeps measuring from the floor under the mascot's middle, like everything else
 //     pose(q)   applies the animator's pose (animator.js): gaze, blink, breathing, hop, tilt, arms, sprout, blush,
@@ -193,10 +193,11 @@ export function createMascot(THREE, Rounded) {
     group.position.y = -LEG.height * V;                  // the body's own origin is at the top of the legs
     body.add(group);
   };
+  const unwear = (group) => { body.remove(group); };
   // a skin's colors (skins.js): the keys of COLOR; a key left out goes back to Cody's own color
   const recolor = (colors) => { for (const key of Object.keys(COLOR)) m[key].color.set(colors[key] || COLOR[key]); };
   const setSkin = ({ smile = false, mouth = true } = {}) => { parts.skin = { smile, mouth }; };
-  return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q), wear, recolor, setSkin };
+  return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q), wear, unwear, recolor, setSkin };
 }
 
 function applyPose(p, q) {

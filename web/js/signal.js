@@ -17,6 +17,8 @@
 //     finished     how many agents have finished (a counter: the reader compares it with the previous value)
 //     music        something is playing on the computer (the server's `music` flag, cody/media.py): the headphones
 //     typing       you are typing in a Claude window (the server's `typing` flag, cody/typist.py): the keyboard
+//     wanted       a scene asked for by voice ("put your headphones on"), or null (cody/custom.py)
+//     custom       the custom scenes' version: the page reloads its scenes when it changes
 // Without a token (the page opened as /web/index.html), read() returns null and the face stays in the idle cycle.
 
 import { createLife } from './life.js';
@@ -29,7 +31,7 @@ const SEARCH = new Set(['Grep', 'Glob', 'WebSearch', 'WebFetch']);
 
 export function createSignal({ api, clock = () => performance.now() }) {
   const life = createLife(clock());
-  const st = { cursor: 0, first: true, lastSignal: '', agents: null, external: 0, awaySince: -Infinity, searchSince: -Infinity, failedSince: -Infinity, read: false, music: false, typing: false };
+  const st = { cursor: 0, first: true, lastSignal: '', agents: null, external: 0, awaySince: -Infinity, searchSince: -Infinity, failedSince: -Infinity, read: false, music: false, typing: false, wanted: null, custom: 0 };
   const timers = new Map();                              // route → the setTimeout of its next read
   const out = {};
   const reading = {};
@@ -64,6 +66,8 @@ export function createSignal({ api, clock = () => performance.now() }) {
     if (Number.isFinite(Number(r?.cursor))) st.cursor = Number(r.cursor);
     st.music = r?.music === true;
     st.typing = r?.typing === true;
+    st.wanted = typeof r?.wanted === 'string' ? r.wanted : null;
+    st.custom = Number.isFinite(Number(r?.custom)) ? Number(r.custom) : 0;
     const sessions = Array.isArray(r?.sessions) ? r.sessions : [];
     compareAgents(sessions);
     signalFromSessions(sessions, now);
@@ -111,6 +115,8 @@ export function createSignal({ api, clock = () => performance.now() }) {
     reading.finished = out.finished;
     reading.music = st.music;
     reading.typing = st.typing;
+    reading.wanted = st.wanted;
+    reading.custom = st.custom;
     return reading;
   }
 

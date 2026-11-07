@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validScenes, pickScene, pickOver, anchorOf, pivotOf, sceneSpan, frameFor, createSceneSounds, MASCOT_REACH,
+import { validScenes, pickScene, pickOver, wantedScene, anchorOf, pivotOf, sceneSpan, frameFor, createSceneSounds, MASCOT_REACH,
   TRIGGERS, IDLE_COFFEE_S, SOUND_GAP_S } from '../../web/js/scenes.js';
 
 const data = JSON.parse(readFileSync(new URL('../../web/scenes/scenes.json', import.meta.url)));
@@ -115,4 +115,16 @@ test('a broken box in a scene cannot take the camera away', () => {
     assert.ok(Number.isFinite(frame.x) && Number.isFinite(frame.halfWidth), `${span}`);
   }
   assert.deepEqual(frameFor(2.55, [NaN, 1]), { x: 0, halfWidth: 2.55 });
+});
+
+test('a scene asked for by voice goes above the pick: worn in the over slot, the rest in the scene slot', () => {
+  const custom = validScenes({ scenes: [{ id: 'rainbow', trigger: 'request', priority: 45, parts: [{ boxes: [[0, 24, 0, 30, 1.5, 1.5]] }] }] });
+  assert.equal(custom.length, 1, 'request is a trigger that never fires on its own');
+  assert.equal(pick({ reading: { wanted: 'rainbow' } }), null);
+  const all = [...scenes, ...custom];
+  const coding = situation({ reading: { code: true, wanted: 'rainbow' } });
+  assert.deepEqual(wantedScene(all, coding, 'coding', null), { scene: 'rainbow', over: null }, 'the wish wins over coding');
+  assert.deepEqual(wantedScene(all, situation({ reading: { wanted: 'headphones' } }), 'coding', null), { scene: 'coding', over: 'headphones' });
+  assert.deepEqual(wantedScene(all, situation({ reading: { wanted: 'moon' } }), 'coding', null), { scene: 'coding', over: null }, 'an unknown wish changes nothing');
+  assert.deepEqual(wantedScene(all, situation({}), null, null), { scene: null, over: null });
 });

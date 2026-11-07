@@ -156,7 +156,8 @@ export function createScene3d(canvas) {
       return changed;
     },
     // the scenes of web/scenes/scenes.json (only the main face has them, not the gallery)
-    setScenes(list, extra = []) {                        // extra: the skins' pieces (skins.js skinScene)
+    setScenes(list, extra = []) {                        // extra: the skins' pieces (skins.js skinScene); again: rebuilt
+      if (scenes) { scene.remove(scenes.group); mascot.unwear(scenes.worn); }
       scenes = createScenes3d(THREE, [...list, ...extra]);
       scene.add(scenes.group);
       mascot.wear(scenes.worn);

@@ -38,7 +38,7 @@ import { createAlerts } from './alerts.js';
 import { createStatus } from './status.js';
 import { createSettings } from './settings.js';
 import { createNetwork } from './network.js';
-import { validScenes, pickScene, pickOver, createSceneSounds } from './scenes.js';
+import { validScenes, pickScene, pickOver, wantedScene, createSceneSounds } from './scenes.js';
 import { validSkins, skinScene, skinNamed, readSkin, saveSkin, CLASSIC } from './skins.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
@@ -159,7 +159,7 @@ function paint(f, q) {
 }
 
 // the scenes (scenes.js, web/scenes/scenes.json): loaded once; ?scene=<id> shows one all the time
-const scenes = { list: [], forced: null, forcedOver: null };
+const scenes = { list: [], forced: null, forcedOver: null, builtin: [], customVersion: 0, reloading: false };
 // the skins (skins.js, web/skins/skins.json): the viewer's choice, ?skin=<id> for a look
 const skins = { list: validSkins(null), current: CLASSIC };
 
@@ -190,16 +190,44 @@ function drawOne(f, now, cycle) {
     const situation = cycle && !scenes.forced ? cycle.situation(now) : f.knock ? { knock: true } : null;
     q.scene = scenes.forced || (situation ? pickScene(scenes.list, situation)?.id : null) || null;
     q.over = scenes.forcedOver || (situation ? pickOver(scenes.list, situation)?.id : null) || null;   // worn over it (the headphones)
+    if (situation) {
+      ({ scene: q.scene, over: q.over } = wantedScene(scenes.list, situation, q.scene, q.over));   // asked for by voice
+      if (situation.reading?.custom !== undefined && situation.reading.custom !== scenes.customVersion) reloadScenes(f, situation.reading.custom);
+    }
     q.skin = skins.current === CLASSIC ? null : `skin:${skins.current}`;
   }
   paint(f, q);
 }
 
+// the custom scenes Claude made by voice (cody/custom.py) come from the server, with a version the activity
+// reading carries: when it changes, the scenes are built again
+async function customScenes() {
+  if (!api.hasToken()) return { list: [], version: 0 };
+  try {
+    const r = await api.scenes();
+    return { list: validScenes(r), version: Number(r?.version) || 0 };
+  } catch { return { list: [], version: 0 }; }
+}
+
+async function reloadScenes(face, version) {
+  if (scenes.reloading) return;
+  scenes.reloading = true;
+  try {
+    const custom = await customScenes();
+    scenes.customVersion = version ?? custom.version;
+    scenes.list = [...scenes.builtin, ...custom.list];
+    if (face?.scene?.setScenes) face.scene.setScenes(scenes.list, skins.list.map(skinScene).filter(Boolean));
+  } finally { scenes.reloading = false; }
+}
+
 async function loadScenes(face, forced, over) {
   try {
     const resp = await fetch('/web/scenes/scenes.json', { cache: 'no-cache' });
-    scenes.list = validScenes(await resp.json());
-  } catch { scenes.list = []; }
+    scenes.builtin = validScenes(await resp.json());
+  } catch { scenes.builtin = []; }
+  const custom = await customScenes();
+  scenes.customVersion = custom.version;
+  scenes.list = [...scenes.builtin, ...custom.list];
   scenes.forced = scenes.list.some((s) => s.id === forced) ? forced : null;
   scenes.forcedOver = scenes.list.some((s) => s.id === over && s.over) ? over : null;
   if (face?.scene?.setScenes && scenes.list.length) {

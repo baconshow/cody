@@ -4,7 +4,9 @@ Routes:
   GET  /                       the mascot page, with this run's token
   GET  /web/<file>             static files (no token needed: they hold no data)
   GET  /api/state              {"claude_open"}
-  GET  /api/activity?cursor=N  tool events and recent sessions (cody/activity.py)
+  GET  /api/activity?cursor=N  tool events and recent sessions (cody/activity.py), plus music, typing, the scene
+                               asked for by voice and the custom scenes' version
+  GET  /api/scenes             the custom scenes Claude made by voice (cody/custom.py)
   GET  /api/cursor             the mouse position, -1..1 (Windows only), or the spot the mini Cody points at
   GET  /api/timers             timers and reminders set by voice (cody/timers.py)
   GET  /api/events?after=N     heads-up from the Claude Code hooks: done, needs you (cody/hooks.py)
@@ -42,6 +44,7 @@ from cody.hooks import HookFeed
 from cody.media import MediaWatcher
 from cody.notices import NoticeWatcher
 from cody.typist import TypistWatcher
+from cody.custom import CustomScenes
 
 LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
@@ -97,6 +100,7 @@ class App:
         self.hooks = HookFeed(language=config["language"])
         self.notices = NoticeWatcher(config.get("notifications") is True, self.hooks, config.get("notification_apps"))
         self.typist = TypistWatcher(config.get("typing") is True)
+        self.custom = CustomScenes()
         self._status: dict[str, tuple[float, list]] = {}
         self._status_lock = threading.Lock()
         self._phone_noted = 0.0
@@ -392,6 +396,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/network": lambda: (self._json(200, self.app.network_state()) if self._local()
                                      else self._error(403, "only from the computer itself")),
             "/api/activity": lambda: self._activity(param("cursor")),
+            "/api/scenes": lambda: self._json(200, {"scenes": self.app.custom.list(), "version": self.app.custom.version()}),
             "/api/cursor": lambda: self._json(200, pointer.pointed() or cursor.position() or {"x": None, "y": None}),
             "/api/timers": lambda: self._json(200, timers.for_phone(language=self.app.config["language"])),
             "/api/events": lambda: self._events(param("after")),
@@ -460,7 +465,8 @@ class Handler(BaseHTTPRequestHandler):
             self._error(400, "invalid cursor")
             return
         self._json(200, {**self.app.activity.state(position), "music": self.app.media.playing(),
-                         "typing": self.app.typist.typing()})
+                         "typing": self.app.typist.typing(), "wanted": self.app.custom.wanted(),
+                         "custom": self.app.custom.version()})
 
     def _events(self, raw: str) -> None:
         try:

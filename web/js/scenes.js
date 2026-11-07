@@ -6,6 +6,7 @@
 //
 //   pickScene(scenes, situation) → scene | null       the scene of the moment (never an "over" one)
 //   pickOver(scenes, situation) → scene | null        what is worn over it, if anything
+//   wantedScene(scenes, situation, scene, over) → { scene, over } ids, with the scene asked for by voice on top
 //   situation: { mood, reading, idleSeconds, happy } (cycle.js situation())
 //   anchorOf(part) → 'body' (worn: it moves with the mascot) | 'world' (it stands around it)
 //   pivotOf(part) → [x, y, z] in voxels: where a part grows from and sways around
@@ -25,6 +26,7 @@ export const TRIGGERS = Object.freeze({
   music: (s) => !!s.reading?.music,                         // something playing on the computer (cody/media.py)
   idle: (s) => s.mood === 'listening' && s.idleSeconds >= IDLE_COFFEE_S,
   knock: (s) => !!s.knock,                                  // Claude needs you: the mascot knocks on the screen
+  request: () => false,                                     // a custom scene shown only when asked (wantedScene)
 });
 
 // a part the mascot wears says "on": "body"; anything else (or an anchor this version does not know) stands still
@@ -96,4 +98,12 @@ function pickAmong(scenes, situation, over) {
 }
 
 export const pickScene = (scenes, situation) => pickAmong(scenes, situation, false);
+
+// the scene asked for by voice (situation.reading.wanted) goes above the pick: in the over slot if it is worn
+// over the others, else in the scene's own; { scene, over } ids, from the picks and the wish
+export function wantedScene(scenes, situation, scene, over) {
+  const wanted = scenes.find((s) => s.id === situation?.reading?.wanted);
+  if (!wanted) return { scene, over };
+  return wanted.over ? { scene, over: wanted.id } : { scene: wanted.id, over };
+}
 export const pickOver = (scenes, situation) => pickAmong(scenes, situation, true);
