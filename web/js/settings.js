@@ -11,6 +11,7 @@
 //   firstRunSteps(info, t), providers(t), sections(info), mp3Bytes(base64) are pure, for the tests.
 
 import { createSheet, el } from './sheet.js';
+import { skinName } from './skins.js';
 
 export const PROVIDERS = Object.freeze(['elevenlabs', 'hosted', 'device', 'sounds']);
 const NOT_YET = new Set(['hosted']);        // listed so people know it is coming, but it cannot be chosen yet
@@ -22,7 +23,7 @@ export function providers(t) {
 
 // the groups of the drawer, in order: on the computer all of them; from the phone only what that browser may change
 export function sections(info) {
-  return info?.local ? ['voice', 'phone', 'general', 'about'] : ['general'];
+  return info?.local ? ['voice', 'phone', 'general', 'skins', 'about'] : ['general', 'skins'];
 }
 
 // the test of a voice comes from the server as base64 text
@@ -46,7 +47,7 @@ async function qrImage(api, which) {
   } catch { return null; }
 }
 
-export function createSettings({ api, t, setLanguage, language, announce = () => {}, play = () => {}, win = window }) {
+export function createSettings({ api, t, setLanguage, language, announce = () => {}, play = () => {}, win = window, skins = null }) {
   // renders: each render's turn (a slower, older one must not paint over a newer one) · draftKey: a key typed and
   // not saved yet, so redrawing the drawer does not throw it away · run: the first run's drawer, made when needed
   const st = { info: null, renders: 0, draftKey: '', run: null };
@@ -237,6 +238,20 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     general: (info) => group(t('settings.group.general'), el('div', { className: 'settings-card' }, languageField(note, redraw),
       ...(info?.local ? switches(info, note) : [])),
     info?.local ? null : el('p', { className: 'settings-privacy', textContent: t('settings.onComputer') })),
+    // the skin shop: every skin is free while Cody is Cody; a tap wears it on this screen (skins.js)
+    skins: () => {
+      if (!skins) return null;
+      const cards = skins.list().map((skin) => {
+        const wearing = skin.id === skins.current();
+        const button = el('button', { type: 'button', className: wearing ? 'primary' : 'ghost', disabled: wearing,
+          textContent: t(wearing ? 'settings.skin.wearing' : 'settings.skin.wear') });
+        button.addEventListener('click', () => { skins.wear(skin.id); redraw(); });
+        return el('div', { className: 'settings-skin' },
+          el('div', {}, el('strong', { textContent: skinName(skin, language()) }), el('small', { textContent: t('settings.skin.free') })), button);
+      });
+      return group(t('settings.group.skins'), el('div', { className: 'settings-card' }, ...cards),
+        el('p', { className: 'settings-privacy', textContent: t('settings.skins.hint') }));
+    },
     about: () => {
       const again = el('button', { type: 'button', className: 'ghost', textContent: t('settings.firstRun') });
       again.addEventListener('click', () => { sheet.close(); firstRun(true); });
@@ -252,7 +267,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     const groups = [];
     for (const id of sections(info)) groups.push(await GROUPS[id](info));
     if (turn !== st.renders || !sheet.isOpen) return;  // a newer render started meanwhile, or the drawer closed
-    body.replaceChildren(...groups);
+    body.replaceChildren(...groups.filter(Boolean));    // a group with nothing to show (no skins given) is left out
   }
 
   async function open() {

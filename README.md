@@ -136,6 +136,14 @@ whose trigger is on wins; one marked `"over"` is worn on top), so new scenes and
 With "reduce motion" on, scenes appear without moving. Only the failure itself is read from the transcripts, never
 its output.
 
+## Skins
+
+Settings has a **Skin shop**: the classic Cody and **Jack-o'-Cody**, the Halloween one (a pumpkin with ridges, a
+glowing zigzag grin, the ^ eyes and a witch hat). Every skin is free while Cody is Cody; a paid one comes only
+with a character of its own. A skin is data, in `web/skins/skins.json`: new colors for the figure's plastic,
+pieces it wears (voxel boxes like a scene's worn parts, a color, maybe a glow) and two looks (the smile, its own
+mouth). The choice is per screen (the phone and the computer each pick theirs); `?skin=halloween` shows one.
+
 ## Is everything on?
 
 The light in the corner of the mascot says it at a glance (green: all good; red: something to fix, for example

@@ -4,7 +4,7 @@
 // come from the voxel drawing (measures.js), at 0.1 unit per voxel; the front faces +z and the floor is y = 0.
 //
 //   createMascot(THREE, RoundedBoxGeometry) → { root, eyes: THREE.Vector3 (the middle of the eyes, on the figure), pose(q),
-//                                              wear(group) }
+//                                              wear(group), recolor(colors), setSkin({ smile, mouth }) }
 //     wear(group)   puts a group on the body, so it turns, hops and breathes with it (a cap, headphones: scenes3d.js);
 //                   the group keeps measuring from the floor under the mascot's middle, like everything else
 //     pose(q)   applies the animator's pose (animator.js): gaze, blink, breathing, hop, tilt, arms, sprout, blush,
@@ -187,12 +187,16 @@ export function createMascot(THREE, Rounded) {
   face.add(lens);
   const keyboard = createKeyboard(THREE, Rounded);
   body.add(keyboard.group);
-  const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, feet, legs, m };
+  const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, feet, legs, m,
+    skin: { smile: false, mouth: true } };
   const wear = (group) => {
     group.position.y = -LEG.height * V;                  // the body's own origin is at the top of the legs
     body.add(group);
   };
-  return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q), wear };
+  // a skin's colors (skins.js): the keys of COLOR; a key left out goes back to Cody's own color
+  const recolor = (colors) => { for (const key of Object.keys(COLOR)) m[key].color.set(colors[key] || COLOR[key]); };
+  const setSkin = ({ smile = false, mouth = true } = {}) => { parts.skin = { smile, mouth }; };
+  return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q), wear, recolor, setSkin };
 }
 
 function applyPose(p, q) {
@@ -212,7 +216,7 @@ function applyPose(p, q) {
   p.face.position.x = q.lookX * LOOK.eyeX;
   // happy: the ^ of the two sticks; resting: the same, upside down and flattened (the ∪ of an eye closed in peace);
   // when sleepy, the lid weighs down to half; the blink comes down from the top
-  const arc = q.squint > 0.5 ? 'happy' : q.mood === 'resting' ? 'asleep' : null;
+  const arc = q.mood === 'resting' ? 'asleep' : q.squint > 0.5 || p.skin.smile ? 'happy' : null;   // a skin may smile always
   const heavy = q.mood === 'sleepy' ? SLEEPY_LID : 0;
   const open = Math.max(0.1, 1 - Math.max(q.closed, heavy));
   for (const e of p.eyes) {
@@ -226,7 +230,7 @@ function applyPose(p, q) {
     e.bar.position.y = -(1 - open) * EYE.height * V / 2;
   }
   p.m.blush.opacity = Math.min(1, Math.max(0, (q.blush - 0.2) * 1.4));
-  p.mouth.visible = q.talk > 0.02;
+  p.mouth.visible = p.skin.mouth && q.talk > 0.02;    // a skin with a mouth of its own hides this one
   p.mouth.scale.set(1, 0.3 + Math.min(1, q.talk * 1.6), 1);
   poseArms(p, q);
   poseGrab(p, q);

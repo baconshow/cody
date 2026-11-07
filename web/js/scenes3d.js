@@ -7,10 +7,12 @@
 // nightcap, the headphones: "on": "body"). Worn parts live in a second group that goes on the mascot's body, so they
 // turn, hop, tilt and breathe with it instead of floating where the head used to be.
 //
-//   createScenes3d(THREE, data) → { group, worn, update(q, sceneId, dt, overId), span(sceneId) }
+//   createScenes3d(THREE, data) → { group, worn, update(q, sceneId, dt, overId, skinId), span(sceneId) }
+//     data    the scenes, plus the skins' pieces as scenes (skins.js skinScene); a part may glow ("glow": a color)
 //     group   what stands around the mascot (add it to the room)
 //     worn    what the mascot wears (hand it to mascot.wear)
-//     update  shows the scene (and the one worn over it, overId: the headphones); true when the scene changed
+//     update  shows the scene (and the one worn over it, overId: the headphones, and the skin's pieces, skinId);
+//             true when the scene changed
 //     span    [left, right] in units: how far the scene reaches to each side (scenes.js sceneSpan), for the camera
 
 import { anchorOf, pivotOf, sceneSpan } from './scenes.js';
@@ -54,9 +56,12 @@ export function createScenes3d(THREE, data) {
   const worn = new THREE.Group();
   const cube = new THREE.BoxGeometry(1, 1, 1);
   const materials = new Map();
-  const material = (color) => {
-    if (!materials.has(color)) materials.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.7 }));
-    return materials.get(color);
+  const material = (color, glow = null) => {
+    const key = glow ? `${color}+${glow}` : color;
+    if (!materials.has(key)) {
+      materials.set(key, new THREE.MeshStandardMaterial({ color, roughness: 0.7, ...(glow ? { emissive: glow, emissiveIntensity: 0.9 } : {}) }));
+    }
+    return materials.get(key);
   };
   const box = (b, mat) => {
     const mesh = new THREE.Mesh(cube, mat);
@@ -87,7 +92,7 @@ export function createScenes3d(THREE, data) {
       holder.position.set(at[0] * V, at[1] * V, at[2] * V);
       (part.boxes || []).forEach((b, i) => {
         const pivot = new THREE.Group();
-        pivot.add(box([b[0] - at[0], b[1] - at[1], b[2] - at[2], b[3], b[4], b[5]], material(part.color || '#ffffff')));
+        pivot.add(box([b[0] - at[0], b[1] - at[1], b[2] - at[2], b[3], b[4], b[5]], material(part.color || '#ffffff', part.glow || null)));
         holder.add(pivot);
         if (CLIPS[part.clip]) animated.push({ o: pivot, clip: CLIPS[part.clip], i });
       });
@@ -102,9 +107,9 @@ export function createScenes3d(THREE, data) {
   }
 
   let last = null;
-  function update(q, sceneId, dt = 1 / 60, overId = null) {
+  function update(q, sceneId, dt = 1 / 60, overId = null, skinId = null) {
     for (const [id, s] of built) {
-      const target = id === sceneId || id === overId ? 1 : 0;
+      const target = id === sceneId || id === overId || id === skinId ? 1 : 0;
       s.grow = q.quiet ? target : Math.max(0, Math.min(1, s.grow + Math.sign(target - s.grow) * GROW * dt));
       s.roots.world.visible = s.roots.body.visible = s.grow > 0.001;
       if (!s.roots.world.visible) continue;

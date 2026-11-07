@@ -150,16 +150,21 @@ export function createScene3d(canvas) {
       decorations.update(q);
       const dt = lastTime === null ? 0 : Math.min(0.1, Math.max(0, q.time - lastTime));
       lastTime = q.time;
-      const changed = scenes ? scenes.update(q, q.scene, dt, q.over) : false;
+      const changed = scenes ? scenes.update(q, q.scene, dt, q.over, q.skin) : false;
       follow(q.scene, dt, q.quiet);
       renderer.render(scene, camera);
       return changed;
     },
     // the scenes of web/scenes/scenes.json (only the main face has them, not the gallery)
-    setScenes(list) {
-      scenes = createScenes3d(THREE, list);
+    setScenes(list, extra = []) {                        // extra: the skins' pieces (skins.js skinScene)
+      scenes = createScenes3d(THREE, [...list, ...extra]);
       scene.add(scenes.group);
       mascot.wear(scenes.worn);
+    },
+    // a skin (skins.js): the figure's new colors and looks; null or the classic one puts everything back
+    setSkin(skin) {
+      mascot.recolor(skin?.colors || {});
+      mascot.setSkin({ smile: !!skin?.smile, mouth: skin?.mouth !== false });
     },
     eyeCenter() {
       point.copy(mascot.eyes).project(camera);

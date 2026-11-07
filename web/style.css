@@ -305,6 +305,8 @@ body.with-gallery { overflow-y: auto; }
 }
 
 /* a switch: the words on the left, the switch on the right */
+.settings-skin { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.settings-skin small { display: block; opacity: 0.7; }
 .settings-check {
   display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 14px; row-gap: 2px;
   margin: 0; padding: 12px 0; cursor: pointer;

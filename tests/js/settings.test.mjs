@@ -24,9 +24,9 @@ test('the hosted voice is listed as coming soon; the other three can be chosen',
 });
 
 test('on the computer the drawer has every group; from the phone, only what that browser may change', () => {
-  assert.deepEqual(sections({ local: true }), ['voice', 'phone', 'general', 'about']);
-  assert.deepEqual(sections({ local: false }), ['general']);
-  assert.deepEqual(sections(null), ['general'], 'settings did not load: still the language');
+  assert.deepEqual(sections({ local: true }), ['voice', 'phone', 'general', 'skins', 'about']);
+  assert.deepEqual(sections({ local: false }), ['general', 'skins'], 'the skin shop is per screen: the phone has it too');
+  assert.deepEqual(sections(null), ['general', 'skins'], 'settings did not load: still the language and the skins');
 });
 
 test('every settings and first-run string exists in both languages', () => {

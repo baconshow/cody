@@ -443,3 +443,18 @@ tangle, and from the side one leg looked loose.
   answered on the spot by the server, like the quick screenshot: session and week with their reset times, and
   how old the numbers are when Claude Code has not refreshed them for six hours. Without the switch on, Cody
   says how to turn it on.
+
+## 2026-11-07 · The skin shop: skins are data, free, picked per screen
+
+- A skin (`web/skins/skins.json`, `web/js/skins.js`) is colors for the figure's plastic (the keys of `COLOR` in
+  `mascot3d.js`: body, leg, eye, mouth, stem, leaf...), pieces it wears (the same shape as a scene's worn parts,
+  drawn by `scenes3d.js` as a scene named `skin:<id>`, shown beside the scene of the moment and the headphones;
+  a part may `glow`, an emissive color, for the pumpkin's grin) and two looks: `smile` (the ^ eyes always on, except
+  asleep) and `mouth: false` (the talking mouth hidden, the skin draws its own). Nothing in JS per skin.
+- Jack-o'-Cody from the reference picture: three darker ridges on the front, a glowing yellow zigzag grin with a
+  lower lip, the ^ eyes, and a squat voxel witch hat on the right half of the head (clear of the sprout), purple
+  band, gold buckle. The hat was first drawn taller and the camera's frame cut its tip: worn parts do not widen
+  or heighten the frame, so a skin's pieces stay within about 2.8 units from the floor.
+- The shop is a group in the Settings drawer, on the computer and on the phone: name, "free", Wear. No prices,
+  no payment, no account (the rule: no real charge until a character of Cody's own). The choice is the viewer's,
+  in localStorage, so each screen picks its own; `?skin=<id>` for a look.

@@ -39,6 +39,7 @@ import { createStatus } from './status.js';
 import { createSettings } from './settings.js';
 import { createNetwork } from './network.js';
 import { validScenes, pickScene, pickOver, createSceneSounds } from './scenes.js';
+import { validSkins, skinScene, skinNamed, readSkin, saveSkin, CLASSIC } from './skins.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -75,6 +76,7 @@ function readOptions(search) {
     knock: q.get('knock') === '1',                        // knocking on the screen, for a look
     scene: q.get('scene'),
     over: q.get('over'),                                   // ?over=headphones: worn over the scene, for a look
+    skin: q.get('skin'),                                   // ?skin=halloween: a skin from the shop, for a look
     sensor: q.get('sensor') === '1',
     seed: Number.isFinite(seed) ? seed : Math.floor(Math.random() * 2 ** 31),
   };
@@ -158,6 +160,23 @@ function paint(f, q) {
 
 // the scenes (scenes.js, web/scenes/scenes.json): loaded once; ?scene=<id> shows one all the time
 const scenes = { list: [], forced: null, forcedOver: null };
+// the skins (skins.js, web/skins/skins.json): the viewer's choice, ?skin=<id> for a look
+const skins = { list: validSkins(null), current: CLASSIC };
+
+async function loadSkins(forced) {
+  try {
+    const resp = await fetch('/web/skins/skins.json', { cache: 'no-cache' });
+    skins.list = validSkins(await resp.json());
+  } catch { skins.list = validSkins(null); }
+  skins.current = skinNamed(skins.list, forced || readSkin(window))?.id ?? CLASSIC;
+}
+
+function wearSkin(face, id, request = () => {}) {
+  skins.current = skinNamed(skins.list, id)?.id ?? CLASSIC;
+  face?.scene?.setSkin?.(skinNamed(skins.list, skins.current));
+  saveSkin(window, skins.current);
+  request();
+}
 
 function drawOne(f, now, cycle) {
   if (!f.size) return;
@@ -171,6 +190,7 @@ function drawOne(f, now, cycle) {
     const situation = cycle && !scenes.forced ? cycle.situation(now) : f.knock ? { knock: true } : null;
     q.scene = scenes.forced || (situation ? pickScene(scenes.list, situation)?.id : null) || null;
     q.over = scenes.forcedOver || (situation ? pickOver(scenes.list, situation)?.id : null) || null;   // worn over it (the headphones)
+    q.skin = skins.current === CLASSIC ? null : `skin:${skins.current}`;
   }
   paint(f, q);
 }
@@ -183,7 +203,8 @@ async function loadScenes(face, forced, over) {
   scenes.forced = scenes.list.some((s) => s.id === forced) ? forced : null;
   scenes.forcedOver = scenes.list.some((s) => s.id === over && s.over) ? over : null;
   if (face?.scene?.setScenes && scenes.list.length) {
-    face.scene.setScenes(scenes.list);
+    face.scene.setScenes(scenes.list, skins.list.map(skinScene).filter(Boolean));
+    face.scene.setSkin(skinNamed(skins.list, skins.current));
     face.scenes = true;
   }
 }
@@ -535,10 +556,11 @@ async function start() {
     wireAlerts(voice, cycle, loop.request);
     createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request });
     createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m),
-      play: (bytes) => voice.playAudio(bytes) }).firstRun();
+      play: (bytes) => voice.playAudio(bytes),
+      skins: { list: () => skins.list, current: () => skins.current, wear: (id) => wearSkin(faces[0], id, loop.request) } }).firstRun();
     createNetwork({ api, t });
   }
-  if (!op.gallery) await loadScenes(faces[0], op.scene, op.over);
+  if (!op.gallery) { await loadSkins(op.skin); await loadScenes(faces[0], op.scene, op.over); }
   faces.forEach(measureFace);
   loop.request();
 }
