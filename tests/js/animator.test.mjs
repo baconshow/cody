@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createSpring, stepSpring, settleSpring } from '../../web/js/spring.js';
+import { knockTap } from '../../web/js/mascot3d.js';
 import { createAnimator, feetYaw, SPRINGS, TIMINGS, TURN } from '../../web/js/animator.js';
 import { MOODS, EXPRESSION } from '../../web/js/moods.js';
 import { seededRandom } from '../../web/js/seeded-random.js';
@@ -303,4 +304,24 @@ test('when the shaking stops it swears for TIMINGS.curse seconds; quiet never sw
   calm.step(0);
   calm.curse();
   assert.equal(calm.step(0.5).curse, 0);
+});
+
+test('knocking on the screen: the knock spring rises with setKnock and falls after; the raps come in pairs', () => {
+  const a = createAnimator({ random: () => 0.5 });
+  a.step(0);
+  assert.equal(a.step(0.5).knock, 0);
+  a.setKnock(true);
+  for (let t = 0.5; t < 2; t += 1 / 60) a.step(t);
+  assert.ok(Math.abs(a.step(2).knock - 1) < 0.02, 'up');
+  a.setKnock(false);
+  for (let t = 2; t < 4; t += 1 / 60) a.step(t);
+  assert.ok(a.step(4).knock < 0.02, 'down again');
+  assert.equal(createAnimator({ quiet: true }).step(0).knock, 0);
+  // two bumps early in each period, nothing after
+  assert.equal(knockTap(0), 0);
+  assert.ok(knockTap(0.066) > 0.95, 'first rap');
+  assert.ok(knockTap(0.154) < 0.01, 'between the raps');
+  assert.ok(knockTap(0.242) > 0.95, 'second rap');
+  assert.equal(knockTap(0.6), 0);
+  assert.equal(knockTap(1.1 + 0.6), 0);
 });

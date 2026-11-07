@@ -72,6 +72,7 @@ function readOptions(search) {
     prop: ['magnifier', 'keyboard'].includes(q.get('prop')) ? q.get('prop') : null,
     grab: q.get('grab') === '1',
     curse: q.get('curse') === '1',
+    knock: q.get('knock') === '1',                        // knocking on the screen, for a look
     scene: q.get('scene'),
     over: q.get('over'),                                   // ?over=headphones: worn over the scene, for a look
     sensor: q.get('sensor') === '1',
@@ -80,7 +81,7 @@ function readOptions(search) {
 }
 
 function createFace(parent, {
-  mood, seed, quiet, caption, scene3d, side = false, prop = null, grab = false, curse = false,
+  mood, seed, quiet, caption, scene3d, side = false, prop = null, grab = false, curse = false, knock = false,
 }) {
   const figure = document.createElement('figure');
   figure.className = 'face';
@@ -99,9 +100,10 @@ function createFace(parent, {
   if (side) animator.setListening(true);
   if (prop) animator.setProp(prop);
   if (grab) animator.setGrab(true);
+  if (knock) animator.setKnock(true);
   if (curse) setInterval(() => animator.curse(), 2500);    // developer option: swears again and again
   return {
-    canvas, ctx: scene ? null : canvas.getContext('2d', { alpha: false }), scene, animator, fixed: mood,
+    canvas, ctx: scene ? null : canvas.getContext('2d', { alpha: false }), scene, animator, fixed: mood, knock,
     size: null, dpr: 1, geo: createGeometry(), said: null,
   };
 }
@@ -110,7 +112,7 @@ function mount(root, op, quiet, scene3d) {
   if (!op.gallery) {
     root.classList.add('full');
     return [createFace(root, { mood: op.mood, seed: op.seed, quiet, scene3d, side: op.side, prop: op.prop, grab: op.grab,
-      curse: op.curse })];
+      curse: op.curse, knock: op.knock })];
   }
   document.body.classList.add('with-gallery');
   const title = document.createElement('h1');
@@ -162,10 +164,11 @@ function drawOne(f, now, cycle) {
   if (cycle && !f.fixed) {
     f.animator.setMood(cycle.mood(now));
     f.animator.setProp(cycle.prop());
+    f.animator.setKnock(cycle.knocking(now));
   }
   const q = f.animator.step(now);
   if (f.scenes) {
-    const situation = cycle && !scenes.forced ? cycle.situation(now) : null;
+    const situation = cycle && !scenes.forced ? cycle.situation(now) : f.knock ? { knock: true } : null;
     q.scene = scenes.forced || (situation ? pickScene(scenes.list, situation)?.id : null) || null;
     q.over = scenes.forcedOver || (situation ? pickOver(scenes.list, situation)?.id : null) || null;   // worn over it (the headphones)
   }
@@ -349,16 +352,16 @@ function wireTimers(voice, cycle, request) {
 }
 
 // heads-up from the Claude Code hooks (alerts.js): a long task done, a hop and "done!"; Claude waiting for
-// permission, the face points at the computer and calls you
+// permission, the mascot knocks on the screen (toc-toc) and calls you
 function wireAlerts(voice, cycle, request) {
   const alerts = createAlerts({
     api,
     onAlert: (e) => {
       const now = performance.now() / 1000;
       if (e.kind === 'done') cycle.cheer(now);
-      else cycle.alert('pointing', NEEDS_YOU_S, now);
+      else cycle.alert('pointing', NEEDS_YOU_S, now, 'knock');   // knocks on the screen (the arm and the knock scene)
       request();
-      voice.play(e.kind === 'done' ? 'done' : 'calling');
+      voice.play(e.kind === 'done' ? 'done' : 'knock');
       voice.announce({ text: e.say, alert: e.kind });
     },
   });

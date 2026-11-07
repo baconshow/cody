@@ -11,6 +11,7 @@
 //   animator.setMood(name) · lookAt(x, y, now) · releaseLook() · poke(side) · setQuiet(on)
 //   animator.setListening(on)   listening sideways: turns the body and offers an ear (quiet speech, "didn't catch that")
 //   animator.setProp(name)      the prop in hand ('magnifier', 'keyboard' or null): the hold spring goes 0 to 1 (in hand)
+//   animator.setKnock(on)       knocking on the screen (Claude needs you): the knock spring, 0 to 1; q.knock
 //   animator.setGrab(on)        the phone shaking: it clings to the screen edges (the grab spring, 0 to 1); when the
 //                               shaking stops, it curses (q.curse runs 0 to 1 for TIMINGS.curse seconds, then is 0)
 //   animator.curse()            the cursing alone (the end of a shake; ?curse=1 shows it)
@@ -34,6 +35,7 @@ export const SPRINGS = Object.freeze({
   hold: [90, 0.75],                        // the prop coming into the hand (and going away)
   grab: [160, 0.5],                        // the startle of a shaking phone: stretch, spread and tremble
   feet: [140, 0.9],                        // the legs walking around after the body, a little late
+  knock: [70, 0.7],                        // the arm coming up to knock on the screen (and down again)
   lift: [60, 0.75],                        // the front leg coming up to think, and down again
 });
 
@@ -57,6 +59,7 @@ const PROPS = new Set(['magnifier', 'keyboard']);
 const LOOK_AT_MAGNIFIER = Object.freeze({ x: 0.08, y: -0.05 });   // through the lens, at whoever is watching
 const LOOK_AT_KEYBOARD = Object.freeze({ x: 0, y: 0.6 });         // down, at the keys
 const LOOK_STARTLED = Object.freeze({ x: 0, y: -0.1 });           // clinging: eyes wide, straight ahead
+const LOOK_AT_VIEWER = Object.freeze({ x: 0, y: 0 });
 const WANDER = Object.freeze({ x: [-0.9, 0.9], y: [-0.9, 0.4] });
 const LOOK_QUIET = Object.freeze({ x: 0, y: -0.2 });
 const LOOK_ASLEEP = Object.freeze({ x: 0, y: 0.25 });   // the head a tiny bit low, facing forward
@@ -81,6 +84,7 @@ function createSprings() {
     raiseL: s(0, SPRINGS.arm), raiseR: s(0, SPRINGS.arm), stretchL: s(0, SPRINGS.arm), stretchR: s(0, SPRINGS.arm),
     sproutX: s(0, SPRINGS.sprout), sproutY: s(0, SPRINGS.sprout),
     recoil: s(0, SPRINGS.recoil), turn: s(0, SPRINGS.turn), hold: s(0, SPRINGS.hold), grab: s(0, SPRINGS.grab),
+    knock: s(0, SPRINGS.knock),
     feet: s(0, SPRINGS.feet), lift: s(0, SPRINGS.lift),
   };
 }
@@ -92,7 +96,7 @@ export function createAnimator({ random = Math.random, quiet = false, mood = 'li
     mood: 'listening', requested: validMood(mood) ?? 'listening', changedAt: 0, quiet,
     last: null, blinkedAt: -Infinity, double: false, nextBlink: 0, nextSaccade: 0, nextHop: 0,
     wander: { x: 0, y: -0.3 }, jitter: { x: 0, y: 0 }, nextJitter: 0, talk: 0, side: 1, pointer: null, voice: null,
-    listening: false, touch: 0, prop: null, lastProp: null, grab: false, cursedAt: null, cursing: false,
+    listening: false, touch: 0, prop: null, lastProp: null, grab: false, knock: false, cursedAt: null, cursing: false,
   };
   const q = {};
   const step = (now) => advance({ m, st, q, between, random }, now);
@@ -122,6 +126,7 @@ export function createAnimator({ random = Math.random, quiet = false, mood = 'li
       st.prop = PROPS.has(name) ? name : null;
       if (st.prop) st.lastProp = st.prop;             // while leaving, it is still this one that fades out
     },
+    setKnock(on) { st.knock = !!on; },                // knocking on the screen: Claude needs you (the knock spring)
     setQuiet(on) { st.quiet = !!on; },
     // fn() → the volume of the phrase playing, 0 to 1, or null when nothing plays (no fn: the fake speech)
     hearVoice(fn) { st.voice = typeof fn === 'function' ? fn : null; },
@@ -149,6 +154,7 @@ function advance(ctx, now) {
   drive(st, m.feet, feetYaw(m.turn.value, m.lookX.value), dt);
   drive(st, m.lift, st.mood === 'thinking' ? 1 : 0, dt);
   drive(st, m.hold, st.prop ? 1 : 0, dt);
+  drive(st, m.knock, st.knock ? 1 : 0, dt);
   drive(st, m.grab, st.grab ? 1 : 0, dt);
   if (st.cursing) { st.cursedAt = now; st.cursing = false; }
   return fill(q, st, m, now, blink(ctx, now));
@@ -183,6 +189,7 @@ function lookTarget(ctx, now) {
   // asleep, neither the pointer nor the idle gaze: in 3D the body turns with the gaze, and with closed eyes it stays still
   if (st.mood === 'resting') return LOOK_ASLEEP;
   if (st.grab) return LOOK_STARTLED;
+  if (st.knock) return LOOK_AT_VIEWER;                 // knocking on the screen: straight at whoever is there
   if (st.prop === 'magnifier' && !p) return LOOK_AT_MAGNIFIER;
   if (st.prop === 'keyboard' && !p) return LOOK_AT_KEYBOARD;
   if (st.mood === 'thinking') return { x: 0.6 + (st.quiet ? 0 : 0.08 * Math.sin(now * 1.3)), y: -0.85 };
@@ -307,6 +314,7 @@ function fill(q, st, m, now, closed) {
   q.hold = clamp(m.hold.value, 0, 1.2);
   q.prop = q.hold > 0.02 ? st.lastProp : null;
   q.grab = clamp(m.grab.value, 0, 1.3);
+  q.knock = clamp(m.knock.value, 0, 1.2);
   const cursed = st.cursedAt === null ? 1 : (now - st.cursedAt) / TIMINGS.curse;
   q.curse = cursed > 0 && cursed < 1 && !st.quiet ? cursed : 0;
   return q;

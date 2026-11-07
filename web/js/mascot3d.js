@@ -39,6 +39,11 @@ const TYPING = Object.freeze({ forward: 1.3, lift: 0.14, inward: 0.25, stretch: 
 // then; a big swing looked like a leg splayed out from the front, the camera being so close
 const LIFT = Object.freeze({ leg: 0, up: 0.14, swing: 0.55, tap: 0.12, rhythm: 2.6 });
 const GRAB = Object.freeze({ stretch: 1.9, spread: 0.4, eye: 0.28, shake: 0.05, rhythm: 27 }); // the shake startle
+// knocking on the screen (Claude needs you): the right arm comes up in front, stretched to reach the glass, and
+// raps twice a second or so (toc-toc, a pause); the body leans toward the viewer. forward: the arm's swing
+// (radians); inward: the forward arm turned across, so the fist is in front of the face; tap: the extra swing
+// of a rap; lean and closer: the body (radians, units)
+const KNOCK = Object.freeze({ forward: 1.25, inward: 0.45, stretch: 1.6, tap: 0.22, period: 1.1, lean: 0.08, closer: 0.2 });
 // the swearing after a shake: the symbols come out one by one in the open mouth and jump about, comic-strip style
 const CURSE = Object.freeze({ text: '&#$*%@!', colors: ['#ffd23f', '#ff6b5b', '#7ee081', '#6ec3ff', '#ff9de2'],
   width: 0.8, height: 0.3, typed: 0.4, fps: 12, fade: 0.85 });
@@ -129,6 +134,7 @@ function arm(THREE, Rounded, m, s) {
   piece.position.set(s * ARM.out * V / 2, -ARM.height * V / 2, 0);
   shoulder.add(piece);
   shoulder.position.set(s * BODY.width * V / 2, (BODY.height - ARM.top) * V, 0);
+  shoulder.rotation.order = 'YXZ';                     // out to the side (z), then forward (x), then across (y): the knock
   return shoulder;
 }
 
@@ -194,8 +200,9 @@ function applyPose(p, q) {
   p.spring.position.y = Math.max(0, hop);
   // the touch: pulls back and tips away from the touched side; listening sideways: the head tilts toward the ear
   p.spring.position.x = 0;
-  p.spring.position.z = -(q.recoil || 0) * RECOIL.move;
-  p.spring.rotation.x = -(q.recoil || 0) * RECOIL.tip;
+  const knock = Math.min(1, Math.max(0, q.knock || 0));
+  p.spring.position.z = -(q.recoil || 0) * RECOIL.move + knock * KNOCK.closer;
+  p.spring.rotation.x = -(q.recoil || 0) * RECOIL.tip + knock * KNOCK.lean;
   p.spring.rotation.z = -q.tilt * 2 - (q.touch || 0) * (q.recoil || 0) * RECOIL.side + (q.turn || 0) * 0.12;
   const stretch = 1 + Math.max(-0.04, Math.min(0.04, q.hop / 700));
   p.body.scale.set(2 - stretch, stretch * (1 + BREATH * q.breath), 1);
@@ -268,9 +275,18 @@ function poseMagnifier(p, q) {
   rightEye.scale.set(1 + MAGNIFIER.eye * hold, 1 + MAGNIFIER.eye * hold, 1);
 }
 
+// the two raps of a knock: two bumps (0 to 1) early in each period, then nothing until the next
+export function knockTap(time) {
+  const phase = (time % KNOCK.period) / KNOCK.period;
+  if (phase < 0.12) return Math.sin((phase / 0.12) * Math.PI);
+  if (phase >= 0.16 && phase < 0.28) return Math.sin(((phase - 0.16) / 0.12) * Math.PI);
+  return 0;
+}
+
 function poseArms(p, q) {
   const typing = q.prop === 'keyboard' ? Math.min(1, Math.max(0, q.hold || 0)) : 0;
   const grab = Math.min(1, Math.max(0, q.grab || 0));
+  const knock = Math.min(1, Math.max(0, q.knock || 0));
   p.arms.forEach((a, i) => {
     const s = i === 0 ? -1 : 1;
     // sideways, the ear-arm that ended up in front rises a little, like cupping a hand to the ear
@@ -287,6 +303,14 @@ function poseArms(p, q) {
     a.rotation.x = -typing * (TYPING.forward + lift) * (1 - grab);
     a.scale.y = 1 + typing * TYPING.stretch * (1 - grab) + grab * GRAB.stretch;
     a.scale.z = 1 - typing * TYPING.thin * (1 - grab);
+    a.rotation.y = 0;
+    if (i === 1 && knock > 0) {                        // the right arm knocks on the screen; the rest of the pose fades under it
+      const tap = q.quiet ? 0 : knockTap(q.time) * KNOCK.tap;
+      a.rotation.z *= 1 - knock;
+      a.rotation.x = a.rotation.x * (1 - knock) - (KNOCK.forward + tap) * knock;
+      a.rotation.y = -s * KNOCK.inward * knock;
+      a.scale.y = a.scale.y * (1 - knock) + (1 + KNOCK.stretch) * knock;
+    }
   });
 }
 

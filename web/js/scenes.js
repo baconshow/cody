@@ -24,6 +24,7 @@ export const TRIGGERS = Object.freeze({
   thinking: (s) => s.mood === 'thinking',
   music: (s) => !!s.reading?.music,                         // something playing on the computer (cody/media.py)
   idle: (s) => s.mood === 'listening' && s.idleSeconds >= IDLE_COFFEE_S,
+  knock: (s) => !!s.knock,                                  // Claude needs you: the mascot knocks on the screen
 });
 
 // a part the mascot wears says "on": "body"; anything else (or an anchor this version does not know) stands still

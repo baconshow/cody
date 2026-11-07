@@ -7,7 +7,7 @@
 //   syllables(text, seed) and order(chosen) are pure, for the tests.
 
 export const SOUND_NAMES = Object.freeze(['thinking', 'done', 'error', 'calling', 'alarm', 'hop', 'pet', 'startle',
-  'yawn', 'snore', 'snap']);
+  'yawn', 'snore', 'snap', 'knock']);
 export const CHATTER = 12;
 export const OUTPUTS = Object.freeze(['elevenlabs', 'hosted', 'device', 'sounds']);
 const MAX_SYLLABLES = 48;          // about six seconds: a long reply chatters for a while, not forever

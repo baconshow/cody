@@ -7,10 +7,11 @@
 //      stopped, the face thinks for a bit, then gets sleepy and rests. The pointer coming back wakes it up happy.
 //
 //   createCycle({ fast, signal }) → { mood(now), prop(), moved(now), touched(now), setVoice(mood | null),
-//     cheer(now), alert(mood, seconds, now) }
+//     cheer(now), alert(mood, seconds, now, tag), knocking(now) }
 //     cheer    happy for a moment (a timer rang, a long task finished)
 //     alert    a mood for a few seconds, above Claude's activity (pointing: Claude needs you, or the mini Cody on the
-//              computer screen is pointing at something)
+//              computer screen is pointing at something); tag 'knock': Claude needs you, and the mascot knocks on
+//              the screen (knocking() says so while it lasts; the scenes see it as situation().knock)
 //     fast     the whole idle cycle in 1/6 of the time (?cycle=fast), to check it without waiting
 //     signal   { read() → reading | null } (signal.js); without it, or with read() null, only the pointer counts
 
@@ -54,7 +55,7 @@ export function createCycle({ fast = false, signal = null } = {}) {
     situation(now) {
       const mood = this.mood(now);
       const idleSeconds = st.reading?.idleSeconds ?? (now - (st.activity ?? now));
-      return { mood, reading: st.reading, idleSeconds, happy: now < st.happyUntil };
+      return { mood, reading: st.reading, idleSeconds, happy: now < st.happyUntil, knock: this.knocking(now) };
     },
     // the prop in hand (magnifier, keyboard) for what Claude is doing; during a voice conversation, hands free
     prop() { return st.voice || !st.reading ? null : claudeProp(st.reading); },
@@ -71,6 +72,7 @@ export function createCycle({ fast = false, signal = null } = {}) {
       st.activity = now;
     },
     cheer(now) { st.happyUntil = now + CYCLE.celebrate; },
-    alert(mood, seconds, now) { st.alert = { mood, until: now + seconds }; },
+    alert(mood, seconds, now, tag = null) { st.alert = { mood, until: now + seconds, tag }; },
+    knocking(now) { return !!st.alert && now < st.alert.until && st.alert.tag === 'knock'; },
   };
 }

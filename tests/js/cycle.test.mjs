@@ -21,3 +21,17 @@ test('the idle cycle: listens, thinks a little, gets sleepy, rests; the pointer 
   fast.mood(0);
   assert.equal(fast.mood(CYCLE.rest / 6 + 0.1), 'resting');
 });
+
+test('a knock alert: the mood points, knocking() is on and the scenes see it, until it is over', () => {
+  const cycle = createCycle();
+  cycle.mood(0);
+  cycle.alert('pointing', 8, 10, 'knock');
+  assert.equal(cycle.mood(11), 'pointing');
+  assert.equal(cycle.knocking(11), true);
+  assert.equal(cycle.situation(11).knock, true);
+  assert.equal(cycle.knocking(18.5), false);
+  assert.equal(cycle.situation(18.5).knock, false);
+  cycle.alert('pointing', 8, 20);                      // the mini Cody pointing: no knock
+  assert.equal(cycle.mood(21), 'pointing');
+  assert.equal(cycle.knocking(21), false);
+});

@@ -10,9 +10,9 @@ const situation = (s) => ({ mood: 'listening', reading: {}, idleSeconds: 0, happ
 const pick = (s) => pickScene(scenes, situation(s))?.id ?? null;
 const over = (s) => pickOver(scenes, situation(s))?.id ?? null;
 
-test('the seven essential scenes are there, all valid', () => {
+test('the essential scenes are there, all valid', () => {
   assert.deepEqual(scenes.map((s) => s.id).sort(),
-    ['coding', 'coffee', 'debug', 'headphones', 'party', 'sleeping', 'thinking']);
+    ['coding', 'coffee', 'debug', 'headphones', 'knock', 'party', 'sleeping', 'thinking']);
   assert.equal(scenes.length, data.scenes.length);
   for (const s of scenes) for (const p of s.parts) assert.ok(p.sign || p.boxes.every((b) => b.length === 6), s.id);
 });
@@ -26,6 +26,7 @@ test('each trigger shows its scene', () => {
   assert.equal(pick({ happy: true }), 'party');
   assert.equal(over({ reading: { music: true } }), 'headphones');
   assert.equal(pick({ mood: 'resting' }), 'sleeping');
+  assert.equal(pick({ knock: true, reading: { failed: true } }), 'knock', 'Claude needs you: the knock, above a failure');
 });
 
 test('the highest priority wins: a failure beats coding, a party beats sleeping', () => {
@@ -52,6 +53,7 @@ test('what the mascot wears is on its body; the rest stands around it', () => {
   const anchors = (id) => [...new Set(scenes.find((s) => s.id === id).parts.map(anchorOf))];
   assert.deepEqual(anchors('sleeping'), ['body'], 'the nightcap');
   assert.deepEqual(anchors('headphones'), ['body']);
+  assert.deepEqual(anchors('knock'), ['body'], 'the impact marks ride with the fist');
   for (const id of ['coding', 'party']) assert.deepEqual(anchors(id), ['world'], id);
   assert.deepEqual(anchors('thinking'), ['body'], 'the thought bubble floats in front of the face and turns with it');
   assert.deepEqual(anchors('coffee'), ['body'], 'the mug is in its hand: a wide screen cuts off the floor in front');

@@ -387,3 +387,15 @@ tangle, and from the side one leg looked loose.
   into the conversation. The README says so.
 - "Even with another window in focus": the page listens in the background tab, so the wake word works while
   another window is in front; a native hotkey would need an always-on key hook, which Cody does not do.
+
+## 2026-11-07 · Toc-toc: Cody knocks on the screen when Claude needs you
+
+- The "needs you" heads-up (hook `Notification`, `permission_prompt` and the like) now knocks: the alert carries
+  a tag (`cycle.alert(mood, seconds, now, 'knock')`), the animator gets a `knock` spring (`setKnock`, `q.knock`),
+  and the mascot's right arm comes up in front of its face, stretched to the glass, rapping twice a period
+  (`knockTap`, pure), the body leaning toward the viewer; the `knock` scene (priority 70, above the debug sign)
+  draws little white impact marks around the fist, worn on the body; and the `knock` sound (two knuckle raps,
+  a click with a low thump under it) plays before the spoken phrase. `?mood=pointing&knock=1` shows it.
+- The arm's Euler order is now YXZ (out to the side, forward, then across), so a forward arm can turn toward
+  the middle of the face; every older pose has rotation.y = 0, so nothing else moved.
+- Item 12 (the notification reader) reuses the same knock for an important notification.

@@ -263,8 +263,8 @@ the audio is transcribed by Google's speech service.
 ## Heads-up from your other Claude Code sessions
 
 Cody can tell you when Claude finishes a long task in any session (*"Done! Claude finished."*) or is waiting for
-your permission (*"Claude needs you at the computer."*), so you can leave the desk while it works. It uses Claude
-Code [hooks](https://code.claude.com/docs/en/hooks). Add them with:
+your permission: Cody knocks on the screen, toc-toc, and says *"Claude needs you at the computer."*, so you can
+leave the desk while it works. It uses Claude Code [hooks](https://code.claude.com/docs/en/hooks). Add them with:
 
 ```bash
 python cody.py --install-hooks

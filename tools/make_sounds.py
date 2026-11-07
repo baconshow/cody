@@ -103,6 +103,11 @@ def chatter(rng: random.Random) -> dict[str, list[float]]:
     return sounds
 
 
+def rap(rng: random.Random) -> list[float]:
+    return mix(noise(0.02, 0.6, rng, color=0.5),
+               voice(glide(260, 150), 0.07, vowel=(220, 600), level=0.55, attack=0.002, release=0.05, harmonics=4))
+
+
 def effects(rng: random.Random) -> dict[str, list[float]]:
     hm = voice(lambda t: 260 + 30 * math.sin(TAU * t), 0.22, vowel=(300, 900), level=0.3, attack=0.04, release=0.08)
     run = []
@@ -133,6 +138,8 @@ def effects(rng: random.Random) -> dict[str, list[float]]:
         + silence(0.3) + noise(0.6, 0.12, rng, color=0.95),
         # a camera shutter: two short clicks, the second one softer (the quick screenshot, "Cody, take a screenshot")
         "snap": noise(0.025, 0.7, rng, color=0.3) + silence(0.07) + noise(0.02, 0.45, rng, color=0.4),
+        # knocking on the screen: two knuckle raps on glass, each a click with a short low thump under it
+        "knock": rap(rng) + silence(0.13) + rap(rng),
     }
 
 
