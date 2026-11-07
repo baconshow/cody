@@ -4,8 +4,19 @@ Things only the maintainer can do. Newest last.
 
 - [ ] **Push `main` and `launch`.** `web/js/stale-page.js` (reloads a page opened before the server restarted) is
       committed on the local `main` and merged into `launch`, but neither is pushed: `main` is 1 commit ahead of
-      `origin/main`, `launch` is ahead of `origin/launch` by that merge, the ElevenLabs wording fix and the
-      2026-11-06 polish (legs, worn scene parts, camera, silent tap, wake word light, Settings drawer).
+      `origin/main`; `launch` is 12 commits ahead of `origin/launch` (the 2026-11-06 keyboard and thought bubble,
+      and the night of 2026-11-07: hips and the held leg, headphones with music, the quick screenshot, the knock,
+      notifications, typing along, usage limits, the skin shop, scenes by voice). Review the morning after, then push.
+- [ ] **Try the night's opt-ins on the real page** (restart `python cody.py` first; the server code changed): in
+      Settings turn on *Read my important Windows notifications* (Windows asks under Privacy > Notifications),
+      *Type along when I type to Claude* and *Usage limits* (Cody becomes the status line and runs yours after; a
+      new Claude Code session is needed), then say *"Cody, printa"*, *"Cody, quanto resta de uso?"*, *"Cody, põe os
+      fones"* and *"Cody, faz um arco-íris para você"* in the voice session (restart it: the channel has two new
+      tools). Play something on Spotify: the headphones should come on within a few seconds.
+- [ ] **Spotify, if ever**: not an OAuth app with a backend of refresh tokens (user data on your server, and a
+      Spotify app in development mode serves 25 users). SMTC covers "something is playing" for every player. A
+      player-specific link would be PKCE on the user's machine with the token in `%LOCALAPPDATA%\cody`: decide
+      only if a feature needs it (pause when Cody speaks, the song's name).
 - [ ] **Code-signing certificate for the Windows installer.** Without one, SmartScreen warns "Windows protected your
       PC" on every download until the file builds reputation (the README explains More info, Run anyway). Options:
       an OV or EV certificate from a CA, or Azure Trusted Signing (cheaper, needs an identity check). Once you have
