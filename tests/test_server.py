@@ -5,8 +5,10 @@ import socket
 import threading
 import time
 import unittest
+from unittest import mock
 
 from cody import page
+from cody import server as server_module
 from cody.server import App, Server
 
 
@@ -179,6 +181,46 @@ class ServerTest(unittest.TestCase):
         response, body = self.request("GET", "/api/activity?cursor=abc", {"X-Cody-Token": self.token()})
         self.assertEqual(response.status, 400)
         self.assertEqual(json.loads(body), {"error": "invalid cursor"})
+
+
+class BurstTest(unittest.TestCase):
+    """The phone loads the page through Tailscale serve, which opens dozens of connections at once."""
+
+    def test_connections_beyond_the_cap_wait_their_turn_instead_of_being_dropped(self):
+        port = free_port()
+        app = App({"port": port, "extra_hosts": [], "allowed_logins": [], "language": "en", "voice": None})
+        with mock.patch.object(server_module, "MAX_CONNECTIONS", 4):
+            burst_server = Server(app)
+        threading.Thread(target=burst_server.serve_forever, daemon=True).start()
+        self.addCleanup(burst_server.server_close)
+        self.addCleanup(burst_server.shutdown)
+        statuses = []
+
+        def get(path, headers=None):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=15)
+            connection.request("GET", path, headers={"Host": f"127.0.0.1:{port}", **(headers or {})})
+            response = connection.getresponse()
+            body = response.read()
+            connection.close()
+            statuses.append(response.status)
+            return body
+
+        token = re.search(rb'name="cody-token" content="([^"]+)"', get("/")).group(1).decode()
+        # four long polls take every slot for two seconds...
+        holders = [threading.Thread(target=get, args=("/api/events?after=0&wait=2", {"X-Cody-Token": token}))
+                   for _ in range(4)]
+        for thread in holders:
+            thread.start()
+        time.sleep(0.3)
+        # ...and the page's burst of files arrives on top of them
+        started = time.monotonic()
+        burst = [threading.Thread(target=get, args=("/web/js/measures.js",)) for _ in range(8)]
+        for thread in burst:
+            thread.start()
+        for thread in holders + burst:
+            thread.join(timeout=15)
+        self.assertEqual(statuses, [200] * 13, "every request is answered once a slot frees up")
+        self.assertLess(time.monotonic() - started, 8)
 
 
 if __name__ == "__main__":

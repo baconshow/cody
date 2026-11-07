@@ -6,7 +6,9 @@
   microphone and speech of a Chrome tab), paired by typing the address or scanning the new QR code in Settings;
   **notifications with the app closed** (opt-in: a quiet notification waits on the computer, `/api/events` held open
   up to 25 s with `wait=`) and a **home screen widget** with Cody's face for the last heads-up. The computer vouches
-  for the app at `/.well-known/assetlinks.json` and hands it the token at `/app/hello`.
+  for the app at `/.well-known/assetlinks.json` and hands it the token at `/app/hello`. Through Tailscale serve the
+  page now arrives whole: connections beyond the server's cap wait their turn instead of being dropped (the phone
+  used to get half the files, and a black screen, on the first open).
 - **Windows app**: `CodySetup.exe` (no Python needed, per-user install) with a tray icon: open Cody, status, start
   the voice session, settings, start with Windows, quit. Opening it starts the server, the mascot and the voice
   session.

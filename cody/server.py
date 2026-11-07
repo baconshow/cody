@@ -53,7 +53,8 @@ from cody.custom import CustomScenes
 LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
 SOCKET_TIMEOUT_S = 15       # a stalled connection (headers dripping in) is dropped
-MAX_CONNECTIONS = 48        # concurrent connections; beyond that they are closed right away
+MAX_CONNECTIONS = 64        # concurrent connections; beyond that a connection waits its turn...
+SLOT_WAIT_S = 10            # ...this long, then it is closed without an answer
 MAX_WAIT_S = 30             # the longest /api/events?wait= holds a request; the phone asks again after
 WAIT_STEP_S = 0.5
 SAME_SITE = ("", "same-origin", "none")     # accepted Sec-Fetch-Site values (empty = not a browser)
@@ -533,25 +534,20 @@ class Handler(BaseHTTPRequestHandler):
 class Server(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = False      # on Windows it would let a second server share the port
+    request_queue_size = 128         # the page through Tailscale serve (HTTP/2) opens dozens of connections at once
 
     def __init__(self, app: App):
         self.app = app
         self._slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
         super().__init__(("127.0.0.1", app.port), Handler)
 
-    def process_request(self, request, client_address):
-        """One thread per connection, up to MAX_CONNECTIONS; extra ones are closed without an answer."""
-        if not self._slots.acquire(blocking=False):
-            LOG.warning("%s concurrent connections reached; connection refused", MAX_CONNECTIONS)
+    def process_request_thread(self, request, client_address):
+        """One thread per connection. Past MAX_CONNECTIONS a connection waits for a free slot (a page load is a
+        burst of short requests: refusing them left the phone with half a page and a black screen)."""
+        if not self._slots.acquire(timeout=SLOT_WAIT_S):
+            LOG.warning("%s concurrent connections for %s s; connection closed", MAX_CONNECTIONS, SLOT_WAIT_S)
             self.shutdown_request(request)
             return
-        try:
-            super().process_request(request, client_address)
-        except Exception:
-            self._slots.release()
-            raise
-
-    def process_request_thread(self, request, client_address):
         try:
             super().process_request_thread(request, client_address)
         finally:
