@@ -135,7 +135,13 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     }
     side(false);
     try {
-      await api.voice(text);
+      const r = await api.voice(text);
+      if (r?.quick) {                                    // answered on the spot ("Cody, take a screenshot"): the shutter, then the word
+        caption(t('mascot.voice.you', { text }), false);
+        await audio.play('snap');
+        speak({ text: String(r.quick.text || ''), show: null, image: r.quick.image ? String(r.quick.image) : null });
+        return;
+      }
       onState('thinking');
       audio.play('thinking');
       caption(t('mascot.voice.you', { text }), false);

@@ -131,6 +131,8 @@ def effects(rng: random.Random) -> dict[str, list[float]]:
         "snore": mix(noise(0.9, 0.25, rng), voice(lambda t: 90 + 15 * math.sin(math.pi * t), 0.9, vowel=(250, 600),
                                                   level=0.25, attack=0.3, release=0.4, harmonics=5))
         + silence(0.3) + noise(0.6, 0.12, rng, color=0.95),
+        # a camera shutter: two short clicks, the second one softer (the quick screenshot, "Cody, take a screenshot")
+        "snap": noise(0.025, 0.7, rng, color=0.3) + silence(0.07) + noise(0.02, 0.45, rng, color=0.4),
     }
 
 

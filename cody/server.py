@@ -354,7 +354,7 @@ class Handler(BaseHTTPRequestHandler):
             self._error(429, "too many voice messages this minute")
             return
         try:
-            self._json(202, voice.say(body))
+            self._json(202, voice.say(body, language=self.app.config["language"]))
         except voice.VoiceError as error:
             self._error(error.status, error.message)
 

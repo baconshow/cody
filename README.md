@@ -212,9 +212,13 @@ plans an admin has to enable them first.
    approve the tool like any other), and the picture pops up on the phone with **Share** and **Save**. Tap Share and
    pick WhatsApp, or any other app. Claude only gets an id, never the picture, and nothing is uploaded anywhere
    except where you share it. Screenshots happen only when you ask: there is no periodic capture.
+6. In a hurry: *"Cody, take a screenshot"* (or *"Cody, printa"*), nothing else in the sentence. Cody takes it on
+   the spot, with a shutter click, and the picture pops up with Share: no round trip through Claude, no voice
+   session needed. The saying is the asking: the picture goes to the page you asked from, nowhere else.
 
 The voice session lets Cody's harmless tools run without asking (reply, timers, memory, pointing). The two that
-capture your screen, `screenshot` and `look`, always ask first, by voice too.
+capture your screen, `screenshot` and `look`, always ask first, by voice too (the quick "take a screenshot" is
+the exception: there, your words are the permission).
 
 **Your other MCP servers work by voice too.** The voice session is a normal Claude Code session with Cody's channel
 added, so whatever you already connected to Claude Code (Airtable, a calendar, your smart home) is there: *"Cody,

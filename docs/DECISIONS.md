@@ -373,3 +373,17 @@ tangle, and from the side one leg looked loose.
 - A scene can now be worn over another: `"over": true` in `scenes.json` (`pickOver` beside `pickScene`), so the
   headphones stay on while the monitor is up or the thought bubble floats; `?over=headphones` shows it for a
   look. Before this, the headphones (priority 20) would have lost to coding and thinking nearly all the time.
+
+## 2026-11-07 · "Cody, take a screenshot" is answered on the spot
+
+- A short sentence asking for a screenshot (`is_print_command` in `voice.py`: up to six words with "printa", "tira
+  um print", "take a screenshot", "print screen", "capture the screen"...) never reaches Claude: the server takes
+  the picture itself, keeps it in memory (the latest five) and answers the POST with `quick: {text, image}`; the
+  page plays the shutter (`snap`, a new Cody sound), shows the picture with Share and says the word. Works with
+  the voice session closed. A longer sentence ("send a screenshot to my WhatsApp") still goes to Claude, who can
+  send it somewhere.
+- This skips the permission prompt the `screenshot` tool shows. The maintainer asked for a fast shortcut; the
+  words are the consent, and the picture goes only to the page that asked (the phone or the computer), never
+  into the conversation. The README says so.
+- "Even with another window in focus": the page listens in the background tab, so the wake word works while
+  another window is in front; a native hotkey would need an always-on key hook, which Cody does not do.

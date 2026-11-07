@@ -13,6 +13,7 @@ import http.client
 import json
 import os
 import re
+import secrets
 import threading
 import time
 import urllib.error
@@ -20,10 +21,21 @@ import urllib.request
 from collections import OrderedDict, deque
 from pathlib import Path
 
-from cody import hooks, timers
+from cody import hooks, screen, timers
 from cody.channel import channel_file
 
 MAX_TEXT = 500
+# "Cody, printa": a screenshot on the spot, without the round trip through Claude (the saying is the asking). Short
+# sentences only: a longer one ("send a screenshot to my WhatsApp") goes to Claude, who can send it somewhere
+PRINT_WORDS = re.compile(r"\b(printa|tira(r)?\s+(um\s+|uma\s+)?print|print\s+da\s+tela|captura\s+de\s+tela|screen\s?shot"
+                         r"|print\s*screen|capture\s+(the\s+|my\s+)?screen|picture\s+of\s+(the|my)\s+screen)\b", re.I)
+PRINT_MAX_WORDS = 6
+QUICK_TEXT = {
+    "en": {"print_done": "Screenshot taken. Tap share to send it.", "print_failed": "I could not take the screenshot."},
+    "pt-BR": {"print_done": "Print tirado. Toca em compartilhar para mandar.", "print_failed": "Não consegui tirar o print."},
+}
+MAX_QUICK_IMAGES = 5
+_quick_images: OrderedDict = OrderedDict()   # image id -> PNG of a quick screenshot, in memory only
 MAX_IMAGE_BYTES = 40 * 1024 * 1024
 TIMEOUT_S = 3
 _NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -83,9 +95,32 @@ def validate_text(text) -> str:
     return cleaned[:MAX_TEXT]
 
 
-def say(body: dict, path: Path | None = None) -> dict:
-    """POST /api/voice {"text"} -> {"request_id"}: what you said becomes a message in the channel's session."""
+def is_print_command(text: str) -> bool:
+    """A short sentence asking for a screenshot and nothing else."""
+    return len(text.split()) <= PRINT_MAX_WORDS and PRINT_WORDS.search(text) is not None
+
+
+def quick_print(language: str = "en", capture=screen.capture) -> dict:
+    """The screenshot right away, kept here for the page that asked (never sent to Claude): {"quick": {text, image}}."""
+    texts = QUICK_TEXT.get(language, QUICK_TEXT["en"])
+    try:
+        png = capture()
+    except screen.ScreenError:
+        return {"request_id": "", "quick": {"text": texts["print_failed"], "image": None}}
+    image_id = secrets.token_urlsafe(9)
+    with _lock:
+        _quick_images[image_id] = png
+        while len(_quick_images) > MAX_QUICK_IMAGES:
+            _quick_images.popitem(last=False)
+    return {"request_id": "", "quick": {"text": texts["print_done"], "image": image_id}}
+
+
+def say(body: dict, path: Path | None = None, language: str = "en", capture=screen.capture) -> dict:
+    """POST /api/voice {"text"} -> {"request_id"}: what you said becomes a message in the channel's session. A short
+    "take a screenshot" is answered on the spot instead ({"request_id": "", "quick": {...}}), channel or no channel."""
     text = validate_text((body or {}).get("text"))
+    if is_print_command(text):
+        return quick_print(language, capture)
     channel = _channel(path)
     if channel is None:
         raise VoiceError(503, "the voice channel is not open")
@@ -115,6 +150,10 @@ def image(image_id: str, path: Path | None = None) -> bytes:
     """GET /api/voice/image?id=X -> the PNG of a screenshot the channel took for the phone."""
     if not isinstance(image_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", image_id):
         raise VoiceError(400, "invalid image id")
+    with _lock:
+        quick = _quick_images.get(image_id)
+    if quick is not None:
+        return quick
     channel = _channel(path)
     if channel is None:
         raise VoiceError(503, "the voice channel is not open")
