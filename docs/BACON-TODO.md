@@ -2,11 +2,10 @@
 
 Things only the maintainer can do. Newest last.
 
-- [ ] **Push `main` and `launch`.** `web/js/stale-page.js` (reloads a page opened before the server restarted) is
-      committed on the local `main` and merged into `launch`, but neither is pushed: `main` is 1 commit ahead of
-      `origin/main`; `launch` is 12 commits ahead of `origin/launch` (the 2026-11-06 keyboard and thought bubble,
-      and the night of 2026-11-07: hips and the held leg, headphones with music, the quick screenshot, the knock,
-      notifications, typing along, usage limits, the skin shop, scenes by voice). Review the morning after, then push.
+- [x] **Push `main` and `launch`.** Done on 2026-11-07: `main` was already on GitHub (`e04569a`, the page that
+      reloads itself after a restart), and `launch` went up with the 2026-11-06 keyboard and thought bubble and the
+      night of 2026-11-07 (hips and the held leg, headphones with music, the quick screenshot, the knock,
+      notifications, typing along, usage limits, the skin shop, scenes by voice). PR #1 is mergeable.
 - [ ] **Try the night's opt-ins on the real page** (restart `python cody.py` first; the server code changed): in
       Settings turn on *Read my important Windows notifications* (Windows asks under Privacy > Notifications),
       *Type along when I type to Claude* and *Usage limits* (Cody becomes the status line and runs yours after; a
