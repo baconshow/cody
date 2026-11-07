@@ -3,6 +3,7 @@ import json
 import re
 import socket
 import threading
+import time
 import unittest
 
 from cody import page
@@ -100,10 +101,41 @@ class ServerTest(unittest.TestCase):
         self.assertEqual((response.status, set(json.loads(body))), (200, {"cursor", "events"}))
         response, _ = self.request("GET", "/api/events?after=x", token)
         self.assertEqual(response.status, 400)
+        response, _ = self.request("GET", "/api/events?after=0&wait=x", token)
+        self.assertEqual(response.status, 400)
         response, _ = self.request("GET", "/api/voice/alert?key=done", token)
         self.assertEqual(response.status, 404, "no ElevenLabs voice configured: the phone uses its own")
         response, _ = self.request("GET", "/api/timers")
         self.assertEqual(response.status, 403)
+
+    def test_events_wait_until_something_happens(self):
+        token = {"X-Cody-Token": self.token()}
+        started = time.monotonic()
+        response, body = self.request("GET", "/api/events?after=999999&wait=2", token)
+        self.assertEqual(response.status, 200)
+        self.assertLess(time.monotonic() - started, 1.0, "a count that went back comes back at once")
+        cursor = json.loads(body)["cursor"]
+        threading.Timer(0.3, lambda: self.app.hooks.add("notice", "WhatsApp: hi", app="WhatsApp")).start()
+        started = time.monotonic()
+        response, body = self.request("GET", f"/api/events?after={cursor}&wait=5", token)
+        taken = time.monotonic() - started
+        events = json.loads(body)["events"]
+        self.assertEqual([e["say"] for e in events], ["WhatsApp: hi"])
+        self.assertTrue(0.2 < taken < 2.0, f"held until the event, not the full wait: {taken:.2f}s")
+
+    def test_the_android_app_gets_the_token_and_the_asset_links(self):
+        response, body = self.request("GET", "/app/hello")
+        self.assertEqual(response.status, 200)
+        data = json.loads(body)
+        self.assertEqual((data["app"], data["token"], data["language"]), ("cody", self.token(), "en"))
+        response, body = self.request("GET", "/.well-known/assetlinks.json")
+        self.assertEqual((response.status, json.loads(body)), (200, []), "no certificate known yet")
+        self.assertIn("application/json", response.getheader("Content-Type"))
+        response, _ = self.request("GET", "/app/hello", {"Host": "pc.example.ts.net", "Tailscale-User-Login": "else@example.com"})
+        self.assertEqual(response.status, 403, "another login through Tailscale gets no token")
+        response, body = self.request("GET", "/api/qr?for=app", {"X-Cody-Token": self.token()})
+        self.assertEqual(response.status, 200)
+        self.assertIn(b"<svg", body)
 
     def test_unknown_host_is_refused(self):
         response, _ = self.request("GET", "/", {"Host": "evil.example:80"})

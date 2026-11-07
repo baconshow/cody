@@ -120,6 +120,7 @@ Windows app keeps its `config.json` in `%LOCALAPPDATA%\cody`):
 | `language` | the computer's | `"en"` or `"pt-BR"`: spoken replies, wake word and screen text |
 | `extra_hosts` | found by itself | More host names allowed besides localhost (Tailscale addresses that forward to Cody are found at start) |
 | `allowed_logins` | your own login | The Tailscale logins that may use it from the phone |
+| `android_fingerprints` | none | SHA-256 certificate fingerprints of your own build of the Android app, for `/.well-known/assetlinks.json` |
 | `voice` | `null` | Optional ElevenLabs voice: `{"voice_id": "...", "model": "eleven_flash_v2_5"}` |
 | `voice_folder` | current folder | Folder the voice session works in (the Windows app's default is your home folder) |
 
@@ -197,6 +198,29 @@ else in, list their logins in `allowed_logins`. A tagged Tailscale machine has n
 you and trusts every device in your tailnet until you set `allowed_logins`.
 
 Shake the phone and the mascot holds on to the edges of the screen for dear life.
+
+### The Android app
+
+The same mascot as an app (`android/`, on Google Play once published; until then, the APK from the `Android app`
+workflow). It opens the page your computer serves in Chrome as a *Trusted Web Activity*: full screen, landscape,
+with the microphone and speech of a Chrome tab, no address bar. The first time it asks for the computer's address;
+with the app installed, scan the second QR code in Settings > On your phone instead (a `cody://pair` link) and
+it pairs by itself. Then two things a web page cannot do:
+
+- **Tell me when Claude needs me, even with the app closed** (a switch on the pairing screen, off by default): a
+  quiet notification keeps the app waiting on your computer (`/api/events`, held open up to 25 s at a time), and a
+  long task done, Claude waiting for your permission, or an important notification you chose to hear become
+  Android notifications with sound, screen off or not. Nothing leaves your tailnet; the app knows only the address
+  you gave it.
+- **A home screen widget**: Cody's face for the last heads-up (waiting for you, done, a notification, or all
+  quiet) and the words, with how long ago. Tap it to open the mascot.
+
+Chrome shows the page as the app only when the computer vouches for it: `/.well-known/assetlinks.json` lists the
+app's certificates (the published one, plus `android_fingerprints` in `config.json` for a build of your own:
+`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` prints the
+SHA-256). Without a match it opens as a Custom Tab, the same page with a thin bar on top. Long-press the app's icon
+for *Settings* (the address, the switch). Building it yourself: `cd android && ./gradlew assembleDebug` with JDK 17
+and the Android SDK (platform 36); the unit tests run with `./gradlew testDebugUnitTest`.
 
 ## Talk to it (voice)
 
@@ -411,6 +435,7 @@ mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool)
 ```bash
 python -m unittest discover tests
 node --test "tests/js/*.test.mjs"
+cd android && ./gradlew testDebugUnitTest
 ```
 
 ## URL options

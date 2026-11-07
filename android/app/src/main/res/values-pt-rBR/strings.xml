@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pair_intro">O Cody mora no seu computador. Digite o endereço privado dele (o que o Cody imprimiu, como https://meu-pc.tailnet.ts.net), ou leia o QR code das Configurações do Cody com a câmera.</string>
+    <string name="address_hint">https://meu-pc.tailnet.ts.net</string>
+    <string name="open">Abrir o Cody</string>
+    <string name="watch_switch">Me avisar quando o Claude precisar de mim, mesmo com o app fechado</string>
+    <string name="watch_hint">Mantém uma notificação silenciosa e espera pelo seu computador na sua rede privada. Nada sai dela.</string>
+    <string name="widget_hint">Segure a tela inicial para adicionar o widget do Cody: a cara dele para o último aviso.</string>
+    <string name="bad_address">Isso não é um endereço onde o Cody possa estar. Começa com https:// e não tem nada depois do host.</string>
+    <string name="linked">Endereço lido do QR code. Toque em Abrir o Cody.</string>
+    <string name="watching">Esperando pelo seu computador</string>
+    <string name="watch_offline">Computador fora de alcance. Tentando de novo.</string>
+    <string name="channel_watch">Vigiando o computador</string>
+    <string name="channel_watch_hint">A notificação silenciosa que mantém o Cody ouvindo o seu computador com o app fechado.</string>
+    <string name="channel_alerts">Avisos do Claude</string>
+    <string name="channel_alerts_hint">Uma tarefa longa terminou, o Claude está esperando por você, ou chegou uma notificação importante.</string>
+    <string name="title_done">Pronto</string>
+    <string name="title_needs_you">O Claude precisa de você</string>
+    <string name="widget_idle">Tudo quieto</string>
+    <string name="widget_description">A cara do Cody para o último aviso do Claude.</string>
+    <string name="shortcut_settings">Configurações</string>
+</resources>

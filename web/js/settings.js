@@ -202,6 +202,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     const box = el('div', { className: 'settings-phone' });
     if (info.phone_url) {
       box.append(el('p', { textContent: t('settings.phone.scan') }), await qrImage(api, 'phone') || '', el('code', { textContent: info.phone_url }));
+      box.append(el('p', { textContent: t('settings.phone.android') }), await qrImage(api, 'app') || '');
     } else {
       const go = el('button', { type: 'button', className: 'primary', textContent: t('settings.network') });
       go.addEventListener('click', () => { win.location.hash = 'network'; });

@@ -21,6 +21,7 @@ What leaves your computer, and only because you use it:
 | The text Cody speaks | ElevenLabs | Only if you chose ElevenLabs with your own key |
 | A request for the latest version number | GitHub | Only if you turn on "Tell me when there is a new version" (off by default) |
 | Your phone's connection | Tailscale, inside your own tailnet | Only if you set up the phone |
+| The Android app's requests (the token, the heads-up list) | Your own computer, through your tailnet; nowhere else | Only with the app installed and paired; the "even with the app closed" switch is off by default |
 
 Cody's hosted voice is not offered yet. If it ever is, it will be opt-in, explained on screen ("the spoken text
 passes through the Cody server and is not kept"), and this page will list it before it ships.

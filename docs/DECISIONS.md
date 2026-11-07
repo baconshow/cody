@@ -476,3 +476,31 @@ tangle, and from the side one leg looked loose.
   removed, `mascot.unwear`).
 - The channel's tool list and the instructions name the two tools, so Claude knows the ids it may show (the
   built-in ids are read from `scenes.json` when the channel starts).
+
+## 2026-11-07 · The Android app: a Trusted Web Activity, not a WebView, not a rewrite
+
+- The maintainer asked for the phone side as an Android app, on Google Play, with notifications while the app is
+  closed and a home screen widget. The page is the product; the app wraps it. Of the three ways to wrap, the
+  Trusted Web Activity (`androidbrowserhelper`, Chrome in full screen with the app's identity) was chosen over a
+  WebView: Android's WebView has no Web Speech API, so the wake word and the voice would need a native bridge and a
+  second implementation of what Chrome already does. A native rewrite of the mascot (Compose and a 3D engine) was
+  out of proportion. Chrome has to vouch the site is the app's: the computer serves `/.well-known/assetlinks.json`
+  with the app's certificates (`cody/android.py`; a developer's own build adds its debug fingerprint in
+  `android_fingerprints`); without a match the page still opens, as a Custom Tab.
+- The address is not in the manifest: the app pairs with the computer (typed, or the `cody://pair?url=` QR code
+  next to the old one in Settings) and keeps it in its own preferences. Only `https://` addresses are accepted,
+  except `http://` to this computer or the emulator (`10.0.2.2`) for development.
+- Notifications with the app closed are an opt-in foreground service (`WatchService`, type `specialUse`: Android 15
+  caps `dataSync` at six hours a day), one thread that asks `/app/hello` for the token and then holds
+  `/api/events?wait=25` open on the computer (new `wait=` parameter, 30 s at most, polled every 0.5 s on the
+  server). The first read only marks the cursor, so the past is never announced, and a cursor that went back
+  (the computer restarted) is not news: the same rules as `alerts.js`. The events' words come from the computer
+  in its language; the app adds only the title ("Claude needs you", "Done", the app's name for a notice).
+- `/app/hello` gives the same token the page carries in its HTML, to the same requesters (this computer, or an
+  allowed Tailscale login through serve); no new exposure. The app never stores it: a 403 means the computer
+  restarted and it asks again.
+- The widget shows the last heads-up with a still of the mascot (four captures of the page: listening, pointing,
+  happy, talking) and the words; it is updated by the service, never on a timer, so a phone without the switch on
+  shows "All quiet". Play Store distribution needs the maintainer's own developer account, the upload key and the
+  listing: `docs/BACON-TODO.md`. The workflow builds the debug APK and the release bundle (signed only when the
+  repository has the key in its secrets).

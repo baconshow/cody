@@ -2,6 +2,11 @@
 
 ## 1.2.0 · launch
 
+- **Android app** (`android/`): the mascot page in Chrome as a Trusted Web Activity (full screen, landscape, the
+  microphone and speech of a Chrome tab), paired by typing the address or scanning the new QR code in Settings;
+  **notifications with the app closed** (opt-in: a quiet notification waits on the computer, `/api/events` held open
+  up to 25 s with `wait=`) and a **home screen widget** with Cody's face for the last heads-up. The computer vouches
+  for the app at `/.well-known/assetlinks.json` and hands it the token at `/app/hello`.
 - **Windows app**: `CodySetup.exe` (no Python needed, per-user install) with a tray icon: open Cody, status, start
   the voice session, settings, start with Windows, quit. Opening it starts the server, the mascot and the voice
   session.

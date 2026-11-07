@@ -12,6 +12,20 @@ Things only the maintainer can do. Newest last.
       new Claude Code session is needed), then say *"Cody, printa"*, *"Cody, quanto resta de uso?"*, *"Cody, põe os
       fones"* and *"Cody, faz um arco-íris para você"* in the voice session (restart it: the channel has two new
       tools). Play something on Spotify: the headphones should come on within a few seconds.
+- [ ] **The Android app on Google Play.** `android/` builds (`cd android && ./gradlew assembleDebug`); the
+      `Android app` workflow uploads `Cody-debug.apk` and `Cody-release.aab` on every push that touches it. To
+      publish: (1) a Google Play developer account (US$ 25, one time; only you can create it); (2) an upload key,
+      `keytool -genkeypair -v -keystore upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000`, kept
+      out of the repository, with the four `ANDROID_*` secrets in the repository settings (see the workflow), or
+      `android/keystore.properties` for a local release build; (3) Play App Signing on: copy the **app signing**
+      certificate's SHA-256 from Play Console > App integrity into `RELEASE_FINGERPRINTS` in `cody/android.py`,
+      so every user's computer vouches for the published app; (4) the listing: icon 512 (`web/icon-512.png`),
+      feature graphic 1024x500, phone screenshots, the privacy policy URL (PRIVACY.md on GitHub), and the
+      foreground service declaration (type `specialUse`: "keeps a connection to the user's own computer on
+      their private network to show their coding assistant's notifications; opt-in; no data leaves the network",
+      with a short video of the switch and a notification); (5) upload the `.aab`, closed testing first. Until
+      then, install the debug APK from the workflow run (or `adb install`) and add your debug fingerprint to
+      `android_fingerprints` in `config.json` so Chrome shows it full screen.
 - [ ] **Spotify, if ever**: not an OAuth app with a backend of refresh tokens (user data on your server, and a
       Spotify app in development mode serves 25 users). SMTC covers "something is playing" for every player. A
       player-specific link would be PKCE on the user's machine with the token in `%LOCALAPPDATA%\cody`: decide

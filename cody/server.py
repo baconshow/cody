@@ -9,7 +9,10 @@ Routes:
   GET  /api/scenes             the custom scenes Claude made by voice (cody/custom.py)
   GET  /api/cursor             the mouse position, -1..1 (Windows only), or the spot the mini Cody points at
   GET  /api/timers             timers and reminders set by voice (cody/timers.py)
-  GET  /api/events?after=N     heads-up from the Claude Code hooks: done, needs you (cody/hooks.py)
+  GET  /api/events?after=N     heads-up from the Claude Code hooks: done, needs you (cody/hooks.py); &wait=S holds
+                               the request up to S seconds until there is one (the Android app, with the app closed)
+  GET  /app/hello              this run's token and the language, for the Android app (cody/android.py)
+  GET  /.well-known/assetlinks.json   the app's certificates, so Chrome shows the page as the app (no token)
   POST /api/voice              {"text"}: what you said, into the voice channel
   GET  /api/voice/replies?after=N
   GET  /api/voice/audio?seq=N  the reply in the ElevenLabs voice, when one is configured
@@ -36,7 +39,8 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, settings, setup, timers, updates, voice
+from cody import (android, cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, settings, setup, timers,
+                  updates, voice)
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
@@ -50,6 +54,8 @@ LOG = logging.getLogger("cody")
 MAX_POST_BODY = 4096
 SOCKET_TIMEOUT_S = 15       # a stalled connection (headers dripping in) is dropped
 MAX_CONNECTIONS = 48        # concurrent connections; beyond that they are closed right away
+MAX_WAIT_S = 30             # the longest /api/events?wait= holds a request; the phone asks again after
+WAIT_STEP_S = 0.5
 SAME_SITE = ("", "same-origin", "none")     # accepted Sec-Fetch-Site values (empty = not a browser)
 ENTRY_PAGES = ("/",)        # the only route a link from elsewhere may open (top-level GET navigation)
 VOICE_MESSAGES_PER_MINUTE = 20
@@ -399,7 +405,9 @@ class Handler(BaseHTTPRequestHandler):
             "/api/scenes": lambda: self._json(200, {"scenes": self.app.custom.list(), "version": self.app.custom.version()}),
             "/api/cursor": lambda: self._json(200, pointer.pointed() or cursor.position() or {"x": None, "y": None}),
             "/api/timers": lambda: self._json(200, timers.for_phone(language=self.app.config["language"])),
-            "/api/events": lambda: self._events(param("after")),
+            "/api/events": lambda: self._events(param("after"), param("wait")),
+            "/app/hello": lambda: self._json(200, android.hello(self.app.token, self.app.config)),
+            "/.well-known/assetlinks.json": lambda: self._json(200, android.asset_links(self.app.config)),
             "/api/voice/replies": lambda: self._json(200, voice.replies(param("after"))),
             "/api/voice/audio": lambda: self._voice_audio(param("seq")),
             "/api/voice/alert": lambda: self._voice_alert(param("key")),
@@ -435,7 +443,9 @@ class Handler(BaseHTTPRequestHandler):
             self._error(400, str(error))
 
     def _qr(self, which: str) -> None:
-        target = {"phone": settings.phone_url(self.app.config), "tailscale": settings.TAILSCALE_APP}.get(which)
+        phone = settings.phone_url(self.app.config)
+        target = {"phone": phone, "tailscale": settings.TAILSCALE_APP,
+                  "app": android.pair_link(phone) if phone else None}.get(which)
         if not target:
             self._error(404, "nothing to show")
             return
@@ -468,13 +478,20 @@ class Handler(BaseHTTPRequestHandler):
                          "typing": self.app.typist.typing(), "wanted": self.app.custom.wanted(),
                          "custom": self.app.custom.version()})
 
-    def _events(self, raw: str) -> None:
+    def _events(self, raw: str, wait_raw: str = "") -> None:
         try:
             after = max(0, int(raw or 0))
+            wait = min(MAX_WAIT_S, max(0, int(wait_raw or 0)))
         except ValueError:
             self._error(400, "invalid after")
             return
-        self._json(200, self.app.hooks.read(after))
+        deadline = time.monotonic() + wait
+        while True:                      # held open until an event, a restart of the count, or the deadline
+            result = self.app.hooks.read(after)
+            if result["events"] or result["cursor"] < after or time.monotonic() >= deadline:
+                break
+            time.sleep(WAIT_STEP_S)
+        self._json(200, result)
 
     def _voice_failed(self, error: voice.VoiceError) -> None:
         if error.status == 502:                  # the terminal says why the voice changed: nobody reads the phone's log

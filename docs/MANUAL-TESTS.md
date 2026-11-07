@@ -80,3 +80,20 @@ The corner of the mascot page: a light (green while Cody listens for its name, r
 the words show for a moment) and a gear. The gear opens Settings as a drawer on the right, with the mascot still in
 view; the X, Esc and a click outside the drawer close it. Changing a switch says "Saved." at the bottom of the
 drawer. Clicking inside the drawer must not make Cody hop. Tap Cody itself: it hops and blinks, with no sound.
+
+## 8. Android app
+
+Install the debug APK (`android/app/build/outputs/apk/debug/app-debug.apk`, or `Cody-debug.apk` from the `Android
+app` workflow) on a phone with Tailscale and Chrome. Open it: the pairing screen. Scan the second QR code in
+Settings > On your phone with the camera: the app opens with the address filled in and "Address read from the QR
+code"; or type the address. Tap Open Cody: with the debug fingerprint in `android_fingerprints` (README), Chrome
+shows the mascot full screen, landscape, no bar, and the wake word light is there; without it, the same page with
+a thin bar on top. Say "Cody" and talk: the microphone works like in Chrome.
+
+Back on the pairing screen (long-press the icon > Settings), turn on "Tell me when Claude needs me, even with the
+app closed", allow notifications, Open Cody, then close the app and lock the phone. On the PC, make Claude ask for
+a permission: within seconds the phone shows "Claude needs you" with sound; the quiet "Waiting on your computer"
+notification stays in the shade. Stop the Cody server: the quiet one says "Computer not reachable. Trying
+again."; start it again: back to "Waiting on your computer" within two minutes, and the next heads-up arrives.
+Add the widget (long-press the home screen): Cody's face for the last heads-up and the words; a tap opens the
+mascot. Reboot the phone: the quiet notification comes back by itself.

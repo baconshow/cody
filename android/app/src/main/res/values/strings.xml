@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cody</string>
+    <string name="pair_intro">Cody lives on your computer. Type its private address (the one Cody printed, like https://my-pc.tailnet.ts.net), or scan the QR code in Cody\'s Settings with your camera.</string>
+    <string name="address_hint">https://my-pc.tailnet.ts.net</string>
+    <string name="open">Open Cody</string>
+    <string name="watch_switch">Tell me when Claude needs me, even with the app closed</string>
+    <string name="watch_hint">Keeps a quiet notification and waits on your computer through your private network. Nothing leaves it.</string>
+    <string name="widget_hint">Long-press your home screen to add the Cody widget: its face for the last heads-up.</string>
+    <string name="bad_address">That is not an address Cody can be at. It starts with https:// and has nothing after the host.</string>
+    <string name="linked">Address read from the QR code. Tap Open Cody.</string>
+    <string name="watching">Waiting on your computer</string>
+    <string name="watch_offline">Computer not reachable. Trying again.</string>
+    <string name="channel_watch">Watching the computer</string>
+    <string name="channel_watch_hint">The quiet notification that keeps Cody listening to your computer while the app is closed.</string>
+    <string name="channel_alerts">Heads-up from Claude</string>
+    <string name="channel_alerts_hint">A long task finished, Claude is waiting for you, or an important notification came in.</string>
+    <string name="title_done">Done</string>
+    <string name="title_needs_you">Claude needs you</string>
+    <string name="widget_idle">All quiet</string>
+    <string name="widget_description">Cody\'s face for the last heads-up from Claude.</string>
+    <string name="shortcut_settings">Settings</string>
+</resources>

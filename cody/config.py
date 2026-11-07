@@ -26,6 +26,7 @@ import re
 import sys
 from pathlib import Path
 
+from cody import android
 from cody.store import data_dir
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -113,4 +114,5 @@ def load_config(path: Path | None = None, system=system_language) -> dict:
         "typing": data.get("typing") is True,                 # type along when you type in a Claude window: opt-in
         "notification_apps": [x.strip() for x in data.get("notification_apps") if isinstance(x, str) and x.strip()]
                               if isinstance(data.get("notification_apps"), list) else [],
+        "android_fingerprints": android.clean_fingerprints(data.get("android_fingerprints")),   # your own app build
     }
