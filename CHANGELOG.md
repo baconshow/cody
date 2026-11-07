@@ -25,7 +25,10 @@
   Esc and a click outside close it), instead of full-screen lists with a Close button in the corner. A gear in the
   corner opens Settings. The wake word state is a small light (green on, red off) instead of words. A tap on Cody is
   silent.
-- The sleeping Z is one piece, the thought bubbles grow to four, and after a shake Cody swears (`&#$*%@!`).
+- The sleeping Z is one piece, and after a shake Cody swears (`&#$*%@!`). Thinking, Cody lifts a front leg, and
+  the thought is one block with three dots, in front of its face.
+- The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
+  Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.
 - Opt-in update check (off by default). three.js and the font ship with Cody: the page works offline.
 - CI on Windows, macOS and Linux.
 

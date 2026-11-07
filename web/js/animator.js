@@ -18,7 +18,7 @@
 //
 // The body turns (q.yaw, radians) with the gaze and, listening sideways, with q.turn. The feet (q.feet) stay planted
 // while only the head moves and walk around with a real turn: feetYaw(). While they walk, q.stepping (0 to 1) lifts
-// the legs in turn.
+// the legs in turn. Thinking, q.lift (0 to 1) brings one front leg up, and down again after.
 //
 // The gaze runs from −1 to 1 on both axes, with y pointing down, as in the original.
 
@@ -34,6 +34,7 @@ export const SPRINGS = Object.freeze({
   hold: [90, 0.75],                        // the prop coming into the hand (and going away)
   grab: [160, 0.5],                        // the startle of a shaking phone: stretch, spread and tremble
   feet: [140, 0.9],                        // the legs walking around after the body, a little late
+  lift: [60, 0.75],                        // the front leg coming up to think, and down again
 });
 
 export const TIMINGS = Object.freeze({
@@ -80,7 +81,7 @@ function createSprings() {
     raiseL: s(0, SPRINGS.arm), raiseR: s(0, SPRINGS.arm), stretchL: s(0, SPRINGS.arm), stretchR: s(0, SPRINGS.arm),
     sproutX: s(0, SPRINGS.sprout), sproutY: s(0, SPRINGS.sprout),
     recoil: s(0, SPRINGS.recoil), turn: s(0, SPRINGS.turn), hold: s(0, SPRINGS.hold), grab: s(0, SPRINGS.grab),
-    feet: s(0, SPRINGS.feet),
+    feet: s(0, SPRINGS.feet), lift: s(0, SPRINGS.lift),
   };
 }
 
@@ -146,6 +147,7 @@ function advance(ctx, now) {
   drive(st, m.recoil, 0, dt);
   drive(st, m.turn, st.listening ? TURN_TO_LISTEN * st.side : 0, dt);
   drive(st, m.feet, feetYaw(m.turn.value, m.lookX.value), dt);
+  drive(st, m.lift, st.mood === 'thinking' ? 1 : 0, dt);
   drive(st, m.hold, st.prop ? 1 : 0, dt);
   drive(st, m.grab, st.grab ? 1 : 0, dt);
   if (st.cursing) { st.cursedAt = now; st.cursing = false; }
@@ -301,6 +303,7 @@ function fill(q, st, m, now, closed) {
   q.yaw = m.lookX.value * TURN.gaze + m.turn.value;
   q.feet = m.feet.value;
   q.stepping = st.quiet ? 0 : clamp(Math.abs(m.feet.velocity) / TURN.stride, 0, 1);
+  q.lift = clamp(m.lift.value, 0, 1.2);
   q.hold = clamp(m.hold.value, 0, 1.2);
   q.prop = q.hold > 0.02 ? st.lastProp : null;
   q.grab = clamp(m.grab.value, 0, 1.3);

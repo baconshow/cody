@@ -7,7 +7,7 @@
 //   createScene3d(canvas) → { measure(width, height, dpr), draw(q), eyeCenter() → { x, y } in CSS px }
 //     measure  width and height in CSS px; returns the framing mode. Wide screen (phone in landscape): the face
 //              big, peeking up from the bottom edge, like Bluey ('peek'); otherwise the whole figure, with room
-//              above for the letters and the bubbles ('full')
+//              above for the letters and the thought bubble ('full')
 
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
@@ -111,7 +111,7 @@ export function createScene3d(canvas) {
   const mascot = createMascot(THREE, RoundedBoxGeometry);
   const decorations = createDecorations(THREE, RoundedBoxGeometry, HEAD_TOP);
   scene.add(mascot.root);
-  mascot.wear(decorations.group);                        // the Z letters and the thought bubbles move with the head
+  mascot.wear(decorations.group);                        // the Z letters move with the head
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 50);
   const size = { width: 1, height: 1 };
   const point = new THREE.Vector3();

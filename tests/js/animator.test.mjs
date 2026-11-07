@@ -255,6 +255,23 @@ test('the feet stay planted while only the head moves and walk around with a rea
   assert.equal(q.stepping, 0);
 });
 
+test('thinking brings a front leg up (q.lift), and it comes down again when the thought is over', () => {
+  const animator = fresh('listening', 3);
+  let q = run(animator, 0, 1);
+  near(q.lift, 0, 1e-6, 'listening: all four on the floor');
+  animator.setMood('thinking');
+  q = run(animator, 1, 1.1);
+  assert.ok(q.lift > 0.05 && q.lift < 0.9, `on its way up, not at once: ${q.lift}`);
+  q = run(animator, 1.1, 3);
+  near(q.lift, 1, 0.03, 'thinking: the leg is up');
+  animator.setMood('listening');
+  q = run(animator, 3, 5);
+  near(q.lift, 0, 0.03, 'back on the floor');
+
+  q = fresh('thinking', 3, true).step(0);
+  assert.equal(q.lift, 1, 'reduce motion: already up');
+});
+
 test('the prop in hand: the magnifier comes in (hold reaches 1) and leaves without vanishing at once', () => {
   const animator = createAnimator({ random: seededRandom(3), quiet: false, mood: 'listening' });
   animator.setProp('magnifier');

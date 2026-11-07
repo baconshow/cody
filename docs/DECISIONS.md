@@ -315,3 +315,29 @@ one seen from the viewer's seat: the number row far away by the mascot, Tab, Cap
 the bottom row with the space bar nearest the viewer, and a numeric keypad on the right with + and Enter two rows
 tall and a wide 0. 78 keys, from a table of widths per row (`KEY_SLOTS`), with a test that no two overlap.
 
+## 2026-11-06 · The keyboard faces the mascot, the hands land on it, one leg up to think
+
+The maintainer, looking at the real keyboard: it was laid out for the viewer, not for Cody, who sits behind it;
+the arms went through it; it was a bit big. And in the thinking scene, the spheres next to the bubble made a
+tangle, and from the side one leg looked loose.
+
+- The keyboard is now laid out from the mascot's seat: the space bar by its belly, the number row nearest the
+  viewer, the keypad on its right (the viewer's left). The viewer sees it the wrong way round, which is what a
+  keyboard looks like from across a desk. The keys shrank from 0.125 to 0.105 units (the whole from 3.25 to
+  2.74 wide) and the tilt from 0.35 to 0.25 rad, so the keys still face the viewer.
+- The arms no longer cut through it: they come out nearly flat (1.3 rad), a little inward (0.25 rad) and thinner
+  as they stretch (×0.6 in depth), so the hand's lower edge rests on the Shift row and clears the space bar. Each
+  hand lifts in its turn, to the keyboard's own clock (`KEYBOARD.rhythm`, shared by `mascot3d.js`), and the key
+  that lights up is under the hand that is down (`pickKey`: the mascot's left hand on even beats, its right on odd
+  ones, each on its outer third of the keyboard). The numbers come from the shoulder's height (1.1) and the key
+  tops (0.6 to 0.67); change one and the other moves.
+- Thinking keeps only the block with the three dots (a scene part); the four spheres of `decorations3d.js` are
+  gone, and the module draws the Z letters alone.
+- Thinking lifts the front leg opposite the bubble (leg 0, at the mascot's right; the bubble floats at its
+  left), swung forward 0.95 rad and tapping in the air, through a new spring, `q.lift` (`SPRINGS.lift`), so it
+  comes up in about half a second and goes down again when the mood changes; with reduce motion it is simply up.
+  The maintainer asked for the leg opposite the bubble; it is also the leg that looked loose from the side.
+- Not done: the keyboard follows Claude (an edit on a code file, through the hooks, for 5 s), not the person
+  typing. Reading the person's own typing is item 13 of the refinement list and has its rule: it may tell that
+  keys are being pressed, never which ones.
+

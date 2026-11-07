@@ -9,13 +9,14 @@
 //                   the group keeps measuring from the floor under the mascot's middle, like everything else
 //     pose(q)   applies the animator's pose (animator.js): gaze, blink, breathing, hop, tilt, arms, sprout, blush,
 //               talk, the happy face (^ eyes), the touch recoil, turning sideways (the body by q.yaw, the legs
-//               walking after it by q.feet, so they never stay behind) and the prop in hand: the
-//               magnifier in front of the right eye, which grows huge behind the lens, or the keyboard, with the
-//               arms stretched out typing; and grabbing (phone shaking): arms stretched to the screen edges, legs
-//               spread, eyes wide, mouth open and the body trembling
+//               walking after it by q.feet, so they never stay behind), thinking with one front leg up in the
+//               air (q.lift) and the prop in hand: the magnifier in front of the right eye, which grows huge
+//               behind the lens, or the keyboard, with the hands coming down on the keys; and grabbing (phone
+//               shaking): arms stretched to the screen edges, legs spread, eyes wide, mouth open and the body
+//               trembling
 
 import { BODY, LEG, EYE, CHEEK, ARM, PX, BOOST } from './measures.js';
-import { createKeyboard } from './keyboard3d.js';
+import { createKeyboard, KEYBOARD } from './keyboard3d.js';
 
 const V = 0.1;                                           // units per voxel
 const DEPTH = 1.6;                                       // the body's depth (the drawing is front-only)
@@ -29,7 +30,13 @@ const BREATH = 0.018;
 const ARM_RAISE = 1.25;                                  // radians at raise = 1
 const SLEEPY_LID = 0.5;                                  // when sleepy, the eye stays half closed
 const RECOIL = Object.freeze({ move: 0.8, tip: 0.5, side: 0.45 });   // per unit of the recoil spring
-const TYPING = Object.freeze({ forward: 1.25, stretch: 1.3, tap: 0.09, rhythm: 21 });   // arms on the keyboard
+// the arms on the keyboard: out nearly flat (forward, radians), a little inward and thinner as they stretch, so the
+// hand's lower edge rests on the keys instead of going through them (the keyboard's tilt is in keyboard3d.js);
+// each hand lifts (radians) in its turn, to KEYBOARD.rhythm
+const TYPING = Object.freeze({ forward: 1.3, lift: 0.14, inward: 0.25, stretch: 1.3, thin: 0.4 });
+// thinking: the front leg opposite the thought bubble (which floats at the mascot's left, +x) comes up, swung
+// forward (radians), and taps in the air now and then
+const LIFT = Object.freeze({ leg: 0, swing: 0.95, tap: 0.12, rhythm: 2.6 });
 const GRAB = Object.freeze({ stretch: 1.9, spread: 0.4, eye: 0.28, shake: 0.05, rhythm: 27 }); // the shake startle
 // the swearing after a shake: the symbols come out one by one in the open mouth and jump about, comic-strip style
 const CURSE = Object.freeze({ text: '&#$*%@!', colors: ['#ffd23f', '#ff6b5b', '#7ee081', '#6ec3ff', '#ff9de2'],
@@ -222,13 +229,17 @@ function applyPose(p, q) {
   p.leaves.rotation.x = q.sproutY * 0.3;
 }
 
-// the legs turn after the body (q.feet) and, while they do, step in diagonal pairs, like a little trot
+// the legs turn after the body (q.feet) and, while they do, step in diagonal pairs, like a little trot; thinking
+// (q.lift), one front leg stays up in the air
 function poseFeet(p, q) {
   p.feet.rotation.y = q.feet || 0;
   const stepping = q.stepping || 0;
+  const lift = Math.max(0, q.lift || 0);
+  const tap = q.quiet ? 0 : Math.max(0, Math.sin(q.time * LIFT.rhythm)) * LIFT.tap;
   p.legs.forEach((leg, i) => {
     const up = Math.max(0, Math.sin(q.time * STEP.rhythm + (i % 2) * Math.PI));
     leg.position.y = LEG.height * V + STEP.lift * stepping * up;
+    leg.rotation.x = i === LIFT.leg ? -lift * (LIFT.swing + tap) : 0;
   });
 }
 
@@ -252,13 +263,15 @@ function poseArms(p, q) {
     const onHandle = i === 1 && q.prop === 'magnifier' ? (q.hold || 0) * MAGNIFIER.arm : 0;   // the right hand holds the handle
     const raise = (i === 0 ? q.raiseL : q.raiseR) + ear + onHandle;
     const reach = i === 0 ? q.stretchL : q.stretchR;
-    const loose = s * (raise * ARM_RAISE + reach * 1.4);
+    const loose = s * (raise * ARM_RAISE + reach * 1.4) - s * typing * TYPING.inward;
     // grabbing: the arm goes out to the side, flat, toward the edge of the screen
     a.rotation.z = loose * (1 - grab) + s * (Math.PI / 2) * 0.95 * grab;
-    // typing: the arm goes forward to the keys, tapping in turn with the other one
-    const tap = q.quiet ? 0 : Math.sin(q.time * TYPING.rhythm + i * Math.PI) * TYPING.tap;
-    a.rotation.x = -typing * (TYPING.forward + tap) * (1 - grab);
+    // typing: the arm comes down on the keys and lifts in its turn (the left hand on the even beats of the
+    // keyboard's clock, the right on the odd ones, where the pressed key lights up)
+    const lift = q.quiet ? 0 : Math.max(0, Math.sin(q.time * KEYBOARD.rhythm + i * Math.PI)) * TYPING.lift;
+    a.rotation.x = -typing * (TYPING.forward + lift) * (1 - grab);
     a.scale.y = 1 + typing * TYPING.stretch * (1 - grab) + grab * GRAB.stretch;
+    a.scale.z = 1 - typing * TYPING.thin * (1 - grab);
   });
 }
 
