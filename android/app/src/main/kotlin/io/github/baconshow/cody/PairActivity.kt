@@ -43,26 +43,37 @@ class PairActivity : Activity() {
             prefs.address = clean
             prefs.watch = watch.isChecked
             status.text = ""
-            if (watch.isChecked) startWatching() else WatchService.stop(this)
-            openMascot()
+            when {
+                !watch.isChecked -> {
+                    WatchService.stop(this)
+                    openMascot()
+                }
+                // The mascot waits for the answer: finishing now would throw the answer away with the screen.
+                needsNotificationPermission() ->
+                    requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), ASK_NOTIFICATIONS)
+                else -> {
+                    WatchService.start(this)
+                    openMascot()
+                }
+            }
         }
         if (linked != null) status.text = getString(R.string.linked)
     }
 
-    private fun startWatching() {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), ASK_NOTIFICATIONS)
-            return
-        }
-        WatchService.start(this)
-    }
+    private fun needsNotificationPermission(): Boolean =
+        Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == ASK_NOTIFICATIONS && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode != ASK_NOTIFICATIONS) return
+        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
             WatchService.start(this)
+        } else {
+            // No notifications allowed: nothing to watch for. The switch goes back off instead of pretending.
+            prefs.watch = false
         }
+        openMascot()
     }
 
     private fun openMascot() {

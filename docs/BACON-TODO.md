@@ -23,9 +23,16 @@ Things only the maintainer can do. Newest last.
       feature graphic 1024x500, phone screenshots, the privacy policy URL (PRIVACY.md on GitHub), and the
       foreground service declaration (type `specialUse`: "keeps a connection to the user's own computer on
       their private network to show their coding assistant's notifications; opt-in; no data leaves the network",
-      with a short video of the switch and a notification); (5) upload the `.aab`, closed testing first. Until
-      then, install the debug APK from the workflow run (or `adb install`) and add your debug fingerprint to
-      `android_fingerprints` in `config.json` so Chrome shows it full screen.
+      with a short video of the switch and a notification), and the "app access" note for reviewers (the app only
+      shows something with the user's own computer running Cody on their Tailscale network: say so, point at the
+      video); (5) upload the `.aab` to internal testing, then closed testing: a personal account created after
+      13 Nov 2023 needs 12 testers opted in for 14 days in a row before it can ask for production (the Reddit post
+      can recruit them; never bought testers), then "apply for production access" on the dashboard. Until then,
+      install the debug APK from the workflow run (or `adb install`) and add your debug fingerprint to
+      `android_fingerprints` in `config.json` so Chrome shows it full screen. Known from the first run on a real
+      phone: an old Cody PWA on the same address steals the launch (Chrome opens it instead of the app), so
+      uninstall it; the phone must have Tailscale connected before the first launch, or Chrome keeps the failed
+      verification for that window (closing Chrome clears it).
 - [ ] **Spotify, if ever**: not an OAuth app with a backend of refresh tokens (user data on your server, and a
       Spotify app in development mode serves 25 users). SMTC covers "something is playing" for every player. A
       player-specific link would be PKCE on the user's machine with the token in `%LOCALAPPDATA%\cody`: decide

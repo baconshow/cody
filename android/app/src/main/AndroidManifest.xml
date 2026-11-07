@@ -59,6 +59,12 @@
             <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION" android:value="landscape" />
         </activity>
 
+        <!-- androidbrowserhelper switches this one on or off every time the mascot opens, so it has to exist; nothing
+             opens it (MascotActivity drops its "Site Settings" shortcut, which would point at a fixed address) -->
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
+            android:exported="false" />
+
         <!-- The splash image is handed to Chrome through a FileProvider (androidbrowserhelper needs it) -->
         <provider
             android:name="androidx.core.content.FileProvider"
