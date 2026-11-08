@@ -527,3 +527,6 @@ tangle, and from the side one leg looked loose.
   mascot.
 - One addition to the design: a "Change the address" line under "Computer not found", so a typo is not a dead end
   (back does the same).
+- The Settings shortcut goes through the pairing check: the heads-up switch comes after "Hi! Cody is awake.", so
+  with the computer off there is no way to that switch from the phone. Kept that way by the maintainer on
+  2026-11-07; the Settings panel of the landscape page (the next design piece) is where that will live.
