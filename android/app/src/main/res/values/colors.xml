@@ -1,7 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The first run's palette, from the design: black, two greys of text, the accent, and the surfaces between -->
 <resources>
     <color name="black">#000000</color>
     <color name="ink">#f2f2f2</color>
     <color name="dim">#8a8a8a</color>
     <color name="cody">#ff8a3d</color>
+    <color name="on_cody">#1a0d05</color>
+    <color name="cody_pressed">#e0ff8a3d</color>
+    <color name="cody_glow">#5cff8a3d</color>
+    <color name="card">#121212</color>
+    <color name="chip">#1c1c1c</color>
+    <color name="chip_outline">#141414</color>
+    <color name="chip_outline_line">#222222</color>
+    <color name="line">#1f1f1f</color>
+    <color name="rail">#262626</color>
+    <color name="outline">#333333</color>
+    <color name="field_line">#3a3a3a</color>
+    <color name="ring">#4a4a4a</color>
+    <color name="muted">#5a5a5a</color>
+    <color name="ok">#47b33a</color>
+    <color name="ok_text">#7fd96a</color>
+    <color name="ok_line">#5947b33a</color>
+    <color name="ok_tint">#2447b33a</color>
+    <color name="error">#ff6a5c</color>
+    <color name="error_text">#ff8a7a</color>
+    <color name="error_tint">#24ff6a5c</color>
+    <color name="thumb_on">#fff1e6</color>
+    <color name="widget_card">#161616</color>
+    <color name="app_square">#1f1f22</color>
+    <color name="home_top">#1d1a22</color>
+    <color name="home_bottom">#0d0d10</color>
 </resources>

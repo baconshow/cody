@@ -203,11 +203,12 @@ Shake the phone and the mascot holds on to the edges of the screen for dear life
 
 The same mascot as an app (`android/`, on Google Play once published; until then, the APK from the `Android app`
 workflow). It opens the page your computer serves in Chrome as a *Trusted Web Activity*: full screen, landscape,
-with the microphone and speech of a Chrome tab, no address bar. The first time it asks for the computer's address;
-with the app installed, scan the second QR code in Settings > On your phone instead (a `cody://pair` link) and
-it pairs by itself. Then two things a web page cannot do:
+with the microphone and speech of a Chrome tab, no address bar. The first run walks you through it: what you
+need (Cody on the computer, Tailscale on the phone), pairing by the second QR code in Settings > On your phone
+(a `cody://pair` link your camera understands) or the typed address, the heads-up switch and the widget. Then two
+things a web page cannot do:
 
-- **Tell me when Claude needs me, even with the app closed** (a switch on the pairing screen, off by default): a
+- **Tell me when Claude needs me** (a switch on the first run, off by default): a
   quiet notification keeps the app waiting on your computer (`/api/events`, held open up to 25 s at a time), and a
   long task done, Claude waiting for your permission, or an important notification you chose to hear become
   Android notifications with sound, screen off or not. Nothing leaves your tailnet; the app knows only the address
@@ -219,8 +220,8 @@ Chrome shows the page as the app only when the computer vouches for it: `/.well-
 app's certificates (the published one, plus `android_fingerprints` in `config.json` for a build of your own:
 `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` prints the
 SHA-256). Without a match it opens as a Custom Tab, the same page with a thin bar on top. Long-press the app's icon
-for *Settings* (the address, the switch). Building it yourself: `cd android && ./gradlew assembleDebug` with JDK 17
-and the Android SDK (platform 36); the unit tests run with `./gradlew testDebugUnitTest`.
+for *Settings* (the first run again, from the address on). Building it yourself: `cd android && ./gradlew
+assembleDebug` with JDK 17 and the Android SDK (platform 36); the unit tests run with `./gradlew testDebugUnitTest`.
 
 ## Talk to it (voice)
 

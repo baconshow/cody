@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Portrait: the design's 360 x 800 dp. values-land shrinks the hero so the words stay on screen. -->
+<resources>
+    <dimen name="hero_width">300dp</dimen>
+    <dimen name="hero_height">225dp</dimen>
+    <dimen name="hero_top">96dp</dimen>
+    <dimen name="hero_top_done">72dp</dimen>
+    <dimen name="result_head_width">160dp</dimen>
+    <dimen name="result_head_height">120dp</dimen>
+    <dimen name="result_head_top">56dp</dimen>
+    <dimen name="headline_top">40dp</dimen>
+</resources>

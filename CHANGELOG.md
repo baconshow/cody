@@ -11,6 +11,13 @@
   used to get half the files, and a black screen, on the first open). **The app icon is Cody's face**, tilted and
   peeking over the bottom edge, as an adaptive icon (background, foreground and the Android 13+ themed silhouette),
   with the same face as the web icons and the head's silhouette as the status bar icon.
+- **The app's first run** is six screens instead of a form: welcome (Cody's head, drawn by the app, blinking),
+  the two prerequisites with their live state (Cody on the computer, checked at `/app/hello` once an address is
+  known; the Tailscale app on the phone, with Install or Open), pairing by the QR code (the phone's own camera reads
+  the `cody://pair` link) or the typed address, with "Hi! Cody is awake." or "Computer not found" after the real
+  check, the heads-up switch (the system asks for notifications the moment it goes on), the home screen widget
+  (the launcher's own add-widget sheet) and done. In English and Brazilian Portuguese, portrait and landscape; a
+  turn of the phone keeps the step. The Settings shortcut opens at the address and checks it right away.
 - **Windows app**: `CodySetup.exe` (no Python needed, per-user install) with a tray icon: open Cody, status, start
   the voice session, settings, start with Windows, quit. Opening it starts the server, the mascot and the voice
   session.

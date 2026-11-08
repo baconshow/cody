@@ -1,13 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="pair_intro">O Cody mora no seu computador. Digite o endereço privado dele (o que o Cody imprimiu, como https://meu-pc.tailnet.ts.net), ou leia o QR code das Configurações do Cody com a câmera.</string>
+    <!-- 01 Boas-vindas -->
+    <string name="welcome_title">Acompanhe o Claude de longe.</string>
+    <string name="welcome_body">O Cody mostra o que o Claude Code está fazendo no seu computador e avisa quando ele precisar de você.</string>
+    <string name="chip_open_source">Código aberto · MIT</string>
+    <string name="chip_private">Nada sai da sua rede</string>
+    <string name="get_started">Começar</string>
+
+    <!-- 02 O que você precisa -->
+    <string name="prereqs_title">Duas coisas antes</string>
+    <string name="prereqs_body">O Cody mora no seu computador. O celular chega até ele pela sua rede privada.</string>
+    <string name="cody_card_title">Cody no computador</string>
+    <string name="cody_card_body">Na pasta do projeto, rode:</string>
+    <string name="copy">copiar</string>
+    <string name="copied">copiado</string>
+    <string name="view_on_github">Ver no GitHub</string>
+    <string name="check_pending">Pendente</string>
+    <string name="check_running">Rodando</string>
+    <string name="check_not_found">Não encontrado</string>
+    <string name="check_installed">Instalado</string>
+    <string name="tailscale_card_title">Tailscale neste celular</string>
+    <string name="tailscale_card_body">A rede privada que liga o celular ao computador. Grátis para uso pessoal.</string>
+    <string name="install">Instalar</string>
+    <string name="open_app">Abrir</string>
+    <string name="prereqs_note">Dá para seguir assim mesmo: a verificação de verdade acontece no pareamento.</string>
+    <string name="prereqs_all_good">Tudo certo por aqui.</string>
+    <string name="action_continue">Continuar</string>
+
+    <!-- 03 Parear -->
+    <string name="pair_title">Conecte ao computador</string>
+    <string name="pair_body">As Configurações do Cody, no computador, mostram um QR code.</string>
+    <string name="scan_title">Ler o QR code</string>
+    <string name="scan_body">Aponte a câmera para a tela do computador</string>
+    <string name="open_camera">Abrir a câmera</string>
+    <string name="camera_missing">Nenhum app de câmera para abrir. Digite o endereço.</string>
+    <string name="type_address">Digitar o endereço</string>
+    <string name="type_body">Está no terminal onde o Cody abriu, e nas Configurações dele.</string>
+    <string name="address_label">Endereço do Cody</string>
     <string name="address_hint">https://meu-pc.tailnet.ts.net</string>
-    <string name="open">Abrir o Cody</string>
-    <string name="watch_switch">Me avisar quando o Claude precisar de mim, mesmo com o app fechado</string>
-    <string name="watch_hint">Mantém uma notificação silenciosa e espera pelo seu computador na sua rede privada. Nada sai dela.</string>
-    <string name="widget_hint">Segure a tela inicial para adicionar o widget do Cody: a cara dele para o último aviso.</string>
-    <string name="bad_address">Isso não é um endereço onde o Cody possa estar. Começa com https:// e não tem nada depois do host.</string>
-    <string name="linked">Endereço lido do QR code. Toque em Abrir o Cody.</string>
+    <string name="address_help">Começa com https e termina em .ts.net, com a porta se houver.</string>
+    <string name="address_invalid">Esse não parece um endereço do Tailscale. Ele começa com https e termina em .ts.net.</string>
+    <string name="connect">Conectar</string>
+    <string name="pair_checking">Procurando o seu computador…</string>
+    <string name="not_found_title">Computador não encontrado</string>
+    <string name="not_found_body">O Tailscale está ligado neste celular? E o Cody está rodando no computador?</string>
+    <string name="try_again">Tentar de novo</string>
+    <string name="open_tailscale">Abrir o Tailscale</string>
+    <string name="change_address">Mudar o endereço</string>
+    <string name="connected">Conectado</string>
+    <string name="connected_title">Oi! O Cody está acordado.</string>
+
+    <!-- 04 Avisos -->
+    <string name="notify_title">Avisos, mesmo com o app fechado</string>
+    <string name="notify_body">Uma notificação silenciosa fica esperando o seu computador, pela sua rede privada. Nada sai dela.</string>
+    <string name="sample_when">Cody · agora</string>
+    <string name="sample_done">Pronto! O Claude terminou.</string>
+    <string name="sample_needs_you">O Claude precisa de você no computador.</string>
+    <string name="watch_switch">Me avisar quando o Claude precisar de mim</string>
+    <string name="watch_optional">Opcional. Muda depois nas Configurações.</string>
+    <string name="not_now">Agora não</string>
+
+    <!-- 05 Widget -->
+    <string name="widget_title">O Cody na tela inicial</string>
+    <string name="widget_body">A cara dele e o último aviso, sem abrir o app.</string>
+    <string name="widget_sample_title">O Claude terminou</string>
+    <string name="widget_sample_when">há 3 min</string>
+    <string name="widget_manual">Ou segure a tela inicial, toque em Widgets e procure por Cody.</string>
+    <string name="add_to_home">Adicionar à tela inicial</string>
+    <string name="later">Depois</string>
+
+    <!-- 06 Pronto -->
+    <string name="done_title">Tudo pronto.</string>
+    <string name="done_body">O Cody abre em tela cheia, deitado. Para voltar aqui, segure o ícone do app e toque em Configurações.</string>
+    <string name="open_cody">Abrir o Cody</string>
+
+    <!-- O serviço de vigia, as notificações e o widget -->
     <string name="watching">Esperando pelo seu computador</string>
     <string name="watch_offline">Computador fora de alcance. Tentando de novo.</string>
     <string name="channel_watch">Vigiando o computador</string>

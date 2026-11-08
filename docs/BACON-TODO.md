@@ -12,6 +12,19 @@ Things only the maintainer can do. Newest last.
       new Claude Code session is needed), then say *"Cody, printa"*, *"Cody, quanto resta de uso?"*, *"Cody, põe os
       fones"* and *"Cody, faz um arco-íris para você"* in the voice session (restart it: the channel has two new
       tools). Play something on Spotify: the headphones should come on within a few seconds.
+- [ ] **Try the new first run on the phone** (`cd android && .\gradlew.bat assembleDebug`, then `adb install -r
+      app\build\outputs\apk\debug\app-debug.apk`; the phone was left paired, with the watch on). To see it from the
+      top, clear the app's data (Settings > Apps > Cody > Storage > Clear data; the address goes with it) and open
+      Cody: welcome, "Two things first" (Tailscale shows Installed; Cody stays Pending until an address is known),
+      "Connect to your computer". Tap *Open the camera*, point it at the QR code in Cody's Settings > On your phone
+      (the second one), tap the link the camera offers: the app comes back on "Hi! Cody is awake." by itself. Also
+      try a typed address with a typo (red field, Connect greyed out), the computer off (Cody asleep, "Computer not
+      found", Try again / Open Tailscale / Change the address), and turning the phone on each screen (the step must
+      stay). On the heads-up screen the switch asks for the permission at once; *Add to home screen* opens One UI's
+      own widget sheet. Long-press the icon > Settings: the saved address is checked right away. Not tried by the
+      session: the camera path end to end (the Samsung camera's link chip), the permission dialog on a phone that
+      never granted it, Android 15's edge-to-edge insets (the S20 FE is on 13). After `adb install -r` One UI shows
+      the widget as "Reload" until it is tapped once.
 - [ ] **The Android app on Google Play.** `android/` builds (`cd android && ./gradlew assembleDebug`); the
       `Android app` workflow uploads `Cody-debug.apk` and `Cody-release.aab` on every push that touches it. To
       publish: (1) a Google Play developer account (US$ 25, one time; only you can create it); (2) an upload key,

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 03 Connect to your computer: the choice (QR or typing), the typed address, and the result (found or not) -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <include
+        android:id="@+id/pairChoose"
+        layout="@layout/pair_choose" />
+
+    <include
+        android:id="@+id/pairType"
+        layout="@layout/pair_type"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/pairResult"
+        layout="@layout/pair_result"
+        android:visibility="gone" />
+</FrameLayout>

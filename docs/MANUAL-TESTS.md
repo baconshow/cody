@@ -84,16 +84,22 @@ drawer. Clicking inside the drawer must not make Cody hop. Tap Cody itself: it h
 ## 8. Android app
 
 Install the debug APK (`android/app/build/outputs/apk/debug/app-debug.apk`, or `Cody-debug.apk` from the `Android
-app` workflow) on a phone with Tailscale and Chrome. Open it: the pairing screen. Scan the second QR code in
-Settings > On your phone with the camera: the app opens with the address filled in and "Address read from the QR
-code"; or type the address. Tap Open Cody: with the debug fingerprint in `android_fingerprints` (README), Chrome
-shows the mascot full screen, landscape, no bar, and the wake word light is there; without it, the same page with
-a thin bar on top. Say "Cody" and talk: the microphone works like in Chrome.
+app` workflow) on a phone with Tailscale and Chrome. Open it: the first run, six screens with the progress bar on
+top. Welcome (Cody blinks); "Two things first" (Tailscale: Installed, with Open; Cody: Pending, with the command
+and copy); "Connect to your computer": tap Open the camera, point it at the second QR code in Settings > On your
+phone and tap the link the camera offers, or type the address. A wrong address turns the field red and greys out
+Connect; the computer off gives "Computer not found" with Try again, Open Tailscale and Change the address; found,
+Cody is happy and says "Hi! Cody is awake." over the address. Continue: the heads-up screen, where the switch asks
+for the notification permission as soon as it goes on; the widget screen, where Add to home screen opens the
+launcher's own sheet; "All set." Tap Open Cody: with the debug fingerprint in `android_fingerprints` (README),
+Chrome shows the mascot full screen, landscape, no bar, and the wake word light is there; without it, the same page
+with a thin bar on top. Say "Cody" and talk: the microphone works like in Chrome. Turn the phone on any screen of
+the first run: the step stays, the words rearrange.
 
-Back on the pairing screen (long-press the icon > Settings), turn on "Tell me when Claude needs me, even with the
-app closed", allow notifications, Open Cody, then close the app and lock the phone. On the PC, make Claude ask for
-a permission: within seconds the phone shows "Claude needs you" with sound; the quiet "Waiting on your computer"
-notification stays in the shade. Stop the Cody server: the quiet one says "Computer not reachable. Trying
+Long-press the icon > Settings: the flow opens at the address and checks it right away. With "Tell me when Claude
+needs me" on, Continue to the end, Open Cody, then close the app and lock the phone. On the PC, make Claude ask
+for a permission: within seconds the phone shows "Claude needs you" with sound; the quiet "Waiting on your
+computer" notification stays in the shade. Stop the Cody server: the quiet one says "Computer not reachable. Trying
 again."; start it again: back to "Waiting on your computer" within two minutes, and the next heads-up arrives.
-Add the widget (long-press the home screen): Cody's face for the last heads-up and the words; a tap opens the
-mascot. Reboot the phone: the quiet notification comes back by itself.
+Add the widget (long-press the home screen, or the first run's button): Cody's face for the last heads-up and the
+words; a tap opens the mascot. Reboot the phone: the quiet notification comes back by itself.

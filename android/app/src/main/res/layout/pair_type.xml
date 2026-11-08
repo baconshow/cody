@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            style="@style/Text.Headline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/headline_top"
+            android:text="@string/type_address" />
+
+        <TextView
+            style="@style/Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/type_body" />
+
+        <!-- The outlined field with its label cut into the top edge, like a Material text field -->
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:paddingTop="8dp">
+
+            <EditText
+                android:id="@+id/address"
+                style="@style/Text.Code"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:autofillHints="url"
+                android:background="@drawable/bg_field"
+                android:hint="@string/address_hint"
+                android:imeOptions="actionGo"
+                android:importantForAutofill="no"
+                android:inputType="textUri"
+                android:letterSpacing="-0.014"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:singleLine="true"
+                android:textColorHint="@color/muted"
+                android:textCursorDrawable="@null" />
+
+            <TextView
+                android:id="@+id/addressLabel"
+                style="@style/Text.Caption"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start|top"
+                android:layout_marginStart="12dp"
+                android:layout_marginTop="-8dp"
+                android:background="@color/black"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="@string/address_label" />
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/addressHelp"
+            style="@style/Text.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:text="@string/address_help" />
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <Button
+            android:id="@+id/connect"
+            style="@style/Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="24dp"
+            android:text="@string/connect" />
+
+        <Button
+            android:id="@+id/scanInstead"
+            style="@style/Button.Text"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:text="@string/scan_title" />
+    </LinearLayout>
+</ScrollView>

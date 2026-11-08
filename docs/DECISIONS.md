@@ -504,3 +504,26 @@ tangle, and from the side one leg looked loose.
   shows "All quiet". Play Store distribution needs the maintainer's own developer account, the upload key and the
   listing: `docs/BACON-TODO.md`. The workflow builds the debug APK and the release bundle (signed only when the
   repository has the key in its secrets).
+
+## 2026-11-07 · The app's first run: six screens from the design, with the real check at pairing
+
+- The maintainer designed the first run in Claude Design (welcome, prerequisites, pairing, the heads-up switch, the
+  widget, done; black, `#f2f2f2`, `#8a8a8a`, `#ff8a3d`) and wanted it to feel like a product. It replaces the one
+  pairing form in `PairActivity`: plain views in a `ViewFlipper`, the order in `Onboarding` (pure, tested), the
+  address cleaned by `Pairing` as before. The pairing contract with the computer did not change: `/app/hello` is
+  the one real check, and the `cody://pair` link and the Settings shortcut still land in the same activity.
+- The QR code is read by the phone's own camera (`INTENT_ACTION_STILL_IMAGE_CAMERA`): every camera app offers the
+  link it sees, and the app has no camera permission and no scanner library. The link comes back through
+  `onNewIntent` (launchMode singleTask), so the flow stays where it was.
+- The prerequisites warn, never block (the design's rule). Tailscale is "Installed" or "Not found" by package
+  (`<queries>` names `com.tailscale.ipn`; no permission); whether it is connected cannot be known without a VPN
+  permission, so the pairing check answers that. Cody on the computer is checked only when an address is already
+  known (the Settings shortcut); a first run shows Pending.
+- The system's notification prompt comes the moment the switch goes on, not at Continue, and a refusal turns the
+  switch back off; the watch service starts at Continue, after the address is saved (it stops itself without one).
+- Cody's head on the welcome, the result and the done screens is drawn by the app (`CodyHead`, a View with the
+  design's shapes and gradients) instead of a bitmap, so it can blink and change eyes; it holds still when the
+  phone's animations are off. The widget preview uses the same head; the real widget keeps its stills of the 3D
+  mascot.
+- One addition to the design: a "Change the address" line under "Computer not found", so a typo is not a dead end
+  (back does the same).

@@ -26,6 +26,13 @@ class PairingTest {
     }
 
     @Test
+    fun theAddressIsShownWithoutTheSchemeAndTheSlash() {
+        assertEquals("my-pc.tailnet.ts.net", Pairing.display("https://my-pc.tailnet.ts.net/"))
+        assertEquals("my-pc.tailnet.ts.net:8443", Pairing.display("https://my-pc.tailnet.ts.net:8443/"))
+        assertEquals("10.0.2.2:7420", Pairing.display("http://10.0.2.2:7420/"))
+    }
+
+    @Test
     fun thePairLinkCarriesTheAddress() {
         assertEquals("https://my-pc.tailnet.ts.net/", Pairing.fromLink("cody://pair?url=https%3A%2F%2Fmy-pc.tailnet.ts.net%2F"))
         assertEquals("https://my-pc.tailnet.ts.net/", Pairing.fromLink("cody://pair?x=1&url=https://my-pc.tailnet.ts.net/"))

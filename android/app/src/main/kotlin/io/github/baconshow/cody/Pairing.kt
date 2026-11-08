@@ -23,6 +23,10 @@ object Pairing {
         return "$scheme://$host$port/"
     }
 
+    /** The address as people read it, `my-pc.tailnet.ts.net:8443`: no scheme, no slash. */
+    fun display(address: String): String =
+        address.removePrefix("https://").removePrefix("http://").trimEnd('/')
+
     /** The address inside a `cody://pair?url=...` link (the QR code on the computer), or null. */
     fun fromLink(link: String?): String? {
         val uri = try { URI(link ?: return null) } catch (_: URISyntaxException) { return null }
