@@ -3,8 +3,8 @@
     <string name="app_name">Cody</string>
 
     <!-- 01 Welcome -->
-    <string name="welcome_title">Keep an eye on Claude from afar.</string>
-    <string name="welcome_body">Cody shows what Claude Code is doing on your computer and lets you know when it needs you.</string>
+    <string name="welcome_title">Bring your Claude Code to life.</string>
+    <string name="welcome_body">See what Claude is doing, talk to it by voice, ask quick questions, have it change your code, and get a heads-up when it needs you. All on your own network.</string>
     <string name="chip_open_source">Open source · MIT</string>
     <string name="chip_private">Nothing leaves your network</string>
     <string name="get_started">Get started</string>

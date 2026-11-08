@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- 01 Boas-vindas -->
-    <string name="welcome_title">Acompanhe o Claude de longe.</string>
-    <string name="welcome_body">O Cody mostra o que o Claude Code está fazendo no seu computador e avisa quando ele precisar de você.</string>
+    <string name="welcome_title">Dê vida ao seu Claude Code.</string>
+    <string name="welcome_body">Veja o que o Claude está fazendo, fale com ele por voz, tire dúvidas, peça mudanças no seu código e receba um aviso quando ele precisar de você. Tudo na sua rede.</string>
     <string name="chip_open_source">Código aberto · MIT</string>
     <string name="chip_private">Nada sai da sua rede</string>
     <string name="get_started">Começar</string>

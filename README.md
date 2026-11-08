@@ -18,6 +18,43 @@ and a **heads-up** when one of your Claude Code sessions finishes a long task or
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are
 > trademarks of Anthropic, PBC. Cody is fan art. Not related to Sourcegraph's Cody either.
 
+## The pitch
+
+> The one section of this README written like a brochure, for a thing that is free and MIT. Every line below is
+> something Cody does today; the rest of the page says how, and what it costs (nothing extra).
+
+**Bring your Claude Code to life.** A desk pet that reacts, live, to every search, edit, command, failed test,
+finished subagent and permission prompt. Glance at it instead of at the terminal.
+
+**Command Claude Code by voice.** Say *"Cody"* from the couch. Your words land in a real Claude Code session on your
+computer, with your files, your tools and your context, and the mascot answers out loud in two sentences. Approve
+what it wants to run with a spoken *yes* or *no*.
+
+**Change your own code without touching the keyboard.** *"Cody, add a dark mode toggle to the settings page."*
+Claude edits the project the voice session was started in, on your computer, asking before it runs anything. Quick
+questions work the same way: *"what does the auth middleware do?"*, *"are the tests green?"*
+
+**Everything you already plugged into Claude Code, by voice.** A calendar, Airtable, your smart home: any MCP server
+you connected answers through Cody, with the same permission prompts.
+
+**Keep an eye on every session.** A long task finishes, Claude waits for your permission: your phone buzzes with
+Cody's face and the words, screen off or not, app closed or not. A home screen widget keeps the last heads-up.
+
+**Know where you stand with your plan.** *"Cody, how much usage do I have left?"*: the session and the week, said out
+loud and shown on screen, with when each one resets. Read from Claude Code's own status line, no API call.
+
+**A desk buddy on top.** Timers and reminders that ring on the phone, a memory of your name and how you like things,
+*"take a screenshot and send it to my WhatsApp"*, *"where is the export button?"* (a mini Cody flies to it on your
+screen), scenes and skins, and a swear word when you shake it.
+
+**Yours, on your network.** It runs on your computer, on your Claude subscription (no API key, no extra bill), and
+reaches your phone through your own Tailscale network. Nothing is sent to the author; nothing goes anywhere you
+did not choose.
+
+**Installs in three steps.** Download `CodySetup.exe`, open Cody, scan the QR code with your phone. The first run
+sets up the private network and the voice session for you. (The honest version, SmartScreen warning and all, is
+under [Windows app](#windows-app) and [Put it on your phone](#put-it-on-your-phone).)
+
 ## What it costs
 
 **Nothing extra, out of the box.**
