@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The status bar icon: Cody's head, white on nothing (Android tints it) -->
+<!-- The status bar icon: Cody's head, white on nothing (Android tints it); the eyes are holes -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:viewportWidth="480"
+    android:viewportHeight="480">
     <path
         android:fillColor="#FFFFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M4,5 h16 a2,2 0 0 1 2,2 v9 a2,2 0 0 1 -2,2 h-3 v2 h-10 v-2 h-3 a2,2 0 0 1 -2,-2 v-9 a2,2 0 0 1 2,-2 z M7.5,9 h2 v4 h-2 z M14.5,9 h2 v4 h-2 z" />
+        android:pathData="M66,140 h348 a66,66 0 0 1 66,66 v148 a66,66 0 0 1 -66,66 h-348 a66,66 0 0 1 -66,-66 v-148 a66,66 0 0 1 66,-66 z M240,76 h0 a9,9 0 0 1 9,9 v54 a9,9 0 0 1 -9,9 h0 a9,9 0 0 1 -9,-9 v-54 a9,9 0 0 1 9,-9 z M236.4,64.5 A33,15 -34 1 1 181.6,101.5 A33,15 -34 1 1 236.4,64.5 z M298.4,101.5 A33,15 34 1 1 243.6,64.5 A33,15 34 1 1 298.4,101.5 z M120,178 a22,22 0 0 0 -22,22 v60 a22,22 0 0 0 22,22 h0 a22,22 0 0 0 22,-22 v-60 a22,22 0 0 0 -22,-22 z M360,178 a22,22 0 0 0 -22,22 v60 a22,22 0 0 0 22,22 h0 a22,22 0 0 0 22,-22 v-60 a22,22 0 0 0 -22,-22 z" />
 </vector>

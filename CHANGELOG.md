@@ -8,7 +8,9 @@
   up to 25 s with `wait=`) and a **home screen widget** with Cody's face for the last heads-up. The computer vouches
   for the app at `/.well-known/assetlinks.json` and hands it the token at `/app/hello`. Through Tailscale serve the
   page now arrives whole: connections beyond the server's cap wait their turn instead of being dropped (the phone
-  used to get half the files, and a black screen, on the first open).
+  used to get half the files, and a black screen, on the first open). **The app icon is Cody's face**, tilted and
+  peeking over the bottom edge, as an adaptive icon (background, foreground and the Android 13+ themed silhouette),
+  with the same face as the web icons and the head's silhouette as the status bar icon.
 - **Windows app**: `CodySetup.exe` (no Python needed, per-user install) with a tray icon: open Cody, status, start
   the voice session, settings, start with Windows, quit. Opening it starts the server, the mascot and the voice
   session.
