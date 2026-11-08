@@ -18,7 +18,8 @@ POLL_S = 2
 STALE_S = 15                   # no word for this long (the child died, the machine slept): nothing is playing
 SCRIPT = r"""
 $null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
-$manager = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
+$type = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]
+$manager = Await ($type::RequestAsync()) ($type)
 while ($true) {
   $playing = $false
   foreach ($s in $manager.GetSessions()) {

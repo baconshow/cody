@@ -46,7 +46,8 @@ class StatuslineTest(unittest.TestCase):
         self.assertNotIn("secret", self.path.read_text(encoding="utf-8"))
 
     def test_runs_the_status_line_you_had_with_the_same_input(self):
-        previous = {"type": "command", "command": f'"{__import__("sys").executable}" -c "import sys,json; print(\'yours:\' + str(json.load(sys.stdin)[\'rate_limits\'][\'seven_day\'][\'used_percentage\']))"'}
+        yours = "import sys,json; print('yours:' + str(json.load(sys.stdin)['rate_limits']['seven_day']['used_percentage']))"
+        previous = {"type": "command", "command": f'"{__import__("sys").executable}" -c "{yours}"'}
         code, line = self.run_it(STATUS, {"language": "en", "statusline_previous": previous})
         self.assertEqual(code, 0)
         self.assertEqual(line.strip(), "yours:10")
@@ -98,7 +99,8 @@ class InstallTest(unittest.TestCase):
             self.assertTrue(usage.is_ours(saved["statusLine"]))
             self.assertTrue(usage.installed(settings))
             self.assertEqual(json.loads(config.read_text(encoding="utf-8"))[usage.PREVIOUS_KEY], yours)
-            self.assertEqual(usage.install(path=settings, config_path=config, command='"py" "cody.py" --statusline'), "Cody is the status line already.")
+            self.assertEqual(usage.install(path=settings, config_path=config, command='"py" "cody.py" --statusline'),
+                             "Cody is the status line already.")
             self.assertTrue(any(p.name.startswith("settings.json.cody-backup") for p in Path(tmp).iterdir()))
             usage.install(remove=True, path=settings, config_path=config)
             self.assertEqual(json.loads(settings.read_text(encoding="utf-8"))["statusLine"], yours)

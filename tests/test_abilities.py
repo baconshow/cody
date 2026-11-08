@@ -221,7 +221,8 @@ class SceneToolsTest(unittest.TestCase):
 
     def test_create_shows_right_away_undo_removes_and_list_names(self):
         self.assertTrue(self.abilities.call("custom_scene", {"action": "list"})["content"][0]["text"].startswith("No custom"))
-        out = self.abilities.call("custom_scene", {"action": "create", "scene": {"id": "rainbow", "parts": [{"boxes": [[0, 24, 0, 30, 1.5, 1.5]], "color": "#ff4d4d"}]}})
+        rainbow = {"id": "rainbow", "parts": [{"boxes": [[0, 24, 0, 30, 1.5, 1.5]], "color": "#ff4d4d"}]}
+        out = self.abilities.call("custom_scene", {"action": "create", "scene": rainbow})
         self.assertNotIn("isError", out)
         self.assertEqual(self.custom.wanted(), "rainbow")
         self.assertIn("rainbow", self.abilities.call("custom_scene", {"action": "list"})["content"][0]["text"])
@@ -229,6 +230,7 @@ class SceneToolsTest(unittest.TestCase):
         refused = self.abilities.call("custom_scene", {"action": "create", "scene": {"id": "x", "parts": [{"boxes": [[0, 0, 0, 1]]}]}})
         self.assertTrue(refused["isError"])
         self.assertIn("parts[0].boxes", refused["content"][0]["text"])
-        self.assertEqual(self.abilities.call("custom_scene", {"action": "undo"})["content"][0]["text"], "Removed the custom scene \"rainbow\".")
+        self.assertEqual(self.abilities.call("custom_scene", {"action": "undo"})["content"][0]["text"],
+                         "Removed the custom scene \"rainbow\".")
         self.assertIsNone(self.custom.wanted())
         self.assertTrue(self.abilities.call("custom_scene", {"action": "undo"})["isError"])

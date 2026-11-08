@@ -29,6 +29,8 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools    # the action's default asks for "tools", which the SDK no longer has
       - uses: gradle/actions/setup-gradle@v4
       - name: Upload key (only when the secrets exist)
         if: ${{ env.KEYSTORE != '' }}

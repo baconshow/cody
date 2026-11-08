@@ -50,7 +50,7 @@ class MediaWatcherTest(unittest.TestCase):
     def test_reads_the_child_and_ends_it_on_stop(self):
         hold = threading.Event()
         child = FakeChild(["silent\n", "playing\n"], hold)
-        w = media.MediaWatcher(True, spawn=lambda: child)
+        w = media.MediaWatcher(True, spawn=lambda: child, platform="win32")
         w.start()
         for _ in range(100):
             if w.playing():
@@ -69,7 +69,7 @@ class MediaWatcherTest(unittest.TestCase):
             spawns.append(1)
             return FakeChild(["playing\n"])
         with mock.patch.object(winrt, "RETRY_S", (0.01, 0.01, 0.01)):
-            w = media.MediaWatcher(True, spawn=spawn)
+            w = media.MediaWatcher(True, spawn=spawn, platform="win32")
             w.start()
             w._thread.join(3)
         self.assertEqual(len(spawns), 4)   # the first start and the three retries

@@ -82,7 +82,8 @@ def _part(part, where: str, errors: list) -> dict | None:
     sign = part.get("sign")
     if sign is not None:
         box = part.get("box")
-        if not (isinstance(sign, list) and 0 < len(sign) <= MAX_SIGN_LINES and all(isinstance(s, str) and len(s) <= MAX_SIGN_CHARS for s in sign)):
+        lines_ok = isinstance(sign, list) and 0 < len(sign) <= MAX_SIGN_LINES
+        if not (lines_ok and all(isinstance(s, str) and len(s) <= MAX_SIGN_CHARS for s in sign)):
             errors.append(f"{where}.sign: up to {MAX_SIGN_LINES} lines of {MAX_SIGN_CHARS} characters")
         elif not _box_ok(box):
             errors.append(f"{where}.box: a sign needs one box [x, y, z, width, height, depth]")
