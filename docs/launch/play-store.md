@@ -26,7 +26,8 @@ COMMAND CLAUDE CODE BY VOICE
 Say "Cody" and ask. Your words land in a real Claude Code session on your computer, with your files and your tools,
 and the mascot answers out loud in two sentences. Ask quick questions about your code, have Claude change it ("add a
 dark mode toggle to the settings page"), and approve what it wants to run with a spoken yes or no. Any MCP server
-you already connected to Claude Code answers through Cody too.
+you already connected to Claude Code answers through Cody too. And a word for another conversation ("tell my other
+session to run the tests") lands in that Claude session, open on the same computer, Claude Desktop included.
 
 A HEADS-UP, EVEN WITH THE APP CLOSED
 When a long task finishes or Claude is waiting for your permission, your phone buzzes with Cody's face and the words,
@@ -68,7 +69,9 @@ COMANDE O CLAUDE CODE POR VOZ
 Diga "Cody" e peça. Suas palavras entram numa sessão de verdade do Claude Code no seu computador, com os seus
 arquivos e as suas ferramentas, e o mascote responde em voz alta, em duas frases. Tire dúvidas rápidas sobre o seu
 código, peça mudanças ("adiciona um modo escuro na tela de configurações") e aprove o que ele quer rodar com um
-"sim" ou "não" falado. Qualquer servidor MCP que você já conectou ao Claude Code responde pelo Cody também.
+"sim" ou "não" falado. Qualquer servidor MCP que você já conectou ao Claude Code responde pelo Cody também. E um
+recado para outra conversa ("avisa a minha outra sessão para rodar os testes") chega naquela sessão do Claude,
+aberta no mesmo computador, Claude Desktop incluído.
 
 AVISOS, MESMO COM O APP FECHADO
 Quando uma tarefa longa termina ou o Claude está esperando a sua permissão, o celular vibra com a cara do Cody e as

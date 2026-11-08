@@ -37,6 +37,10 @@ questions work the same way: *"what does the auth middleware do?"*, *"are the te
 **Everything you already plugged into Claude Code, by voice.** A calendar, Airtable, your smart home: any MCP server
 you connected answers through Cody, with the same permission prompts.
 
+**Pass a word to your other Claude sessions.** *"Cody, tell my other session to run the tests when it is done."*
+The voice session is an ordinary Claude Code session, so it can message any other Claude session open on your
+computer, the Claude Desktop conversations included, and that session picks it up as if you had typed it there.
+
 **Keep an eye on every session.** A long task finishes, Claude waits for your permission: your phone buzzes with
 Cody's face and the words, screen off or not, app closed or not. A home screen widget keeps the last heads-up.
 
@@ -302,6 +306,12 @@ most. Nothing of this ever touches the files of your project.
 added, so whatever you already connected to Claude Code (Airtable, a calendar, your smart home) is there: *"Cody,
 what is on my roadmap this week?"*. Cody pre-approves only its own harmless tools; a tool from another server asks
 permission like always, and you answer **yes** or **no** out loud.
+
+**Your other Claude sessions, too.** *"Cody, tell my other session to run the tests when it is done."* Claude
+Code can message the other Claude sessions open on the same computer (the ones in the Claude Desktop app
+included), and the voice session is no exception: the words arrive in that conversation as a message, and the
+Claude there decides what to do with them. Nothing of this leaves your computer; Cody only carries your voice to
+the session that does the sending.
 
 ### Timers and reminders
 
