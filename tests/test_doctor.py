@@ -134,6 +134,16 @@ class StatusRoutesTest(unittest.TestCase):
         self.assertEqual((status, data["message"]), (200, "done"))
         act.assert_called_once_with("voice")
 
+    def test_restart_answers_first_and_stops_the_server_a_moment_later(self):
+        with mock.patch.object(Server, "restart_later") as later:
+            status, data = self.request("POST", "/api/action", body=b'{"do": "restart"}')
+        self.assertEqual((status, data["ok"]), (200, True))
+        self.assertTrue(self.app.restart_requested.is_set(), "main() starts Cody again once the server is down")
+        later.assert_called_once_with()
+        with mock.patch.object(doctor, "note_phone"):
+            status, _ = self.request("POST", "/api/action", host="pc.example.ts.net", body=b'{"do": "restart"}')
+        self.assertEqual(status, 403, "never from the phone")
+
 
 if __name__ == "__main__":
     unittest.main()

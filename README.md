@@ -230,7 +230,8 @@ Claude) on the public internet. Cody refuses Funnel requests and never trusts a 
    account on both.
 2. In the Tailscale admin console, under **DNS**, enable **MagicDNS** and **HTTPS certificates**.
 3. Start Cody and answer yes to the phone question. It prints the address, for example
-   `https://my-pc.tail1234.ts.net`. (By hand: `tailscale serve --bg 7420`, then restart Cody: it finds the address.)
+   `https://my-pc.tail1234.ts.net`. (By hand: `tailscale serve --bg 7420`, then restart Cody from Settings > About
+   > **Restart Cody**: it finds the address.)
 4. Open the address on your phone and use **Add to Home screen**. It runs full screen, landscape, and keeps the
    screen awake.
 

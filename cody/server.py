@@ -39,8 +39,8 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import (android, cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, settings, setup, timers,
-                  updates, voice)
+from cody import (android, cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, restart, settings, setup,
+                  timers, updates, voice)
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
@@ -65,7 +65,8 @@ STATUS_CACHE_S = 10
 PROXY_HEADERS = ("X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Host", "Tailscale-User-Login",
                  "Tailscale-User-Name", "Tailscale-Funnel-Request")
 PHONE_NOTE_S = 30
-ACTIONS = ("voice", "hooks")
+ACTIONS = ("voice", "hooks", "restart")
+RESTART_DELAY_S = 0.4            # the answer leaves before the server stops
 SETTINGS_POSTS = ("/api/settings", "/api/settings/key", "/api/settings/test", "/api/network")
 NETWORK_STEPS = ("install", "login", "serve")
 
@@ -97,6 +98,7 @@ class App:
         self.config = config
         self.port = config["port"]
         self.token = secrets.token_urlsafe(32)
+        self.restart_requested = threading.Event()         # set by the Restart button; main() starts Cody again
         extra = set(config["extra_hosts"])                 # e.g. your Tailscale serve host name
         self.hosts = {f"127.0.0.1:{self.port}", f"localhost:{self.port}"} | extra
         self.origins = {f"http://{h}" for h in self.hosts} | {f"https://{h}" for h in extra}
@@ -203,6 +205,9 @@ class App:
             result = {"ok": problem is None, "message": problem or ""}
         elif what == "hooks":
             result = {"ok": True, "message": hooks.install()}
+        elif what == "restart":
+            self.restart_requested.set()  # main() starts Cody again once the server is down (restart.py)
+            return {"ok": True, "message": ""}
         else:
             return {"ok": False, "message": "unknown action"}
         self.forget_status()
@@ -460,6 +465,8 @@ class Handler(BaseHTTPRequestHandler):
             self._error(403, "only from the computer itself")
         else:
             self._json(200, self.app.act(what))
+            if what == "restart":
+                self.server.restart_later()
 
     def _index(self) -> None:
         body = page.index_page(self.app.token)
@@ -533,13 +540,19 @@ class Handler(BaseHTTPRequestHandler):
 
 class Server(ThreadingHTTPServer):
     daemon_threads = True
-    allow_reuse_address = False      # on Windows it would let a second server share the port
+    # on Windows SO_REUSEADDR would let a second server share the port; elsewhere it only lets a restart bind while
+    # the old connections drain (without it, a restart on Linux or macOS waits a minute for TIME_WAIT)
+    allow_reuse_address = sys.platform != "win32"
     request_queue_size = 128         # the page through Tailscale serve (HTTP/2) opens dozens of connections at once
 
     def __init__(self, app: App):
         self.app = app
         self._slots = threading.BoundedSemaphore(MAX_CONNECTIONS)
         super().__init__(("127.0.0.1", app.port), Handler)
+
+    def restart_later(self) -> None:
+        """Stops serving a moment from now, from another thread (shutdown() waits for the serving loop)."""
+        threading.Timer(RESTART_DELAY_S, self.shutdown).start()
 
     def process_request_thread(self, request, client_address):
         """One thread per connection. Past MAX_CONNECTIONS a connection waits for a free slot (a page load is a
@@ -610,4 +623,7 @@ def main(argv=None) -> int:
         app.notices.stop()
         app.typist.stop()
         server.server_close()
+    if app.restart_requested.is_set():
+        LOG.info("starting again")
+        restart.relaunch()
     return 0

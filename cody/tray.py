@@ -1,7 +1,7 @@
 """The installed app (Cody.exe): starts the mascot server, opens the mascot and the voice session, and lives in the
 notification area with a small menu. Nobody opens a terminal by hand.
 
-    Open Cody · Status · Start voice session · Settings · Start with Windows · Quit
+    Open Cody · Status · Start voice session · Settings · Start with Windows · Restart · Quit
 
 The menu needs pystray and Pillow, which the Windows build bundles (packaging/). A checkout keeps running with the
 standard library only: `python cody.py --tray` works when those two are installed, and says so when they are not.
@@ -16,7 +16,7 @@ import threading
 import webbrowser
 from pathlib import Path
 
-from cody import autostart, launcher, setup
+from cody import autostart, launcher, restart, setup
 from cody.config import load_config
 from cody.store import data_dir
 
@@ -24,11 +24,11 @@ LOG = logging.getLogger("cody")
 ICON = Path(__file__).resolve().parent.parent / "web" / "icon-192.png"
 LABELS = {
     "en": {"open": "Open Cody", "status": "Status", "voice": "Start voice session", "settings": "Settings",
-           "autostart": "Start with Windows", "quit": "Quit", "voice_on": "voice session: on",
+           "autostart": "Start with Windows", "restart": "Restart Cody", "quit": "Quit", "voice_on": "voice session: on",
            "voice_off": "voice session: off", "busy": "Cody is already running"},
     "pt-BR": {"open": "Abrir o Cody", "status": "Estado", "voice": "Abrir sessão de voz", "settings": "Configurações",
-              "autostart": "Iniciar com o Windows", "quit": "Sair", "voice_on": "sessão de voz: ligada",
-              "voice_off": "sessão de voz: desligada", "busy": "O Cody já está aberto"},
+              "autostart": "Iniciar com o Windows", "restart": "Reiniciar o Cody", "quit": "Sair",
+              "voice_on": "sessão de voz: ligada", "voice_off": "sessão de voz: desligada", "busy": "O Cody já está aberto"},
 }
 
 
@@ -53,7 +53,7 @@ def start_voice(config: dict, opener=launcher.open_voice_window) -> str | None:
     return opener(launcher.voice_folder(None, config, Path.home()))
 
 
-def actions(config: dict, stop, open_url=webbrowser.open) -> dict:
+def actions(config: dict, stop, open_url=webbrowser.open, restart=None) -> dict:
     """What each menu entry does, by key (kept apart from pystray so it can be tested anywhere)."""
     def voice():
         problem = start_voice(config)
@@ -66,6 +66,7 @@ def actions(config: dict, stop, open_url=webbrowser.open) -> dict:
         "voice": voice,
         "settings": lambda: open_url(page(config, "settings")),
         "autostart": lambda: autostart.set_enabled(not autostart.enabled()),
+        "restart": restart or stop,
         "quit": stop,
     }
 
@@ -90,6 +91,7 @@ def _menu(pystray, config: dict, do: dict):
         item(text["autostart"], lambda: do["autostart"](), checked=lambda _i: autostart.enabled(),
              visible=sys.platform == "win32"),
         pystray.Menu.SEPARATOR,
+        item(text["restart"], lambda: do["restart"]()),
         item(text["quit"], lambda: do["quit"]()),
     )
 
@@ -128,8 +130,15 @@ def main(argv: list[str] | None = None) -> int:
     def stop():
         server.shutdown()
         icon.stop()
-    icon.menu = _menu(pystray, config, actions(config, stop))
+
+    def again():                          # Restart: the same as Quit, then a new Cody (the voice session stays)
+        app.restart_requested.set()
+        stop()
+    icon.menu = _menu(pystray, config, actions(config, stop, restart=again))
     icon.run()
     app.activity.stop()
     server.server_close()
+    if app.restart_requested.is_set():
+        LOG.info("starting again")
+        restart.relaunch()
     return 0

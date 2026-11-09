@@ -179,6 +179,21 @@ test('Settings opens from the gear with its four groups; the hosted voice cannot
   assert.equal(panel.querySelector('.sheet-body').children.length, 0, 'nothing stays behind in the closed drawer');
 });
 
+test('Restart Cody, under About, asks the server to start again and says the page comes back by itself', async () => {
+  const p = page();
+  const api = settingsApi();
+  const s = settings(p, api);
+  await s.open();
+  const [panel] = open(p);
+  const button = withText(panel, 'button', 'Restart Cody');
+  assert.ok(button, 'the button is in the drawer');
+  button.click();
+  await p.settle();
+  assert.deepEqual(api.calls, [['action', 'restart']]);
+  assert.equal(s.said.at(-1), en['settings.restart.wait']);
+  assert.equal(open(p).length, 0, 'the drawer closes: the page is about to reload');
+});
+
 test('picking a voice saves it and only swaps what is under the choice: the radios are not rebuilt', async () => {
   const p = page();
   const api = settingsApi();

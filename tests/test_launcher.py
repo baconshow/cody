@@ -148,11 +148,12 @@ class TrayTest(unittest.TestCase):
 
     def test_actions_open_the_right_pages(self):
         opened = []
-        do = tray.actions(self.config, stop=lambda: opened.append("stop"), open_url=opened.append)
-        for key in ("open", "status", "settings", "quit"):
+        do = tray.actions(self.config, stop=lambda: opened.append("stop"), open_url=opened.append,
+                          restart=lambda: opened.append("restart"))
+        for key in ("open", "status", "settings", "restart", "quit"):
             do[key]()
         self.assertEqual(opened, ["http://127.0.0.1:7420/", "http://127.0.0.1:7420/#status",
-                                  "http://127.0.0.1:7420/#settings", "stop"])
+                                  "http://127.0.0.1:7420/#settings", "restart", "stop"])
 
     def test_voice_is_not_opened_twice(self):
         opener = mock.Mock(return_value=None)

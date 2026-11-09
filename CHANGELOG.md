@@ -38,6 +38,8 @@
 - In the box at the bottom (what Claude asked to show), every http(s) address is a real link that opens in a new
   tab, even in the middle of a sentence; a tap elsewhere in the box still copies the whole text. The text is never
   read as HTML.
+- **Restart Cody** from Settings (About) and from the tray menu: the server stops and starts again with the same
+  command line, the page reloads itself, and the voice session is left alone. No terminal needed after an update.
 - **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping. What Cody wears (the nightcap,
   the headphones, the coffee in its hand, the bug on its head) moves with it; the camera slides to keep the monitor
   and the debug sign in the picture on any screen.
