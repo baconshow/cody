@@ -41,6 +41,17 @@ class ValidateTest(unittest.TestCase):
         self.assertEqual(set(scene), {"id", "trigger", "priority", "parts", "custom"}, "unknown keys are dropped")
         self.assertEqual(set(scene["parts"][0]), {"boxes"})
 
+    def test_eyes_are_a_shape_or_a_pair_and_may_be_the_whole_scene(self):
+        scene, errors = custom.validate({"id": "love", "eyes": "heart"})
+        self.assertEqual(errors, [])
+        self.assertEqual((scene["eyes"], scene["parts"]), (["heart", "heart"], []), "eyes alone make a scene")
+        scene, _ = custom.validate({**RAINBOW, "eyes": ["dot", "cross"]})
+        self.assertEqual(scene["eyes"], ["dot", "cross"])
+        for bad in ("moon", ["dot"], ["dot", "moon"], 7):
+            _, errors = custom.validate({"id": "x", "parts": RAINBOW["parts"], "eyes": bad})
+            self.assertTrue(errors and errors[0].startswith("eyes:"), bad)
+        self.assertIn("parts:", custom.validate({"id": "x"})[1][0], "without eyes, parts are still required")
+
 
 class StoreTest(unittest.TestCase):
     def setUp(self):

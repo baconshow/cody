@@ -28,6 +28,7 @@ MAX_SCENES = 12
 MAX_PARTS = 12
 MAX_BOXES = 80
 MAX_SIGN_LINES, MAX_SIGN_CHARS = 4, 18
+EYE_SHAPES = ("dot", "cross", "chevron", "heart", "bang", "star")   # the names in web/js/eyeshapes.js
 REACH = 60.0                   # voxels from the mascot's middle, any direction
 MAX_SIZE = 40.0
 MAX_SECONDS = 600
@@ -120,9 +121,10 @@ def validate(data) -> tuple[dict | None, list[str]]:
     priority = data.get("priority", 45)
     if not isinstance(priority, (int, float)) or isinstance(priority, bool) or not PRIORITY[0] <= priority <= PRIORITY[1]:
         errors.append(f"priority: a number from {PRIORITY[0]} to {PRIORITY[1]}")
-    parts = data.get("parts")
-    if not isinstance(parts, list) or not parts or len(parts) > MAX_PARTS:
-        errors.append(f"parts: 1 to {MAX_PARTS} parts")
+    eyes = _eyes(data.get("eyes"), errors)
+    parts = data.get("parts", [] if eyes else None)
+    if not isinstance(parts, list) or len(parts) > MAX_PARTS or (not parts and not eyes):
+        errors.append(f"parts: 1 to {MAX_PARTS} parts (none only with eyes)")
         parts = []
     clean = [p for p in (_part(part, f"parts[{i}]", errors) for i, part in enumerate(parts)) if p]
     if errors:
@@ -130,7 +132,20 @@ def validate(data) -> tuple[dict | None, list[str]]:
     scene = {"id": scene_id, "trigger": trigger, "priority": float(priority), "parts": clean, "custom": True}
     if data.get("over") is True:
         scene["over"] = True
+    if eyes:
+        scene["eyes"] = eyes
     return scene, []
+
+
+def _eyes(value, errors: list) -> list | None:
+    """"eyes": one shape for both eyes or [left, right], from EYE_SHAPES (web/js/eyeshapes.js draws them)."""
+    if value is None:
+        return None
+    pair = [value, value] if isinstance(value, str) else value
+    if isinstance(pair, list) and len(pair) == 2 and all(isinstance(e, str) and e in EYE_SHAPES for e in pair):
+        return list(pair)
+    errors.append(f"eyes: a shape name or [left, right], from {', '.join(EYE_SHAPES)}")
+    return None
 
 
 class CustomScenes:

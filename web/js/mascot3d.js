@@ -16,6 +16,7 @@
 //               trembling
 
 import { BODY, LEG, EYE, CHEEK, ARM, PX, BOOST } from './measures.js';
+import { eyeRows, eyeRuns } from './eyeshapes.js';
 import { createKeyboard, KEYBOARD } from './keyboard3d.js';
 
 const V = 0.1;                                           // units per voxel
@@ -76,8 +77,9 @@ function box(THREE, Rounded, [w, h, d], radius, mat, shadow = true) {
   return mesh;
 }
 
-// the eye: the black plastic bar with the reflection in the top corner, and the ^ of the happy face (two sticks)
-function eye(THREE, Rounded, m, cx) {
+// the eye: the black plastic bar with the reflection in the top corner, the ^ of the happy face (two sticks), and
+// the shapes a scene may ask for (eyeshapes.js: ♥, ×, > <...), built from the same plastic the first time they show
+function eye(THREE, Rounded, m, cx, side) {
   const group = new THREE.Group();
   const bar = box(THREE, Rounded, [EYE.width * V, EYE.height * V, 0.08], 0.03, m.eye, false);
   const glint = new THREE.Mesh(new THREE.PlaneGeometry(0.05, 0.05), m.glint);
@@ -93,7 +95,25 @@ function eye(THREE, Rounded, m, cx) {
   happy.visible = false;
   group.add(bar, happy);
   group.position.set(x(cx), 0, DEPTH / 2 + 0.005);
-  return { group, bar, happy };
+  const shapes = new Map();
+  const shape = (name) => {
+    if (!shapes.has(name)) {
+      const rows = eyeRows(name, side);
+      if (!rows) return null;
+      const cell = V / 2;                                    // half a voxel, as the glyphs are drawn
+      const made = new THREE.Group();
+      for (const run of eyeRuns(rows)) {
+        const piece = box(THREE, Rounded, [run.len * cell, cell * 1.12, 0.08], 0.012, m.eye, false);   // rows overlap: no seams
+        piece.position.set((run.col + run.len / 2 - rows[0].length / 2) * cell, (rows.length / 2 - run.row - 0.5) * cell, 0);
+        made.add(piece);
+      }
+      made.visible = false;
+      group.add(made);
+      shapes.set(name, made);
+    }
+    return shapes.get(name);
+  };
+  return { group, bar, happy, shape, shown: null };
 }
 
 // the magnifier: black plastic rim, the glass lens and the brown handle going down to the right hand. It lives in
@@ -165,7 +185,7 @@ export function createMascot(THREE, Rounded) {
   const face = new THREE.Group();                        // eyes, cheeks and mouth move together with the gaze
   face.position.y = BODY.height * V - (EYE.top + EYE.height / 2) * V;
   body.add(face);
-  const eyes = EYE.xs.map((vx) => eye(THREE, Rounded, m, vx + EYE.width / 2));
+  const eyes = EYE.xs.map((vx, side) => eye(THREE, Rounded, m, vx + EYE.width / 2, side));
   eyes.forEach((e) => face.add(e.group));
   const cheeks = CHEEK.xs.map((vx) => {
     const c = new THREE.Mesh(new THREE.PlaneGeometry(CHEEK.width * V * 1.4, 0.09), m.blush);
@@ -220,16 +240,21 @@ function applyPose(p, q) {
   const arc = q.mood === 'resting' ? 'asleep' : q.squint > 0.5 || p.skin.smile ? 'happy' : null;   // a skin may smile always
   const heavy = q.mood === 'sleepy' ? SLEEPY_LID : 0;
   const open = Math.max(0.1, 1 - Math.max(q.closed, heavy));
-  for (const e of p.eyes) {
+  p.eyes.forEach((e, i) => {
     e.group.position.y = -q.lookY * LOOK.eyeY + q.squint * 0.04;
-    e.bar.visible = !arc;
-    e.happy.visible = !!arc;
+    // a scene's eyes (q.eyes, eyeshapes.js) stand in for the bar and the arc while the scene shows
+    const want = (q.eyes?.[i] && e.shape(q.eyes[i])) ? q.eyes[i] : null;
+    if (e.shown && e.shown !== want) e.shape(e.shown).visible = false;
+    if (want) e.shape(want).visible = true;
+    e.shown = want;
+    e.bar.visible = !arc && !want;
+    e.happy.visible = !!arc && !want;
     e.happy.rotation.z = arc === 'asleep' ? Math.PI : 0;
     e.happy.scale.y = arc === 'asleep' ? 0.6 : 1;
     e.happy.position.y = arc === 'asleep' ? -0.1 : 0;
     e.bar.scale.set(1, open * (0.9 + 0.1 * q.pupil), 1);
     e.bar.position.y = -(1 - open) * EYE.height * V / 2;
-  }
+  });
   p.m.blush.opacity = Math.min(1, Math.max(0, (q.blush - 0.2) * 1.4));
   p.mouth.visible = p.skin.mouth && q.talk > 0.02;    // a skin with a mouth of its own hides this one
   p.mouth.scale.set(1, 0.3 + Math.min(1, q.talk * 1.6), 1);

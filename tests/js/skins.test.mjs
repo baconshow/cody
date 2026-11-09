@@ -9,7 +9,7 @@ const data = JSON.parse(readFileSync(new URL('../../web/skins/skins.json', impor
 const skins = validSkins(data);
 
 test('the shop has the classic skin first and the Halloween one, both free', () => {
-  assert.deepEqual(skins.map((s) => s.id), ['classic', 'halloween']);
+  assert.deepEqual(skins.map((s) => s.id), ['classic', 'halloween', 'aviator', 'pixel', 'boss']);
   for (const s of skins) assert.equal(s.price, 0, 'no real charge until Cody has a character of its own');
   assert.equal(skinName(skins[1], 'pt-BR'), 'Cody Abóbora');
   assert.equal(skinName(skins[1], 'fr'), "Jack-o'-Cody", 'English when the language has no name');
@@ -49,4 +49,17 @@ test('the viewer\'s choice lives in localStorage; the classic one clears it', ()
   saveSkin(win, CLASSIC);
   assert.equal(readSkin(win), null);
   assert.equal(readSkin({ get localStorage() { throw new Error('blocked'); } }), null, 'no storage: no choice, no crash');
+});
+
+test('three looks from the printed figures: the aviator, the pixel one and the boss, all worn on the body', () => {
+  const byId = Object.fromEntries(skins.map((s) => [s.id, s]));
+  for (const id of ['aviator', 'pixel', 'boss']) {
+    assert.ok(byId[id], id);
+    assert.equal(byId[id].price, 0);
+    assert.ok(byId[id].name.en && byId[id].name['pt-BR'], `${id} is named in both languages`);
+    assert.ok(byId[id].parts.length >= 3 && byId[id].parts.every((p) => p.on === 'body'), `${id} wears its pieces`);
+    assert.ok(skinScene(byId[id]), `${id} has pieces to build`);
+  }
+  assert.equal(byId.aviator.mouth, false, 'the aviator grins with its own teeth');
+  assert.equal(byId.boss.mouth, true);
 });

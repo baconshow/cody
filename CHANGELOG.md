@@ -40,6 +40,12 @@
   read as HTML.
 - **Restart Cody** from Settings (About) and from the tray menu: the server stops and starts again with the same
   command line, the page reloads itself, and the voice session is left alone. No terminal needed after an update.
+- **Other eyes**: a scene can give Cody ♥ ♥, ● ×, > <, ! < or ★ ★ instead of its two bars (`"eyes"` in the scene
+  data, half-voxel glyphs drawn in 3D and in 2D). Five scenes on request do only that: `love`, `laugh`, `wink`,
+  `dizzy`, `stars` (*"Cody, heart eyes!"*); the party is starstruck and the bug scene dizzy. A custom scene by
+  voice can set them too (eyes alone make a scene).
+- **Three new skins**, after the printed figures: the **Aviator** (round glasses, a pilot's cap, a grin), **Pixel**
+  (8-bit frames, a top hat) and **The Boss** (sunglasses, a beret, a moustache). Data, like the others; free.
 - **Scenes as data**: coding, thinking, coffee, debug, party, headphones and sleeping. What Cody wears (the nightcap,
   the headphones, the coffee in its hand, the bug on its head) moves with it; the camera slides to keep the monitor
   and the debug sign in the picture on any screen.

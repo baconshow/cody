@@ -12,7 +12,7 @@ const over = (s) => pickOver(scenes, situation(s))?.id ?? null;
 
 test('the essential scenes are there, all valid', () => {
   assert.deepEqual(scenes.map((s) => s.id).sort(),
-    ['coding', 'coffee', 'debug', 'headphones', 'knock', 'party', 'sleeping', 'thinking']);
+    ['coding', 'coffee', 'debug', 'dizzy', 'headphones', 'knock', 'laugh', 'love', 'party', 'sleeping', 'stars', 'thinking', 'wink']);
   assert.equal(scenes.length, data.scenes.length);
   for (const s of scenes) for (const p of s.parts) assert.ok(p.sign || p.boxes.every((b) => b.length === 6), s.id);
 });
@@ -127,4 +127,19 @@ test('a scene asked for by voice goes above the pick: worn in the over slot, the
   assert.deepEqual(wantedScene(all, situation({ reading: { wanted: 'headphones' } }), 'coding', null), { scene: 'coding', over: 'headphones' });
   assert.deepEqual(wantedScene(all, situation({ reading: { wanted: 'moon' } }), 'coding', null), { scene: 'coding', over: null }, 'an unknown wish changes nothing');
   assert.deepEqual(wantedScene(all, situation({}), null, null), { scene: null, over: null });
+});
+
+test('the reaction scenes change the eyes: hearts, dizzy, laughing, a wink, stars; the party and the bug have theirs too', () => {
+  const byId = Object.fromEntries(scenes.map((s) => [s.id, s]));
+  assert.deepEqual(byId.love.eyes, ['heart', 'heart']);
+  assert.deepEqual(byId.dizzy.eyes, ['dot', 'cross']);
+  assert.deepEqual(byId.laugh.eyes, ['chevron', 'chevron']);
+  assert.deepEqual(byId.wink.eyes, ['bang', 'chevron']);
+  assert.deepEqual(byId.stars.eyes, ['star', 'star']);
+  for (const id of ['love', 'dizzy', 'laugh', 'wink', 'stars']) assert.equal(byId[id].trigger, 'request', `${id} shows only when asked`);
+  assert.deepEqual(byId.party.eyes, ['star', 'star'], 'a long task done: starstruck');
+  assert.deepEqual(byId.debug.eyes, ['dot', 'cross'], 'a failure: dizzy');
+  assert.equal(byId.coding.eyes, undefined);
+  const odd = validScenes({ scenes: [{ id: 'x', trigger: 'request', priority: 1, parts: [], eyes: 'moon' }] });
+  assert.equal(odd[0].eyes, undefined, 'a shape this version does not know is left out, the scene stays');
 });

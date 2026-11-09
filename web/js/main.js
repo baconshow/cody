@@ -195,9 +195,18 @@ function drawOne(f, now, cycle) {
       ({ scene: q.scene, over: q.over } = wantedScene(scenes.list, situation, q.scene, q.over));   // asked for by voice
       if (situation.reading?.custom !== undefined && situation.reading.custom !== scenes.customVersion) reloadScenes(f, situation.reading.custom);
     }
+    q.eyes = sceneEyes(scenes.list, q.over, q.scene);        // the scene's eyes (eyeshapes.js); the one worn over wins
     q.skin = skins.current === CLASSIC ? null : `skin:${skins.current}`;
   }
   paint(f, q);
+}
+
+function sceneEyes(list, ...ids) {
+  for (const id of ids) {
+    const found = id ? list.find((s) => s.id === id) : null;
+    if (found?.eyes) return found.eyes;
+  }
+  return null;
 }
 
 // the custom scenes Claude made by voice (cody/custom.py) come from the server, with a version the activity
@@ -234,8 +243,8 @@ async function loadScenes(face, forced, over) {
   if (face?.scene?.setScenes && scenes.list.length) {
     face.scene.setScenes(scenes.list, skins.list.map(skinScene).filter(Boolean));
     face.scene.setSkin(skinNamed(skins.list, skins.current));
-    face.scenes = true;
   }
+  if (face) face.scenes = scenes.list.length > 0;      // the 2D drawing has no scene pieces, but gets the scene's eyes
 }
 
 // every frame while there is movement; when quiet, only when something asks for it

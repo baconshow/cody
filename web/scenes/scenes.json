@@ -1,6 +1,6 @@
 {
  "format": 1,
- "about": "Cody's scenes: voxel pieces shown around the mascot when their trigger is on (the highest priority wins). Boxes are [x, y, z, width, height, depth] in voxels (0.1 unit), measured from the floor under the mascot's middle; the front is +z. A part with \"on\": \"body\" is worn: it turns, hops and breathes with the mascot (the others stand still around it); \"pivot\": [x, y, z] is the point a worn part grows from and sways around. Clips: bob, blink, dots, steam, walk, confetti, sway. Drawn from scratch for Cody.",
+ "about": "Cody's scenes: voxel pieces shown around the mascot when their trigger is on (the highest priority wins). Boxes are [x, y, z, width, height, depth] in voxels (0.1 unit), measured from the floor under the mascot's middle; the front is +z. A part with \"on\": \"body\" is worn: it turns, hops and breathes with the mascot (the others stand still around it); \"pivot\": [x, y, z] is the point a worn part grows from and sways around. Clips: bob, blink, dots, steam, walk, confetti, sway. Drawn from scratch for Cody. \"eyes\": one shape for both eyes or [left, right] from dot, cross, chevron, heart, bang, star (web/js/eyeshapes.js): while the scene shows, the eyes take that shape (the right eye is the mirror of the left, so chevron is > <).",
  "scenes": [
   {
    "id": "debug",
@@ -125,6 +125,10 @@
      ],
      "ink": "#7dff9b"
     }
+   ],
+   "eyes": [
+    "dot",
+    "cross"
    ]
   },
   {
@@ -252,7 +256,8 @@
       ]
      ]
     }
-   ]
+   ],
+   "eyes": "star"
   },
   {
    "id": "sleeping",
@@ -785,6 +790,47 @@
      ]
     }
    ]
+  },
+  {
+   "id": "love",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": "heart",
+   "parts": []
+  },
+  {
+   "id": "laugh",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": "chevron",
+   "parts": []
+  },
+  {
+   "id": "wink",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": [
+    "bang",
+    "chevron"
+   ],
+   "parts": []
+  },
+  {
+   "id": "dizzy",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": [
+    "dot",
+    "cross"
+   ],
+   "parts": []
+  },
+  {
+   "id": "stars",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": "star",
+   "parts": []
   }
  ]
 }

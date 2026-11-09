@@ -14,6 +14,8 @@
 //   frameFor(halfWidth, span) → { x, halfWidth }: where the camera looks so the mascot and the scene both fit
 //   createSceneSounds() → (scene, now) → sound name | null: the sound of a scene that just came in
 
+import { eyesOf } from './eyeshapes.js';
+
 export const IDLE_COFFEE_S = 45;          // this long with nothing going on, and the coffee comes out
 export const SOUND_GAP_S = 5;             // a scene gone for less than this is the same moment: it returns without its sound
 
@@ -85,7 +87,12 @@ export function createSceneSounds(gap = SOUND_GAP_S) {
 export function validScenes(data) {
   const list = Array.isArray(data?.scenes) ? data.scenes : [];
   return list.filter((s) => s && typeof s.id === 'string' && TRIGGERS[s.trigger] && Number.isFinite(s.priority)
-    && Array.isArray(s.parts));
+    && Array.isArray(s.parts))
+    .map((s) => {
+      const { eyes, ...rest } = s;              // "eyes" (eyeshapes.js) stays only when it names real shapes
+      const pair = eyesOf(eyes);
+      return pair ? { ...rest, eyes: pair } : rest;
+    });
 }
 
 function pickAmong(scenes, situation, over) {

@@ -73,7 +73,9 @@ TEXTS = {
                         "on: \"world\" (stands around it) or \"body\" (worn: then a pivot [x, y, z]), clip: bob, "
                         "blink, dots, steam, walk, confetti or sway, or a sign: [lines] with one box}}], "
                         "trigger: request (shown only when asked, the default) or failed, done, coding, thinking, "
-                        "music, idle, sleeping, priority 1 to 100, over: true to wear it over other scenes}}. It is "
+                        "music, idle, sleeping, priority 1 to 100, over: true to wear it over other scenes, eyes: a "
+                        "shape for both eyes or [left, right] from dot, cross, chevron, heart, bang, star (eyes alone "
+                        "make a scene: {{id: \"love\", eyes: \"heart\"}})}}. It is "
                         "checked and refused with the reasons if anything is off; created, it shows right away. "
                         "action \"undo\" removes the newest custom scene (or `id`); action \"list\" names them. "
                         "Only when the user asks for a scene of their own.",
@@ -131,7 +133,9 @@ TEXTS = {
                         "\"#rrggbb\", on: \"world\" (fica em volta) ou \"body\" (vestida: aí um pivot [x, y, z]), clip: "
                         "bob, blink, dots, steam, walk, confetti ou sway, ou um sign: [linhas] com um box}}], "
                         "trigger: request (só quando pedirem, o padrão) ou failed, done, coding, thinking, music, "
-                        "idle, sleeping, priority de 1 a 100, over: true para vestir por cima das outras}}. É "
+                        "idle, sleeping, priority de 1 a 100, over: true para vestir por cima das outras, eyes: uma "
+                        "forma para os dois olhos ou [esquerdo, direito] entre dot, cross, chevron, heart, bang, star "
+                        "(só os olhos já fazem uma cena: {{id: \"love\", eyes: \"heart\"}})}}. É "
                         "conferida e recusada com os motivos se algo estiver errado; criada, aparece na hora. "
                         "action \"undo\" remove a cena personalizada mais nova (ou `id`); action \"list\" lista. "
                         "Só quando o usuário pedir uma cena própria.",

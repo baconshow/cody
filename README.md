@@ -180,8 +180,10 @@ its output.
 
 ## Skins
 
-Settings has a **Skin shop**: the classic Cody and **Jack-o'-Cody**, the Halloween one (a pumpkin with ridges, a
-glowing zigzag grin, the ^ eyes and a witch hat). Every skin is free while Cody is Cody; a paid one comes only
+Settings has a **Skin shop**: the classic Cody, **Jack-o'-Cody**, the Halloween one (a pumpkin with ridges, a
+glowing zigzag grin, the ^ eyes and a witch hat), and three looks with glasses: the **Aviator** (round glasses, a
+pilot's cap and a grin), **Pixel** (8-bit frames and a top hat) and **The Boss** (sunglasses, a beret and a
+moustache). Every skin is free while Cody is Cody; a paid one comes only
 with a character of its own. A skin is data, in `web/skins/skins.json`: new colors for the figure's plastic,
 pieces it wears (voxel boxes like a scene's worn parts, a color, maybe a glow) and two looks (the smile, its own
 mouth). The choice is per screen (the phone and the computer each pick theirs); `?skin=halloween` shows one.
@@ -296,9 +298,11 @@ capture your screen, `screenshot` and `look`, always ask first, by voice too (th
 the exception: there, your words are the permission).
 
 **Scenes on request, and scenes of Cody's own.** *"Cody, put your headphones on"*, *"show the party for a
-minute"*: Claude calls the `scene` tool and the page shows it for a while (30 seconds unless you say), over
-whatever else is going on. *"Cody, make yourself a rainbow"*: Claude writes a scene of its own with
-`custom_scene`, as data only (the same voxel boxes, colors and clips as `web/scenes/scenes.json`, never code),
+minute"*, *"heart eyes!"*: Claude calls the `scene` tool and the page shows it for a while (30 seconds unless you
+say), over whatever else is going on. Five scenes only change the eyes: `love` (♥ ♥), `laugh` (> <), `wink` (! <),
+`dizzy` (● ×) and `stars` (★ ★); the party has starstruck eyes and the bug scene dizzy ones on their own. *"Cody,
+make yourself a rainbow"*: Claude writes a scene of its own with
+`custom_scene`, as data only (the same voxel boxes, colors, clips and `eyes` as `web/scenes/scenes.json`, never code),
 which Cody checks field by field, refuses with the reasons if anything is off, and keeps in `custom/` in its data
 folder, loaded with the built-in scenes; it shows right away. *"Cody, undo"* removes the newest one. Twelve at
 most. Nothing of this ever touches the files of your project.
