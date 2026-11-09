@@ -26,6 +26,7 @@
 
 import { t, translate, locale, language, setLanguage } from './i18n.js';
 import { api } from './api.js';
+import { fillAttachment } from './links.js';
 import { createAnimator, TIMINGS } from './animator.js';
 import { createCycle } from './cycle.js';
 import { createSignal } from './signal.js';
@@ -337,8 +338,8 @@ function wireVoice(f, cycle, request) {
   const make = (tag, className) => Object.assign(document.createElement(tag), { className });
   const caption = make('p', 'caption');
   caption.setAttribute('aria-live', 'polite');
-  const attachment = make('button', 'attachment');
-  attachment.type = 'button';
+  const attachment = make('p', 'attachment');        // text with real links inside: not a button (a link in a button is not HTML)
+  attachment.tabIndex = 0;
   const wake = make('button', 'wake');
   wake.type = 'button';
   const notice = make('p', 'voice-notice');
@@ -350,7 +351,7 @@ function wireVoice(f, cycle, request) {
     onImage: (id) => shot.show(id),
     onState: (mood) => { cycle.setVoice(mood); request(); },
     onCaption: (text) => { if (text) caption.textContent = text; caption.classList.toggle('visible', !!text); },
-    onAttachment: (text) => { if (text) attachment.textContent = text; attachment.classList.toggle('visible', !!text); },
+    onAttachment: (text) => { if (text) fillAttachment(attachment, text); attachment.classList.toggle('visible', !!text); },
     onSide: (on) => { f.animator.setListening(on); request(); },
     onNotice: (text) => {
       notice.textContent = text;
@@ -366,7 +367,11 @@ function wireVoice(f, cycle, request) {
     },
   });
   f.animator.hearVoice(() => voice.volume());
-  attachment.addEventListener('click', () => useAttachment(attachment.textContent));
+  // a tap on a link opens it (the browser's own link); anywhere else in the box copies the whole text
+  attachment.addEventListener('click', (e) => { if (!e.target.closest('a')) useAttachment(attachment.textContent); });
+  attachment.addEventListener('keydown', (e) => {
+    if (e.target === attachment && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); useAttachment(attachment.textContent); }
+  });
   wake.addEventListener('click', () => {
     voice.listen(!voice.listening);
     wake.classList.add('told');                          // a phone has no hover: say what changed, briefly
