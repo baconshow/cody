@@ -50,6 +50,10 @@ Things only the maintainer can do. Newest last.
       Spotify app in development mode serves 25 users). SMTC covers "something is playing" for every player. A
       player-specific link would be PKCE on the user's machine with the token in `%LOCALAPPDATA%\cody`: decide
       only if a feature needs it (pause when Cody speaks, the song's name).
+- [ ] **Opening a link or an app on the phone by voice, if ever** ("Cody, open the pull request on my phone"): today
+      every address in the box at the bottom is a tap away, and the usage numbers stay there too. Going further
+      (Claude opening an app or a page on the phone on its own) needs an opt-in and a confirmation on screen first:
+      decide the rule before any code.
 - [ ] **Code-signing certificate for the Windows installer.** Without one, SmartScreen warns "Windows protected your
       PC" on every download until the file builds reputation (the README explains More info, Run anyway). Options:
       an OV or EV certificate from a CA, or Azure Trusted Signing (cheaper, needs an identity check). Once you have
