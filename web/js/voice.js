@@ -139,7 +139,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
       if (r?.quick) {                                    // answered on the spot ("Cody, take a screenshot"): the shutter, then the word
         caption(t('mascot.voice.you', { text }), false);
         await audio.play('snap');
-        speak({ text: String(r.quick.text || ''), show: null, image: r.quick.image ? String(r.quick.image) : null });
+        speak({ text: String(r.quick.text || ''), show: r.quick.show ? String(r.quick.show) : null, image: r.quick.image ? String(r.quick.image) : null });
         return;
       }
       onState('thinking');

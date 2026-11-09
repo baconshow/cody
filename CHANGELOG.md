@@ -56,7 +56,8 @@
 - **Skin shop**, with Jack-o'-Cody for Halloween (ridges, a glowing grin, a witch hat). Skins are data, like the
   scenes; all free while Cody is Cody.
 - **"Cody, how much usage do I have left?"** (opt-in): Cody as Claude Code's status line keeps your plan's session
-  and week usage (and runs the status line you had); the question is answered on the spot.
+  and week usage (and runs the status line you had); the question is answered on the spot, and the two numbers stay
+  in the box at the bottom of the screen.
 - **Typing along** (opt-in): while you type in a Claude window, Cody types on its keyboard too. It only learns that
   keys are being pressed, never which; no keyboard hook, nothing recorded.
 - **Your Windows notifications, read aloud** (opt-in): the important ones (messages, mail, calendar, calls, or an

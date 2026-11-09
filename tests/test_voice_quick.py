@@ -1,6 +1,7 @@
 """The quick screenshot (cody/voice.py): "Cody, take a screenshot" is answered on the spot, without Claude."""
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from cody import screen, voice
 
@@ -53,6 +54,26 @@ class QuickPrintTest(unittest.TestCase):
         with self.assertRaises(voice.VoiceError) as caught:
             voice.say({"text": "what time is it"}, Path("no-channel.json"), capture=lambda: self.fail("no capture"))
         self.assertEqual(caught.exception.status, 503)
+
+
+class QuickUsageTest(unittest.TestCase):
+    """"How much usage do I have left?" is said, and the two numbers stay in the box at the bottom."""
+
+    def test_the_numbers_are_spoken_and_shown(self):
+        known = {"five_hour": {"used": 42, "resets_at": 1_800_000_000.0}, "seven_day": {"used": 10, "resets_at": 1_800_000_000.0},
+                 "age_s": 60.0}
+        with mock.patch.object(voice.usage, "read", return_value=known):
+            answer = voice.say({"text": "how much usage do I have left"}, Path("no-channel.json"), capture=lambda: self.fail("no capture"))
+        self.assertEqual(answer["request_id"], "")
+        self.assertTrue(answer["quick"]["text"].startswith("Session: 42% used"), answer["quick"]["text"])
+        self.assertEqual(answer["quick"]["show"], "session 42% · week 10%")
+        self.assertIsNone(answer["quick"]["image"])
+
+    def test_unknown_usage_is_said_with_nothing_in_the_box(self):
+        with mock.patch.object(voice.usage, "read", return_value=None):
+            answer = voice.say({"text": "quanto resta de uso?"}, Path("no-channel.json"), language="pt-BR", capture=lambda: PNG)
+        self.assertEqual(answer["quick"]["text"], voice.usage.TEXT["pt-BR"]["unknown"])
+        self.assertIsNone(answer["quick"]["show"])
 
 
 if __name__ == "__main__":

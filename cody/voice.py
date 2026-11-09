@@ -122,7 +122,8 @@ def say(body: dict, path: Path | None = None, language: str = "en", capture=scre
     if is_print_command(text):
         return quick_print(language, capture)
     if usage.is_usage_question(text):              # "how much usage do I have left?": from usage.json, no Claude
-        return {"request_id": "", "quick": {"text": usage.phrase(usage.read(), language), "image": None}}
+        known = usage.read()                        # said in full; the two numbers stay in the box on screen
+        return {"request_id": "", "quick": {"text": usage.phrase(known, language), "show": usage.short(known, language), "image": None}}
     channel = _channel(path)
     if channel is None:
         raise VoiceError(503, "the voice channel is not open")

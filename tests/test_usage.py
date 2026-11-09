@@ -72,6 +72,13 @@ class StatuslineTest(unittest.TestCase):
         self.assertEqual(usage.phrase(None, "pt-BR"), usage.TEXT["pt-BR"]["unknown"])
         self.assertIsNone(usage.read(Path(self.tmp.name) / "missing.json"))
 
+    def test_the_short_form_for_the_box_on_screen(self):
+        self.run_it(STATUS, {"language": "en"})
+        data = usage.read(self.path, now=lambda: 1300.0)
+        self.assertEqual(usage.short(data, "en"), "session 42% · week 10%")
+        self.assertEqual(usage.short(data, "pt-BR"), "sessão 42% · semana 10%")
+        self.assertIsNone(usage.short(None, "en"), "nothing known: nothing in the box")
+
 
 class QuestionTest(unittest.TestCase):
     def test_short_questions_about_my_usage(self):

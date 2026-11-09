@@ -10,7 +10,8 @@ back when you turn Cody's off.
 
   run_statusline(stdin) → exit code      what Claude Code runs
   install(remove) → what happened         the settings.json change
-  read(path, now) → the windows | None    what is known right now; phrase(data, language) says it
+  read(path, now) → the windows | None    what is known right now; phrase(data, language) says it,
+                                          short(data, language) is the line for the box on screen
   is_usage_question(text)                 "how much usage do I have left?", for the voice (cody/voice.py)
 """
 from __future__ import annotations
@@ -38,6 +39,7 @@ MAX_QUESTION_WORDS = 9
 TEXT = {
     "en": {
         "line": "Cody · session {five}% · week {seven}%", "none": "Cody · usage unknown",
+        "show": "session {five}% · week {seven}%",
         "say": "Session: {five}% used, resets {five_at}. Week: {seven}% used, resets {seven_at}.",
         "stale": " That was {ago} ago; open Claude Code for fresh numbers.",
         "unknown": "I don't know your usage yet: turn on \"Usage limits\" in Settings, then use Claude Code once.",
@@ -46,6 +48,7 @@ TEXT = {
     },
     "pt-BR": {
         "line": "Cody · sessão {five}% · semana {seven}%", "none": "Cody · uso desconhecido",
+        "show": "sessão {five}% · semana {seven}%",
         "say": "Sessão: {five}% usados, renova {five_at}. Semana: {seven}% usados, renova {seven_at}.",
         "stale": " Isso foi há {ago}; abra o Claude Code para números novos.",
         "unknown": "Ainda não sei seu uso: ligue \"Limites de uso\" nas Configurações e use o Claude Code uma vez.",
@@ -166,6 +169,14 @@ def phrase(data: dict | None, language: str = "en", now=time.time) -> str:
         ago = texts["hours"].format(n=int(age // 3600)) if age >= 3600 else texts["minutes"].format(n=int(age // 60))
         said += texts["stale"].format(ago=ago)
     return said
+
+
+def short(data: dict | None, language: str = "en") -> str | None:
+    """The two numbers for the box at the bottom of the screen ("session 42% · week 10%"); None when nothing is known."""
+    if not data:
+        return None
+    texts = TEXT.get(language, TEXT["en"])
+    return texts["show"].format(five=(data.get("five_hour") or {}).get("used", "?"), seven=(data.get("seven_day") or {}).get("used", "?"))
 
 
 def is_usage_question(text: str) -> bool:

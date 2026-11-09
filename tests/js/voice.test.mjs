@@ -319,3 +319,20 @@ test('"Cody, take a screenshot" is answered on the spot: the picture shows and t
   assert.equal(st.states.at(-1), 'talking');
   voice.stop();
 });
+
+test('"how much usage do I have left?" is spoken and the two numbers stay in the box at the bottom', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice, target } = scenario();
+  st.quick = { text: 'Session: 42% used, resets at 10:00. Week: 10% used, resets on Monday at 10:00.', image: null, show: 'session 42% · week 10%' };
+  voice.start();
+  await flush();
+  target.dispatchEvent(new Event('pointerdown'));
+  t.mock.timers.tick(VOICE.hold + 1);
+  st.recognition.onresult({ results: [[{ transcript: 'how much usage do I have left' }]] });
+  target.dispatchEvent(new Event('pointerup'));
+  await flush();
+  assert.equal(st.attachments.at(-1), 'session 42% · week 10%');
+  assert.deepEqual(st.images, [], 'no picture');
+  assert.equal(st.spoken.at(-1).text, 'Session: 42% used, resets at 10:00. Week: 10% used, resets on Monday at 10:00.');
+  voice.stop();
+});
