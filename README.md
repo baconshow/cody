@@ -180,13 +180,17 @@ its output.
 
 ## Skins
 
-Settings has a **Skin shop**: the classic Cody, **Jack-o'-Cody**, the Halloween one (a pumpkin with ridges, a
-glowing zigzag grin, the ^ eyes and a witch hat), and three looks with glasses: the **Aviator** (round glasses, a
+Settings has a **Skin shop**: the classic Cody, **Jack-o'-Cody**, the Halloween one (a real pumpkin: a ribbed
+body, a ridged stem with a tendril, a grin carved through the front with candlelight inside, the ^ eyes and a
+leather witch hat with a bent tip, a satin band and a gold buckle), and three looks with glasses: the **Aviator** (round glasses, a
 pilot's cap and a grin), **Pixel** (8-bit frames and a top hat) and **The Boss** (sunglasses, a beret and a
 moustache). Every skin is free while Cody is Cody; a paid one comes only
 with a character of its own. A skin is data, in `web/skins/skins.json`: new colors for the figure's plastic,
-pieces it wears (voxel boxes like a scene's worn parts, a color, maybe a glow) and two looks (the smile, its own
-mouth). The choice is per screen (the phone and the computer each pick theirs); `?skin=halloween` shows one.
+pieces it wears (voxel boxes like a scene's worn parts, a color, maybe a glow; or, for what boxes cannot say,
+**shapes**: a `tube` along a spine, a `lathe` profile turned around, a `plate` with rounded edges, each in a
+finish: plastic, matte, leather, satin, metal) and its looks (the smile, its own mouth, a ribbed `gourd` body
+instead of the box, its own stem instead of the leaves, a mouth carved through the front, shorter legs). The
+shapes and their numbers are described at the top of `web/js/forms.js`. The choice is per screen (the phone and the computer each pick theirs); `?skin=halloween` shows one.
 
 ## Is everything on?
 

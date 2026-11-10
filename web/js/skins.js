@@ -1,7 +1,10 @@
 // skins.js — the skins of the mascot. A skin is data (web/skins/skins.json): new colors for the figure's plastic
 // (colors: body, leg, eye, mouth, stem, leaf...), extra pieces it wears (parts, exactly like a scene's worn parts:
-// boxes in voxels, on the body, a pivot, a color, maybe a glow) and two looks (smile: the ^ eyes always on;
-// mouth: false hides the talking mouth, the skin draws its own). The shop lists them; wearing one costs nothing
+// boxes in voxels, on the body, a pivot, a color, maybe a glow; and, for what boxes cannot say, shapes: forms.js)
+// and its looks (smile: the ^ eyes always on; mouth: false hides the talking mouth, the skin draws its own;
+// body: a ribbed gourd instead of the box; sprout: its own stem instead of the two leaves; carve: a mouth cut
+// through the front with light inside; legs: how tall the legs are, in voxels, when the skin stands lower).
+// The shop lists them; wearing one costs nothing
 // while Cody is Cody (a paid skin comes only with a character of Cody's own). Pure logic, run in Node by the tests.
 //
 //   validSkins(data) → skins (the classic one first)
@@ -9,9 +12,13 @@
 //   skinNamed(skins, id) → skin | null
 //   readSkin(win) / saveSkin(win, id): the viewer's choice, in localStorage (each screen picks its own)
 
+import { validShapes, gourdOf, carveOf, FINISHES } from './forms.js';
+import { LEG } from './measures.js';
+
 const HEX = /^#[0-9a-f]{6}$/i;
 const COLOR_KEYS = new Set(['body', 'leg', 'eye', 'glint', 'blush', 'mouth', 'stem', 'leaf']);
 export const CLASSIC = 'classic';
+const SHORTEST_LEGS = 2;                // voxels: a skin may stand lower (a round belly shows more leg), never legless
 export const SKIN_KEY = 'cody.skin';
 
 function cleanColors(colors) {
@@ -20,10 +27,21 @@ function cleanColors(colors) {
   return out;
 }
 
+// a part is boxes, shapes or both; something must be left to build
 function validPart(part) {
-  if (!part || typeof part !== 'object' || !Array.isArray(part.boxes)) return false;
-  return part.boxes.every((b) => Array.isArray(b) && b.length === 6 && b.every(Number.isFinite))
-    && (!part.color || HEX.test(String(part.color))) && (!part.glow || HEX.test(String(part.glow)));
+  if (!part || typeof part !== 'object') return false;
+  const boxes = part.boxes ?? [];
+  if (!Array.isArray(boxes) || !boxes.every((b) => Array.isArray(b) && b.length === 6 && b.every(Number.isFinite))) return false;
+  if (!boxes.length && !validShapes(part.shapes).length) return false;
+  return (!part.color || HEX.test(String(part.color))) && (!part.glow || HEX.test(String(part.glow)));
+}
+
+// the stem a skin gives instead of the two leaves: shapes measured from where the sprout grows
+function sproutOf(sprout) {
+  const shapes = validShapes(sprout?.shapes);
+  if (!shapes.length) return null;
+  return { shapes, color: HEX.test(String(sprout.color)) ? String(sprout.color) : null,
+    finish: FINISHES.includes(sprout.finish) ? sprout.finish : null };
 }
 
 export function validSkins(data) {
@@ -34,12 +52,20 @@ export function validSkins(data) {
       id: s.id,
       name: s.name,
       colors: cleanColors(s.colors),
-      parts: (Array.isArray(s.parts) ? s.parts : []).filter(validPart).map((p) => ({ ...p, on: 'body' })),
+      parts: (Array.isArray(s.parts) ? s.parts : []).filter(validPart)
+        .map((p) => ({ ...p, boxes: p.boxes ?? [], shapes: validShapes(p.shapes), on: 'body' })),
       smile: s.smile === true,
       mouth: s.mouth !== false,
+      body: gourdOf(s.body),
+      sprout: sproutOf(s.sprout),
+      carve: carveOf(s.carve),
+      legs: Number.isFinite(s.legs) ? Math.max(SHORTEST_LEGS, Math.min(LEG.height, s.legs)) : LEG.height,
       price: Number.isFinite(s.price) ? s.price : 0,
     }));
-  const classic = skins.find((s) => s.id === CLASSIC) || { id: CLASSIC, name: { en: 'Classic' }, colors: {}, parts: [], smile: false, mouth: true, price: 0 };
+  const classic = skins.find((s) => s.id === CLASSIC) || {
+    id: CLASSIC, name: { en: 'Classic' }, colors: {}, parts: [], smile: false, mouth: true,
+    body: null, sprout: null, carve: null, legs: LEG.height, price: 0,
+  };
   return [classic, ...skins.filter((s) => s.id !== CLASSIC)];
 }
 

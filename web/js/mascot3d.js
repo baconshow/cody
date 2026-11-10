@@ -4,7 +4,11 @@
 // come from the voxel drawing (measures.js), at 0.1 unit per voxel; the front faces +z and the floor is y = 0.
 //
 //   createMascot(THREE, RoundedBoxGeometry) → { root, eyes: THREE.Vector3 (the middle of the eyes, on the figure), pose(q),
-//                                              wear(group), unwear(group), recolor(colors), setSkin({ smile, mouth }) }
+//                                              wear(group), unwear(group), recolor(colors), setSkin(skin) }
+//     setSkin(skin) a skin's looks (skins.js): smile (the ^ eyes always), mouth (false hides the talking mouth),
+//                   body (a ribbed gourd instead of the box), sprout (its own stem instead of the two leaves)
+//                   carve (a mouth cut through the front, lit from inside) and legs (their height in voxels:
+//                   the whole figure stands lower); forms3d.js builds the shapes
 //     wear(group)   puts a group on the body, so it turns, hops and breathes with it (a cap, headphones: scenes3d.js);
 //                   the group keeps measuring from the floor under the mascot's middle, like everything else
 //     pose(q)   applies the animator's pose (animator.js): gaze, blink, breathing, hop, tilt, arms, sprout, blush,
@@ -18,6 +22,8 @@
 import { BODY, LEG, EYE, CHEEK, ARM, PX, BOOST } from './measures.js';
 import { eyeRows, eyeRuns } from './eyeshapes.js';
 import { createKeyboard, KEYBOARD } from './keyboard3d.js';
+import { gourdScale } from './forms.js';
+import { createFinishes, buildShapes, gourdGeometry, rindMaterial, carveMouth, unmask } from './forms3d.js';
 
 const V = 0.1;                                           // units per voxel
 const DEPTH = 1.6;                                       // the body's depth (the drawing is front-only)
@@ -28,6 +34,9 @@ const COLOR = Object.freeze({
 const LOOK = Object.freeze({ turnX: 0.14, eyeX: 0.1, eyeY: 0.07 });   // radians and units (the turn is q.yaw)
 const STEP = Object.freeze({ lift: 0.07, rhythm: 16 });   // the legs walking around: how high, how fast
 const BREATH = 0.018;
+// a carved mouth (a skin's): it opens a little taller with the voice, and its light wavers like a candle's
+const CARVED = Object.freeze({ talk: 0.22, waver: 0.07, rhythm: 7.3 });
+const HIP = 0.4;                                         // how far a leg goes up into the body (a round belly hides less of it)
 const ARM_RAISE = 1.25;                                  // radians at raise = 1
 const SLEEPY_LID = 0.5;                                  // when sleepy, the eye stays half closed
 const RECOIL = Object.freeze({ move: 0.8, tip: 0.5, side: 0.45 });   // per unit of the recoil spring
@@ -58,6 +67,7 @@ function materials(THREE) {
   });
   return {
     body: plastic(COLOR.body), leg: plastic(COLOR.leg, 0.5),
+    torso: plastic(COLOR.body), rind: rindMaterial(THREE),   // the body's own: a carved mouth leaves a hole in it alone
     eye: new THREE.MeshPhysicalMaterial({ color: COLOR.eye, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.05 }),
     glint: new THREE.MeshBasicMaterial({ color: COLOR.glint }),
     blush: new THREE.MeshStandardMaterial({ color: COLOR.blush, roughness: 0.8, transparent: true, opacity: 0 }),
@@ -169,8 +179,8 @@ export function createMascot(THREE, Rounded) {
   // each leg on a pivot at its top (where it joins the body), so it can spread on a startle without leaving the body
   const legs = LEG.xs.map((vx, i) => {
     const pivot = new THREE.Group();
-    const leg = box(THREE, Rounded, [LEG.width * V, LEG.height * V + 0.06, 0.4], 0.05, m.leg);
-    leg.position.y = -LEG.height * V / 2;
+    const leg = box(THREE, Rounded, [LEG.width * V, LEG.height * V + 0.06 + HIP, 0.4], 0.05, m.leg);
+    leg.position.y = -LEG.height * V / 2 + HIP / 2;
     pivot.add(leg);
     const inner = i === 1 || i === 2;
     pivot.position.set(x(vx + LEG.width / 2), LEG.height * V, inner ? -0.3 : 0.35);
@@ -179,7 +189,7 @@ export function createMascot(THREE, Rounded) {
   });
   body.position.y = LEG.height * V;
   spring.add(body);
-  const torso = box(THREE, Rounded, [BODY.width * V, BODY.height * V, DEPTH], 0.14, m.body);
+  const torso = box(THREE, Rounded, [BODY.width * V, BODY.height * V, DEPTH], 0.14, m.torso);
   torso.position.y = BODY.height * V / 2;
   body.add(torso);
   const face = new THREE.Group();                        // eyes, cheeks and mouth move together with the gaze
@@ -207,17 +217,74 @@ export function createMascot(THREE, Rounded) {
   face.add(lens);
   const keyboard = createKeyboard(THREE, Rounded);
   body.add(keyboard.group);
-  const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, feet, legs, m,
-    skin: { smile: false, mouth: true } };
+  const parts = { spring, body, face, eyes, cheeks, mouth, curse, arms, leaves, lens, keyboard, feet, legs, m, torso,
+    skin: { smile: false, mouth: true }, finish: createFinishes(THREE), gourd: null, stem: null, carve: null,
+    stand: LEG.height * V, eyeMiddle };                  // stand: how high the body's underside is (a skin may shorten the legs)
   const wear = (group) => {
     group.position.y = -LEG.height * V;                  // the body's own origin is at the top of the legs
     body.add(group);
   };
   const unwear = (group) => { body.remove(group); };
   // a skin's colors (skins.js): the keys of COLOR; a key left out goes back to Cody's own color
-  const recolor = (colors) => { for (const key of Object.keys(COLOR)) m[key].color.set(colors[key] || COLOR[key]); };
-  const setSkin = ({ smile = false, mouth = true } = {}) => { parts.skin = { smile, mouth }; };
+  const recolor = (colors) => {
+    for (const key of Object.keys(COLOR)) m[key].color.set(colors[key] || COLOR[key]);
+    m.torso.color.copy(m.body.color);
+    m.rind.color.copy(m.body.color);
+    m.rind.sheenColor.copy(m.body.color).lerp(new THREE.Color(0xffffff), 0.4);
+  };
+  const setSkin = (skin) => {
+    parts.skin = { smile: !!skin?.smile, mouth: skin?.mouth !== false };
+    dress(THREE, parts, skin || {});
+  };
   return { root, eyes: eyeMiddle, pose: (q) => applyPose(parts, q), wear, unwear, recolor, setSkin };
+}
+
+// takes off what the last skin put on the figure (its meshes are its own: they are thrown away)
+function undress(p) {
+  const drop = (group, own) => group.traverse((o) => {
+    o.geometry?.dispose();
+    if (own) { o.material?.map?.dispose(); o.material?.dispose(); }
+  });
+  if (p.gourd) { p.body.remove(p.gourd); drop(p.gourd, false); }
+  if (p.stem) { p.leaves.remove(p.stem); drop(p.stem, false); }
+  if (p.carve) { p.face.remove(p.carve.group); drop(p.carve.group, true); }
+  p.gourd = p.stem = p.carve = null;
+  unmask(p.m.torso);
+  unmask(p.m.rind);
+}
+
+// a skin's own body, stem and carved mouth (skins.js checked the numbers; forms3d.js builds them)
+function dress(THREE, p, skin) {
+  undress(p);
+  const height = BODY.height * V;
+  p.stand = (skin.legs ?? LEG.height) * V;                 // what is worn hangs from the body, so it comes down too
+  p.body.position.y = p.stand;
+  p.eyeMiddle.y = p.stand + p.face.position.y;
+  const gourd = skin.body || null;
+  if (gourd) {
+    p.gourd = new THREE.Mesh(gourdGeometry(THREE, [BODY.width * V, height, DEPTH], gourd), p.m.rind);
+    p.gourd.position.y = height / 2;
+    p.gourd.castShadow = p.gourd.receiveShadow = true;
+    p.body.add(p.gourd);
+  }
+  p.torso.visible = !gourd;
+  // a gourd is narrower near the top than the box was: the arms move in to stay on it
+  p.arms.forEach((a, i) => { a.position.x = (i === 0 ? -1 : 1) * (BODY.width * V / 2 - (gourd ? gourd.inset * V : 0)); });
+  if (skin.sprout) {
+    p.stem = buildShapes(THREE, p.finish, skin.sprout.shapes, skin.sprout);
+    p.stem.scale.setScalar(V);
+    for (const piece of p.stem.children) piece.userData.rest = { x: piece.rotation.x, z: piece.rotation.z };
+    p.leaves.add(p.stem);
+  }
+  for (const piece of p.leaves.children) piece.visible = !p.stem || piece === p.stem;
+  if (skin.carve) {
+    const middle = skin.carve.at[1] * V - LEG.height * V;          // the mouth's middle, from the body's underside
+    const front = (y) => (DEPTH / 2) * (gourd ? gourdScale((middle + y - height / 2) / (height / 2), gourd.round) : 1);
+    p.carve = carveMouth(THREE, skin.carve, front);
+    p.carve.group.position.set(skin.carve.at[0] * V, middle - p.face.position.y, 0);
+    p.face.add(p.carve.group);
+    p.carve.mask(gourd ? p.m.rind : p.m.torso);
+  }
 }
 
 function applyPose(p, q) {
@@ -258,13 +325,26 @@ function applyPose(p, q) {
   p.m.blush.opacity = Math.min(1, Math.max(0, (q.blush - 0.2) * 1.4));
   p.mouth.visible = p.skin.mouth && q.talk > 0.02;    // a skin with a mouth of its own hides this one
   p.mouth.scale.set(1, 0.3 + Math.min(1, q.talk * 1.6), 1);
+  if (p.carve) {
+    p.carve.group.scale.y = 1 + Math.min(1, q.talk * 1.6) * CARVED.talk;
+    const waver = 0.5 + 0.5 * Math.sin(q.time * CARVED.rhythm) * Math.sin(q.time * CARVED.rhythm * 0.43);
+    p.carve.light(q.quiet ? 1 : 1 - CARVED.waver * waver);
+  }
   poseArms(p, q);
   poseGrab(p, q);
   p.curse.pose(q, p.mouth);
   poseMagnifier(p, q);
   p.keyboard.pose(q);
-  p.leaves.rotation.z = -q.sproutX * 0.5;
-  p.leaves.rotation.x = q.sproutY * 0.3;
+  // the sprout swings like an antenna; a skin's own stem stands still, and only its pieces that say so ("sway",
+  // a tendril) take a share of the swing, each about where it starts
+  const swing = { z: -q.sproutX * 0.5, x: q.sproutY * 0.3 };
+  p.leaves.rotation.z = p.stem ? 0 : swing.z;
+  p.leaves.rotation.x = p.stem ? 0 : swing.x;
+  for (const piece of p.stem?.children ?? []) {
+    if (!piece.userData.sway) continue;
+    piece.rotation.z = piece.userData.rest.z + swing.z * piece.userData.sway;
+    piece.rotation.x = piece.userData.rest.x + swing.x * piece.userData.sway;
+  }
 }
 
 // The body pitches with the gaze (body.rotation.x: three.js applies it about the figure's x axis, after the body's
@@ -287,7 +367,7 @@ function poseFeet(p, q) {
   const tap = q.quiet ? 0 : Math.max(0, Math.sin(q.time * LIFT.rhythm)) * LIFT.tap;
   p.legs.forEach((leg, i) => {
     const up = Math.max(0, Math.sin(q.time * STEP.rhythm + (i % 2) * Math.PI));
-    const hip = LEG.height * V + hipRise(leg.position, yaw, q.lookY || 0);
+    const hip = p.stand + hipRise(leg.position, yaw, q.lookY || 0);
     const held = i === LIFT.leg ? lift : 0;
     leg.position.y = hip + STEP.lift * stepping * up + held * LIFT.up;
     leg.scale.y = hip / (LEG.height * V);
@@ -358,7 +438,7 @@ function poseGrab(p, q) {
     e.bar.scale.set(1 + GRAB.eye * grab, 1 + GRAB.eye * grab, 1);
     e.bar.position.y = 0;
   }
-  p.mouth.visible = true;
+  p.mouth.visible = p.skin.mouth;                      // a carved mouth is already open
   p.mouth.scale.set(0.8, 0.6 + 0.6 * Math.min(1, grab), 1);
 }
 

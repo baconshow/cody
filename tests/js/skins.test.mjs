@@ -15,17 +15,27 @@ test('the shop has the classic skin first and the Halloween one, both free', () 
   assert.equal(skinName(skins[1], 'fr'), "Jack-o'-Cody", 'English when the language has no name');
 });
 
-test('the Halloween skin is a pumpkin: new plastic, the ^ eyes, its own glowing mouth, a witch hat on the body', () => {
+test('the Halloween skin is a real pumpkin: a ribbed gourd, its own stem, a mouth carved through and a witch hat of shapes', () => {
   const skin = skinNamed(skins, 'halloween');
   assert.deepEqual(Object.keys(skin.colors).sort(), ['body', 'leg']);
   assert.equal(skin.smile, true);
-  assert.equal(skin.mouth, false, 'the talking mouth stays hidden: the zigzag is the mouth');
+  assert.equal(skin.mouth, false, 'the talking mouth stays hidden: the carved grin is the mouth');
+  assert.equal(skin.body.form, 'gourd');
+  assert.deepEqual(skin.body.crown, [-3, 1], 'the ribs meet where the sprout grows');
+  assert.deepEqual(skin.sprout.shapes.map((s) => s.kind), ['tube', 'tube'], 'a stem and a tendril instead of the leaves');
+  assert.ok(skin.sprout.shapes[0].ridges > 0, 'the stem is ridged');
+  assert.ok(skin.carve.outline.length >= 12, 'a grin with teeth');
+  assert.equal(skin.carve.glow.length, 2);
+  assert.ok(skin.legs < 5 && skin.legs >= 2, 'it stands lower: a round belly shows more leg');
+  assert.ok(skin.sprout.shapes[0].sway === 0 && skin.sprout.shapes[1].sway > 0, 'the stem stands still, the tendril waves a little');
   const scene = skinScene(skin);
   assert.equal(scene.id, 'skin:halloween');
   assert.ok(scene.parts.every((p) => p.on === 'body'), 'everything a skin adds is worn');
-  assert.ok(scene.parts.some((p) => p.glow), 'the mouth glows');
-  for (const p of scene.parts) for (const b of p.boxes) assert.equal(b.length, 6);
+  assert.deepEqual(scene.parts[0].shapes.map((s) => s.kind), ['lathe', 'tube', 'plate'], 'the hat: a brim, a bent cone, a buckle');
+  assert.equal(scene.parts[0].shapes[1].bands.length, 1, 'with its band');
+  assert.deepEqual(scene.parts[0].boxes, [], 'no voxel boxes left in it');
   assert.equal(skinScene(skins[0]), null, 'the classic skin adds nothing');
+  assert.deepEqual([skins[0].body, skins[0].sprout, skins[0].carve, skins[0].legs], [null, null, null, 5], 'and changes nothing of the figure');
 });
 
 test('broken entries are dropped and a missing classic is made up', () => {
@@ -36,6 +46,15 @@ test('broken entries are dropped and a missing classic is made up', () => {
   assert.deepEqual(list.map((s) => s.id), ['classic', 'x']);
   assert.deepEqual(list[1].colors, { leg: '#123456' }, 'only known keys with hex colors');
   assert.equal(list[1].parts.length, 1, 'a part needs six-number boxes and a hex color, if any');
+  const shaped = validSkins({ skins: [{ id: 'y', name: { en: 'Y' }, body: { form: 'cube' }, sprout: { shapes: [{ kind: 'blob' }] }, carve: { outline: [] },
+    parts: [{ shapes: [{ kind: 'tube', path: [[0, 0, 0], [0, 1, 0]], radius: 1 }, { kind: 'blob' }] }, { shapes: [{ kind: 'blob' }] }, {}, { boxes: 'no' }] }] })[1];
+  assert.equal(shaped.parts.length, 1, 'a part of shapes alone is a part; one with nothing to build is not');
+  assert.deepEqual([shaped.parts[0].shapes.length, shaped.parts[0].boxes], [1, []], 'the shape that cannot be built is left out');
+  assert.deepEqual([shaped.body, shaped.sprout, shaped.carve], [null, null, null], 'an unknown body, an empty stem and an empty mouth are no change');
+  assert.deepEqual(validSkins({ skins: [{ id: 'a', name: { en: 'A' }, legs: 0 }, { id: 'b', name: { en: 'B' }, legs: 40 }, { id: 'c', name: { en: 'C' }, legs: 'x' }] })
+    .slice(1).map((s) => s.legs), [2, 5, 5], 'legs stay between stubs and the height the figure has');
+  const stem = validSkins({ skins: [{ id: 'z', name: { en: 'Z' }, sprout: { color: '#00ff00', finish: 'matte', shapes: [{ kind: 'tube', path: [[0, 0, 0], [0, 1, 0]], radius: 1 }] } }] })[1].sprout;
+  assert.deepEqual([stem.color, stem.finish, stem.shapes.length], ['#00ff00', 'matte', 1]);
   assert.equal(validSkins(null).length, 1);
 });
 

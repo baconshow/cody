@@ -530,3 +530,43 @@ tangle, and from the side one leg looked loose.
 - The Settings shortcut goes through the pairing check: the heads-up switch comes after "Hi! Cody is awake.", so
   with the computer off there is no way to that switch from the phone. Kept that way by the maintainer on
   2026-11-07; the Settings panel of the landscape page (the next design piece) is where that will live.
+
+## 2026-11-10 · Skins beyond voxels: shapes as data, a gourd for a body, a mouth cut with the stencil
+
+The voxel boxes were where Cody came from, and a test. The maintainer's reference for the pumpkin (a rendered
+picture: lobed rind, a twisted stem, a leather hat with a bent tip, a carved grin) cannot be said in boxes, and
+three.js can do far better than boxes. The first skin made to that standard is Jack-o'-Cody; the other three
+(aviator, pixel, boss) are still boxes.
+
+- **Still data, not code per skin and not model files.** `web/js/forms.js` (pure, tested in Node) checks three
+  shapes a part may carry besides `boxes`: `tube` (a spine through points, a radius along it, optional
+  lengthwise ridges and `bands` around it), `lathe` (a profile turned around, with a `wave` for a brim) and
+  `plate` (a flat outline with a hole, a depth and a bevel). Shapes are measured from the part's pivot, in
+  voxels, and a part may `tilt`. `web/js/forms3d.js` turns them into meshes and gives them a `finish` (plastic,
+  matte, leather, satin, metal), with a fine grain drawn once on a small canvas for leather and rind.
+  Modelling in Blender and loading glTF was considered: best ceiling for sculpted detail, but a skin becomes a
+  binary of megabytes someone has to model, split in the same pieces the figure is animated by. A `model` kind
+  of part can come later for a skin that needs it; this pumpkin did not.
+- **The body may be a gourd** (`"body": { "form": "gourd" }`): the box's rounded section (`roundedRect`, walked
+  by arc length so ribs are evenly spaced), closed to a point above and below along a superellipse, the ribs
+  running pole to pole and meeting under the stem (`crown`). Each rib has its own shade and the grooves are
+  darker and redder (vertex colors), which is most of what reads as "pumpkin" in real-time light. The legs now
+  go further up into the body (hidden in the box, needed under a round belly) and the arms move in (`inset`).
+- **The carved mouth is a real hole, without cutting the mesh.** Its outline is drawn first into the stencil
+  buffer only; the torso's material skips those pixels; what shows there is a small lit room behind the front
+  (walls from the skin's color to the light, a glowing back). So the cut has depth and parallax from the side.
+  The renderer is created with `stencil: true` for this. Only the torso has that material: an arm in front of
+  the mouth is drawn whole. The mouth opens a little taller with the voice and its light wavers like a candle.
+- **A skin may stand lower** (`"legs"`, in voxels): a round belly shows more of the legs, and the pumpkin looked
+  long-legged. What the figure wears hangs from the body, so it comes down with it; the numbers in the data
+  stay those of the usual figure.
+- **A skin's own stem is no antenna.** The sprout swings on a spring; a thick pumpkin stem doing that looked
+  wrong. A skin's `sprout` stands still, and a shape in it may keep a share of the swing (`"sway"`, the
+  tendril).
+- `skins.json` now keeps each point and box on one line (a separate commit, same data): a skin made of curves
+  has to be readable by hand.
+- Tests build the gourd, the shapes, the whole figure and every skin of the shop with the real three.js in Node
+  (geometry needs no page; the canvases get a stand-in). The vendored three.js is left out of the coverage
+  count (`--test-coverage-exclude="web/vendor/**"`); JavaScript line coverage went from 91% to 95%.
+- Not measured yet: the pumpkin on a phone (about 40 thousand triangles with the hat, and one more pass for the
+  shadow). Known and left as it was: a scene's hat (the nightcap) goes through a skin's hat.

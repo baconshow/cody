@@ -61,8 +61,13 @@
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.
 - **Scenes on request** (*"Cody, put your headphones on"*) and **scenes of Cody's own** (*"make yourself a rainbow"*):
   Claude writes scene data, never code, checked field by field and kept in Cody's data folder; *"undo"* removes it.
-- **Skin shop**, with Jack-o'-Cody for Halloween (ridges, a glowing grin, a witch hat). Skins are data, like the
-  scenes; all free while Cody is Cody.
+- **Skin shop**, with Jack-o'-Cody for Halloween. Skins are data, like the scenes; all free while Cody is Cody.
+- **Skins beyond voxels.** A skin may now ask for real shapes, still as data: a tube along a spine, a profile
+  turned on a lathe, a plate with rounded edges, in leather, satin, metal or plastic; a ribbed gourd for a body;
+  its own stem; a mouth cut through the front; shorter legs. **Jack-o'-Cody is the first one made this way**: a
+  pumpkin with ribs that meet under a ridged stem and its tendril, a grin carved open with candlelight inside
+  (it wavers, and opens taller when Cody talks), and a leather witch hat with a bent tip, a satin band and a gold
+  buckle, sitting crooked. It stands on shorter legs, and its stem stands still (only the tendril waves).
 - **"Cody, how much usage do I have left?"** (opt-in): Cody as Claude Code's status line keeps your plan's session
   and week usage (and runs the status line you had); the question is answered on the spot, and the two numbers stay
   in the box at the bottom of the screen.

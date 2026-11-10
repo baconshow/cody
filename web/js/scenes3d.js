@@ -1,5 +1,7 @@
 // scenes3d.js — draws the scenes of web/scenes/scenes.json around the 3D mascot. Every piece is a box from one shared
-// geometry, with one material per color; a sign is a box with its text painted on a small canvas. A scene grows in
+// geometry, with one material per color; a sign is a box with its text painted on a small canvas; a part may also
+// carry "shapes" (forms.js: a tube, a lathe, a plate, measured from the part's pivot) and a "tilt" (degrees about
+// the pivot), which is how a skin's hat gets a bent tip and sits crooked. A scene grows in
 // when it starts and shrinks away when it ends; its clips (bob, blink, dots, steam, walk, confetti, sway) stop with
 // "reduce motion", where the scene just appears.
 //
@@ -7,7 +9,7 @@
 // nightcap, the headphones: "on": "body"). Worn parts live in a second group that goes on the mascot's body, so they
 // turn, hop, tilt and breathe with it instead of floating where the head used to be.
 //
-//   createScenes3d(THREE, data) → { group, worn, update(q, sceneId, dt, overId, skinId), span(sceneId) }
+//   createScenes3d(THREE, data, finish) → { group, worn, update(q, sceneId, dt, overId, skinId), span(sceneId) }
 //     data    the scenes, plus the skins' pieces as scenes (skins.js skinScene); a part may glow ("glow": a color)
 //     group   what stands around the mascot (add it to the room)
 //     worn    what the mascot wears (hand it to mascot.wear)
@@ -16,10 +18,13 @@
 //     span    [left, right] in units: how far the scene reaches to each side (scenes.js sceneSpan), for the camera
 
 import { anchorOf, pivotOf, sceneSpan } from './scenes.js';
+import { validShapes } from './forms.js';
+import { createFinishes, buildShapes } from './forms3d.js';
 
 const V = 0.1;                    // units per voxel, as in mascot3d.js
 const GROW = 6;                   // how fast a scene grows in or out (per second)
 const NO_SPAN = Object.freeze([0, 0]);
+const RAD = Math.PI / 180;
 
 const CLIPS = {
   bob: (o, t) => { o.position.y = Math.sin(t * 4) * 0.02; },
@@ -51,7 +56,7 @@ function signTexture(THREE, lines, ink) {
   return texture;
 }
 
-export function createScenes3d(THREE, data) {
+export function createScenes3d(THREE, data, finish = createFinishes(THREE)) {
   const group = new THREE.Group();
   const worn = new THREE.Group();
   const cube = new THREE.BoxGeometry(1, 1, 1);
@@ -90,6 +95,15 @@ export function createScenes3d(THREE, data) {
       const at = pivotOf(part);
       const holder = new THREE.Group();
       holder.position.set(at[0] * V, at[1] * V, at[2] * V);
+      if (Array.isArray(part.tilt) && part.tilt.length === 3 && part.tilt.every(Number.isFinite)) {
+        holder.rotation.set(part.tilt[0] * RAD, part.tilt[1] * RAD, part.tilt[2] * RAD);
+      }
+      const shapes = validShapes(part.shapes);
+      if (shapes.length) {
+        const made = buildShapes(THREE, finish, shapes, part);
+        made.scale.setScalar(V);                           // shapes are in voxels, from the pivot
+        holder.add(made);
+      }
       (part.boxes || []).forEach((b, i) => {
         const pivot = new THREE.Group();
         pivot.add(box([b[0] - at[0], b[1] - at[1], b[2] - at[2], b[3], b[4], b[5]], material(part.color || '#ffffff', part.glow || null)));

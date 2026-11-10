@@ -15,6 +15,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { createMascot } from './mascot3d.js';
 import { createDecorations } from './decorations3d.js';
 import { createScenes3d } from './scenes3d.js';
+import { createFinishes } from './forms3d.js';
 import { frameFor } from './scenes.js';
 
 const PEEK_FROM_ASPECT = 1.8;                            // width / height
@@ -40,6 +41,7 @@ function lights(scene) {
   key.shadow.camera.bottom = -3;
   key.shadow.radius = 6;
   key.shadow.bias = -0.0006;
+  key.shadow.normalBias = 0.02;                            // curved skins (a gourd, a hat) shadow themselves cleanly
   const rim = new THREE.DirectionalLight(0x9cc0ff, 1.6);
   rim.position.set(3.5, 3, -4);
   const fill = new THREE.PointLight(0xff8a3d, 4, 8, 2);
@@ -70,7 +72,8 @@ function table(scene) {
 }
 
 function createRenderer(canvas) {
-  const r = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  // stencil: a skin's carved mouth is a hole marked there (forms3d.js carveMouth)
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: true, powerPreference: 'high-performance' });
   r.setClearColor(0x000000, 1);
   r.outputColorSpace = THREE.SRGBColorSpace;
   r.toneMapping = THREE.NeutralToneMapping;                // ACES pulls the orange toward peach
@@ -119,6 +122,7 @@ export function createScene3d(canvas) {
   let view = null;
   let scenes = null;
   let lastTime = null;
+  const finish = createFinishes(THREE);                    // the shapes' materials outlive a rebuild of the scenes
 
   // the camera goes where the current scene fits; true while it is still on its way
   function follow(sceneId, dt, quiet) {
@@ -158,14 +162,14 @@ export function createScene3d(canvas) {
     // the scenes of web/scenes/scenes.json (only the main face has them, not the gallery)
     setScenes(list, extra = []) {                        // extra: the skins' pieces (skins.js skinScene); again: rebuilt
       if (scenes) { scene.remove(scenes.group); mascot.unwear(scenes.worn); }
-      scenes = createScenes3d(THREE, [...list, ...extra]);
+      scenes = createScenes3d(THREE, [...list, ...extra], finish);
       scene.add(scenes.group);
       mascot.wear(scenes.worn);
     },
     // a skin (skins.js): the figure's new colors and looks; null or the classic one puts everything back
     setSkin(skin) {
       mascot.recolor(skin?.colors || {});
-      mascot.setSkin({ smile: !!skin?.smile, mouth: skin?.mouth !== false });
+      mascot.setSkin(skin);
     },
     eyeCenter() {
       point.copy(mascot.eyes).project(camera);
