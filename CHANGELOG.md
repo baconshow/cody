@@ -62,6 +62,13 @@
   Esc and a click outside close it), instead of full-screen lists with a Close button in the corner. A gear in the
   corner opens Settings. The wake word state is a small light (green on, red off) instead of words. A tap on Cody is
   silent.
+- **Settings and Status are one panel**, after the design made for the Android page: a list of sections (Voice,
+  On your phone, General, Skins, About, and Status last, with its light), one section showing at a time, each with
+  its own address (`#settings/phone`, `#status`). On a phone lying down it fills the screen (a back arrow, the
+  list on the left, the checks in three columns); on the computer it is the drawer, the list across the top. New
+  look for every drawer: cards, pill buttons with the one thing to do next filled in orange, the system's own
+  font (Roboto on Android). The light in the corner is a pill with its words; beside Status's title, how many
+  checks ask for a look. The private address has a Copy button.
 - The sleeping Z is one piece, and after a shake Cody swears (`&#$*%@!`). Thinking, Cody holds a front leg up, and
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from

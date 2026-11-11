@@ -1,18 +1,25 @@
 // settings.js — the Settings screen (#settings) and the guided first run, both in the drawer of sheet.js: on the
-// right, with the mascot still in view beside it. Settings has its groups (voice, phone, general, about) and opens
+// right, with the mascot still in view beside it. Settings has its sections (voice, phone, general, skins, about),
+// one showing at a time, picked in the list the panel shares with Status (panel.js: #settings/voice...; Status is
+// the list's last entry). It opens
 // from the gear in the corner of the mascot page, from the tray menu and from #settings. On the computer everything
 // can be changed; from the phone the drawer only shows the language (this browser) and says where to change the
 // rest. The ElevenLabs key is typed here, saved on the computer only, and never comes back (only "a key is saved");
 // with a key saved, the voices of that account are listed, and picking one makes Cody say hi with it right away.
 // The first run is three steps, said out loud, with Skip and Next at the bottom.
 //
-//   createSettings({ api, t, setLanguage, language, announce, play, win, skins, prefs }) → { open(), close(), firstRun() }
+//   createSettings({ api, t, setLanguage, language, announce, play, win, skins, prefs, light }) →
+//     { open(section), close(), firstRun(), setLight(light) }
 //     play   (mp3 bytes) plays a sound through the mascot's voice (the test of a voice)
 //     prefs  what this screen alone keeps: { followUp: { get(), set(on) } } (the microphone open after an answer)
+//     light  () → the Status light ('ok' | 'warn' | 'fail'), for the dot on the list's Status entry
 //   firstRunSteps(info, t), providers(t), sections(info), mp3Bytes(base64) are pure, for the tests.
 
 import { createSheet, el } from './sheet.js';
 import { skinName } from './skins.js';
+import { sections, routeOf, navList, markActive, markLight } from './panel.js';
+
+export { sections };
 
 export const PROVIDERS = Object.freeze(['elevenlabs', 'hosted', 'device', 'sounds']);
 const NOT_YET = new Set(['hosted']);        // listed so people know it is coming, but it cannot be chosen yet
@@ -20,11 +27,6 @@ const NOT_YET = new Set(['hosted']);        // listed so people know it is comin
 export function providers(t) {
   return PROVIDERS.map((id) => ({ id, label: t(`settings.voice.${id}`), note: t(`settings.voice.${id}.note`),
     soon: NOT_YET.has(id) }));
-}
-
-// the groups of the drawer, in order: on the computer all of them; from the phone only what that browser may change
-export function sections(info) {
-  return info?.local ? ['voice', 'phone', 'general', 'skins', 'about'] : ['general', 'skins'];
 }
 
 // the test of a voice comes from the server as base64 text
@@ -50,16 +52,18 @@ async function qrImage(api, which) {
 
 export function createSettings({
   api, t, setLanguage, language, announce = () => {}, play = () => {}, win = window, skins = null, prefs = null,
+  light = () => null,
 }) {
   // renders: each render's turn (a slower, older one must not paint over a newer one) · draftKey: a key typed and
   // not saved yet, so redrawing the drawer does not throw it away · run: the first run's drawer, made when needed
-  const st = { info: null, renders: 0, draftKey: '', run: null };
+  // section: the one that shows · groups: every section's element, by name · nav: the list of sections
+  const st = { info: null, renders: 0, draftKey: '', run: null, section: null, groups: new Map(), nav: null };
   const sheet = createSheet({
-    win,
+    win, className: 'panel',
     onClose: () => {
       st.draftKey = '';
       sheet.body.replaceChildren();                    // nothing typed stays behind in a hidden field
-      if (win.location.hash === '#settings') history.replaceState(null, '', ' ');
+      if (routeOf(win.location.hash).panel === 'settings') history.replaceState(null, '', ' ');
     },
   });
   const { body, note } = sheet;                        // note: what the last change did ("Saved.")
@@ -210,17 +214,26 @@ export function createSettings({
     return out;
   }
 
-  async function phoneBox(info) {
+  // each code beside what it is for; the first one with the address to copy. says: where "copied" is told
+  async function phoneBox(info, says = note) {
     const box = el('div', { className: 'settings-phone' });
+    const row = async (which, ...words) => el('div', { className: 'settings-phone-row' },
+      which ? await qrImage(api, which) : null, el('div', {}, ...words));
     if (info.phone_url) {
-      box.append(el('p', { textContent: t('settings.phone.scan') }), await qrImage(api, 'phone') || '', el('code', { textContent: info.phone_url }));
-      box.append(el('p', { textContent: t('settings.phone.android') }), await qrImage(api, 'app') || '');
+      const copy = el('button', { type: 'button', textContent: t('settings.phone.copy') });
+      copy.addEventListener('click', () => {
+        win.navigator?.clipboard?.writeText(info.phone_url).catch(() => {});
+        says.textContent = t('settings.phone.copied');
+      });
+      box.append(await row('phone', el('p', { textContent: t('settings.phone.scan') }),
+        el('div', { className: 'settings-address' }, el('code', { textContent: info.phone_url }), copy)));
+      box.append(await row('app', el('p', { textContent: t('settings.phone.android') })));
     } else {
       const go = el('button', { type: 'button', className: 'primary', textContent: t('settings.network') });
       go.addEventListener('click', () => { win.location.hash = 'network'; });
-      box.append(el('p', { textContent: t('settings.phone.none') }), go);
+      box.append(await row(null, el('p', { textContent: t('settings.phone.none') }), go));
     }
-    box.append(el('p', { textContent: t('settings.phone.app') }), await qrImage(api, 'tailscale') || '');
+    box.append(await row('tailscale', el('p', { textContent: t('settings.phone.app') })));
     return box;
   }
 
@@ -284,17 +297,37 @@ export function createSettings({
     },
   };
 
+  // one section shows at a time; the others stay in the drawer, hidden, so a key typed in one is not lost by a
+  // look at another. An unknown name (or none) shows the one that was showing, or the first
+  function select(id) {
+    const ids = [...st.groups.keys()];
+    st.section = [id, st.section, ids[0]].find((name) => ids.includes(name)) ?? null;
+    for (const [name, node] of st.groups) node.hidden = name !== st.section;
+    if (st.nav) markActive(st.nav, st.section);
+  }
+
   async function render() {
     const turn = ++st.renders;
     const info = st.info || await load().catch(() => null);
     label();
-    const groups = [];
-    for (const id of sections(info)) groups.push(await GROUPS[id](info));
+    const made = new Map();
+    for (const id of sections(info)) {
+      const node = await GROUPS[id](info);
+      if (!node) continue;                             // a section with nothing to show (no skins given) is left out
+      node.classList.add(`section-${id}`);
+      made.set(id, node);
+    }
     if (turn !== st.renders || !sheet.isOpen) return;  // a newer render started meanwhile, or the drawer closed
-    body.replaceChildren(...groups.filter(Boolean));    // a group with nothing to show (no skins given) is left out
+    st.groups = made;
+    st.nav = navList({ ids: [...made.keys()], active: st.section, t, light: light(), win });
+    body.replaceChildren(st.nav, el('div', { className: 'panel-content' }, ...made.values()));
+    select(st.section);
   }
 
-  async function open() {
+  // section: the one to show (from #settings/phone, or a pick in the list); none: the one that was showing
+  async function open(section = null) {
+    if (sheet.isOpen) { select(section); return; }
+    if (section) st.section = section;
     sheet.open();
     st.info = null;
     note.textContent = '';
@@ -338,7 +371,7 @@ export function createSettings({
         };
         extra.push(languageField(run.note, again), voiceChoice(st.info, run.note, fill, 'first-provider'), under);
       }
-      if (step.id === 'phone') extra.push(await phoneBox(st.info));
+      if (step.id === 'phone') extra.push(await phoneBox(st.info, run.note));
       if (step.id === 'voice') {
         const go = el('button', { type: 'button', className: 'primary', textContent: t('status.do.voice') });
         go.addEventListener('click', async () => { await api.action('voice').catch(() => {}); announce({ text: step.last }); });
@@ -354,8 +387,13 @@ export function createSettings({
 
   label();
   opener.addEventListener('click', () => { win.location.hash = 'settings'; });
-  const route = () => (win.location.hash === '#settings' ? open() : sheet.close());
+  const route = () => {
+    const to = routeOf(win.location.hash);
+    return to.panel === 'settings' ? open(to.section) : sheet.close();
+  };
   win.addEventListener('hashchange', route);
   route();
-  return { open, close: () => sheet.close(), firstRun };
+  // the checks changed while the drawer is open: the Status entry's light follows
+  const setLight = (now) => { if (st.nav) markLight(st.nav, now); };
+  return { open, close: () => sheet.close(), firstRun, setLight };
 }

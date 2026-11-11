@@ -2,12 +2,16 @@
 // session, channel, hooks, Tailscale, phone, voice provider; cody/doctor.py) plus the ones only the browser knows:
 // the microphone, speech recognition, the sound and the secure connection. Each item is a traffic light, one plain
 // sentence and what to do; a button where Cody can do it (from the computer itself for server actions). The screen
-// is the drawer of sheet.js (#status, or a tap on the light): the mascot stays in view beside it.
+// is the drawer of sheet.js (#status, or a tap on the light): the mascot stays in view beside it. It is the last
+// entry of the list of sections it shares with Settings (panel.js), so the two read as one panel.
 //
-//   createStatus({ api, t, audio, request }) → { refresh(), open(), close() }
+//   createStatus({ api, t, audio, request }) → { refresh(), open(), close(), light() }
+//     light()   'ok' | 'warn' | 'fail': the worst of the checks (the dot on the list's Status entry)
+//     onLight   (light) told on every look at the checks, for whoever shows that dot elsewhere (Settings)
 //   worst(items), clientChecks(env, t), summary(items, t) are pure, for the tests.
 
 import { createSheet } from './sheet.js';
+import { sections, navList, STATUS } from './panel.js';
 
 const ORDER = { fail: 0, warn: 1, ok: 2 };
 const REFRESH_MS = 15000;
@@ -74,18 +78,29 @@ function row(item, t, act, said) {
   return li;
 }
 
-export function createStatus({ api, t, lang = () => 'en', audio, request = () => {}, win = window }) {
+export function createStatus({ api, t, lang = () => 'en', audio, request = () => {}, onLight = () => {}, win = window }) {
   const chip = Object.assign(document.createElement('button'), { type: 'button', className: 'status-chip' });
   const sheet = createSheet({
-    win,
+    win, className: 'panel',
     onClose: () => { if (win.location.hash === '#status') history.replaceState(null, '', ' '); },
   });
   sheet.setTitle(t('status.title'), t('status.close'));
   const list = Object.assign(document.createElement('ul'), { className: 'status-list' });
-  sheet.body.append(list);
+  const content = Object.assign(document.createElement('div'), { className: 'panel-content' });
+  content.append(list);
   document.body.append(chip);
-  // said: an action's answer, by item · drawn: what the list shows now (the same again is not drawn again)
-  const st = { items: [], local: false, timer: 0, said: new Map(), drawn: '' };
+  // said: an action's answer, by item · drawn: what the list shows now (the same again is not drawn again) ·
+  // nav: what the list of sections was made for (the computer or the phone, in which language)
+  const st = { items: [], local: false, timer: 0, said: new Map(), drawn: '', nav: '' };
+
+  // the panel's list of sections, Status lit; made again when the answer says who is asking, or the language changed
+  function frame() {
+    const light = worst(st.items);
+    const key = `${st.local}:${lang()}:${light}`;
+    if (key === st.nav) return;
+    st.nav = key;
+    sheet.body.replaceChildren(navList({ ids: sections({ local: st.local }), active: STATUS, t, light, win }), content);
+  }
 
   async function act(action, button, id) {
     button.disabled = true;
@@ -109,7 +124,12 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     chip.dataset.state = light;
     chip.textContent = summary(st.items, t);
     chip.setAttribute('aria-label', `${t('status.title')}: ${chip.textContent}`);
+    onLight(light);
     if (!sheet.isOpen) return;
+    frame();
+    const needy = st.items.filter((it) => it.state !== 'ok').length;      // how many ask for a look, beside the title
+    sheet.extra.textContent = needy ? t('status.count', { n: needy }) : '';
+    sheet.extra.dataset.state = light;
     const shown = st.items.map((it) => (st.local || !['voice', 'hooks'].includes(it.action) ? it : { ...it, action: null }));
     const drawn = JSON.stringify([shown, [...st.said]]);
     if (drawn === st.drawn) return;                    // nothing changed since the last look: leave the rows alone
@@ -141,6 +161,7 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     sheet.setTitle(t('status.title'), t('status.close'));   // again on each open: the language may have changed
     sheet.open();
     st.drawn = '';
+    st.nav = '';
     paint();
     refresh();
   }
@@ -150,5 +171,5 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
   route();
   refresh();
   st.timer = setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
-  return { refresh, open, close: () => sheet.close() };
+  return { refresh, open, close: () => sheet.close(), light: () => worst(st.items) };
 }

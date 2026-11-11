@@ -221,7 +221,7 @@ test('the ElevenLabs key: a draft survives a language change, is saved once and 
   const p = page();
   const api = settingsApi();
   const s = settings(p, api);
-  await s.open();
+  await s.open('general');                               // the language is under General; the key, typed under Voice, waits there
   const [panel] = open(p);
   panel.querySelector('input[type=password]').enter('sk-draft');
   panel.querySelector('.settings-language').enter('pt-BR', 'change');
@@ -573,8 +573,11 @@ test('the private network: the DNS step opens the admin page; a failure shows it
 
 function wholePage(p, api, lang = { now: 'en' }) {
   const tt = (key, vars) => fill((lang.now === 'pt-BR' ? pt : en)[key] ?? key, vars);
-  const status = createStatus({ api, t: tt, lang: () => lang.now, audio: { state: () => 'running', unlock: () => {} }, win: p.win });
-  const made = createSettings({ api, t: tt, win: p.win, language: () => lang.now, setLanguage: (v) => { lang.now = v; } });
+  let made = null;
+  const status = createStatus({ api, t: tt, lang: () => lang.now, audio: { state: () => 'running', unlock: () => {} }, win: p.win,
+    onLight: (light) => made?.setLight(light) });
+  made = createSettings({ api, t: tt, win: p.win, language: () => lang.now, setLanguage: (v) => { lang.now = v; },
+    light: () => status.light(), skins: { list: () => [], current: () => 'classic', wear: () => {} } });
   const network = createNetwork({ api, t: tt, win: p.win });
   return { status, settings: made, network, lang, gear: p.document.body.querySelector('.settings-open'),
     chip: p.document.body.querySelector('.status-chip') };
@@ -808,4 +811,164 @@ test('closing the private network drawer stops the looking; a failed step says w
   assert.equal(panel.querySelector('.sheet-note').textContent, 'tailscale did not answer');
   assert.equal(withText(panel, 'button', en['network.do.login']).disabled, false, 'the button is back');
   failing.close();
+});
+
+// --- one panel: Settings and Status share the list of sections ----------------------------------------------------
+
+const tabs = (panel) => all(panel, '.panel-tab');
+const showing = (panel) => all(panel, '.settings-group').filter((g) => !g.hidden).map((g) => g.querySelector('h3').textContent);
+
+test('Settings shows one section at a time; a pick in the list shows another and names it in the address', async () => {
+  const p = page();
+  const s = settings(p, settingsApi());
+  s.gear.click();
+  await p.settle();
+  const [panel] = open(p);
+  assert.deepEqual(tabs(panel).map((b) => b.textContent), ['Voice', 'On your phone', 'General', 'About', 'Status']);
+  assert.equal(panel.querySelector('.panel-nav').getAttribute('aria-label'), 'Sections');
+  assert.deepEqual(showing(panel), ['Voice'], 'the first section shows; the others wait, hidden');
+  assert.equal(tabs(panel)[0].getAttribute('aria-current'), 'page');
+
+  const about = withText(panel, 'button', 'About');
+  about.focus();
+  about.click();
+  await p.settle();
+  assert.equal(p.win.location.hash, '#settings/about');
+  assert.deepEqual(showing(panel), ['About']);
+  assert.equal(about.getAttribute('aria-current'), 'page');
+  assert.equal(tabs(panel)[0].getAttribute('aria-current'), null);
+  assert.equal(p.document.activeElement, about, 'the list was not made again: the keyboard keeps its place');
+  assert.equal(open(p).length, 1, 'still the one drawer');
+
+  p.key('Escape');
+  assert.equal(p.win.location.hash, '', 'closing clears the address, whichever section showed');
+  s.close();
+});
+
+test('an address opens Settings at its section; a section that does not exist opens the first', async () => {
+  const p = page();
+  const s = settings(p, settingsApi());
+  p.win.location.hash = 'settings/general';
+  await p.settle();
+  assert.deepEqual(showing(open(p)[0]), ['General']);
+  s.close();
+  p.win.location.hash = 'settings/nothing';
+  await p.settle();
+  assert.deepEqual(showing(open(p)[0]), ['General'], 'the one that was showing stays');
+  s.close();
+  const fresh = page();
+  const other = settings(fresh, settingsApi());
+  await other.open('nothing');
+  assert.deepEqual(showing(open(fresh)[0]), ['Voice']);
+  other.close();
+});
+
+test('from the phone the list has what that browser may change, and Status', async () => {
+  const p = page();
+  const s = settings(p, settingsApi({ local: false }));
+  await s.open();
+  assert.deepEqual(tabs(open(p)[0]).map((b) => b.textContent), ['General', 'Status']);
+  s.close();
+});
+
+test('Status is the last entry of the same list: one drawer leaves as the other comes, and Esc returns to the gear', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+  const p = page();
+  p.win.navigator.permissions = { query: async () => ({ state: 'granted' }) };   // the microphone is allowed
+  const w = wholePage(p, { ...settingsApi(), ...statusApi() });
+  await p.settle();
+  w.gear.focus();
+  w.gear.click();
+  await p.settle();
+  const entry = withText(open(p)[0], 'button', 'Status');
+  assert.equal(entry.dataset.state, 'fail', 'its light is the worst of the checks');
+  entry.focus();
+  entry.click();
+  await p.settle();
+  const [panel, ...others] = open(p);
+  assert.equal(others.length, 0, 'one drawer, not two');
+  assert.equal(p.win.location.hash, '#status');
+  assert.equal(panel.querySelector('h2').textContent, 'Status');
+  assert.deepEqual(tabs(panel).map((b) => b.textContent), ['Voice', 'On your phone', 'General', 'Skins', 'About', 'Status'], 'the same list');
+  assert.equal(withText(panel, 'button', 'Status').getAttribute('aria-current'), 'page');
+  assert.ok(panel.querySelector('.sheet').classList.contains('sheet-still'), 'it takes the other one\u2019s place without sliding in');
+  assert.equal(panel.querySelector('.sheet-extra').textContent, 'attention: 1', 'beside the title: how many ask for a look');
+  assert.ok(all(panel, 'strong').some((e) => e.textContent === 'Voice session'), 'the checks are there');
+
+  withText(panel, 'button', 'General').click();           // and back to a section of Settings
+  await p.settle();
+  const [back, ...more] = open(p);
+  assert.equal(more.length, 0);
+  assert.equal(back.querySelector('h2').textContent, 'Settings');
+  assert.deepEqual(showing(back), ['General']);
+  p.key('Escape');
+  assert.equal(open(p).length, 0);
+  assert.equal(p.document.activeElement, w.gear, 'the focus goes back to where the panel was opened from');
+});
+
+test('the Status entry\u2019s light follows the checks while Settings is open', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+  const p = page();
+  p.win.navigator.permissions = { query: async () => ({ state: 'granted' }) };   // the microphone is allowed: nothing else to mind
+  const api = { ...settingsApi(), ...statusApi() };
+  const w = wholePage(p, api);
+  await p.settle();
+  w.gear.click();
+  await p.settle();
+  const entry = withText(open(p)[0], 'button', 'Status');
+  assert.equal(entry.dataset.state, 'fail');
+  api.status = async () => ({ items: [{ id: 'server', state: 'ok', title: 'Mascot server', say: 'On.', fix: '', action: null }], local: true });
+  await w.status.refresh();
+  assert.equal(entry.dataset.state, 'ok', 'the session was opened meanwhile: the light turns green');
+  w.settings.close();
+});
+
+test('the pill opens the panel at Status; with nothing wrong no count shows', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+  const p = page();
+  p.win.navigator.permissions = { query: async () => ({ state: 'granted' }) };
+  const api = { ...settingsApi(), status: async () => ({ items: [{ id: 'server', state: 'ok', title: 'Mascot server', say: 'On.', fix: '', action: null }], local: true }) };
+  const w = wholePage(p, api);
+  await p.settle();
+  w.chip.click();
+  await p.settle();
+  const [panel] = open(p);
+  assert.equal(panel.querySelector('h2').textContent, 'Status');
+  assert.equal(panel.querySelector('.sheet-extra').textContent, '');
+  assert.equal(withText(panel, 'button', 'Status').dataset.state, 'ok');
+  w.status.close();
+});
+
+test('keeping the microphone open after an answer is this screen\u2019s own switch, also from the phone', async () => {
+  for (const local of [true, false]) {
+    const p = page();
+    const api = settingsApi({ local });
+    const kept = { on: true };
+    const s = settings(p, api, { prefs: { followUp: { get: () => kept.on, set: (on) => { kept.on = on; } } } });
+    await s.open('general');
+    const [panel] = open(p);
+    const label = all(panel, '.settings-check').find((l) => l.querySelector('span').textContent === en['settings.followUp']);
+    const box = label.querySelector('input');
+    assert.equal(box.checked, true);
+    box.checked = false;
+    box.dispatchEvent({ type: 'change', bubbles: true });
+    assert.equal(kept.on, false);
+    assert.deepEqual(api.calls, [], 'kept in the browser: the computer is not asked');
+    assert.equal(panel.querySelector('.sheet-note').textContent, 'Saved.');
+    s.close();
+  }
+});
+
+test('the private address has a Copy button beside it', async () => {
+  const p = page();
+  const copied = [];
+  p.win.navigator.clipboard = { writeText: async (text) => { copied.push(text); } };
+  const s = settings(p, settingsApi({ phone_url: 'https://cody.example.ts.net:8443/' }));
+  await s.open('phone');
+  const [panel] = open(p);
+  assert.equal(panel.querySelector('code').textContent, 'https://cody.example.ts.net:8443/');
+  withText(panel, 'button', 'Copy').click();
+  assert.deepEqual(copied, ['https://cody.example.ts.net:8443/']);
+  assert.equal(panel.querySelector('.sheet-note').textContent, 'Address copied.');
+  s.close();
 });

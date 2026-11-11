@@ -11,6 +11,7 @@
 //     outside     false: a click outside the drawer does not close it
 //     onClose     () after it closed, however it closed (the owner tidies up: the #hash, a draft)
 //   sheet.body · sheet.foot · sheet.note   the elements to fill (content, buttons, what the last action did)
+//   sheet.extra   a small slot in the title bar, between the title and the close button (Status counts there)
 //   sheet.open() · sheet.close() · sheet.isOpen · sheet.setTitle(text, closeLabel)
 //   el(tag, props, ...kids) builds an element · wrapFocus(count, index, back) is pure, for the tests
 
@@ -30,6 +31,9 @@ export function wrapFocus(count, index, back) {
 }
 
 const stack = [];                         // the drawers open now; the last one is on top
+const SWAP_MS = 80;                       // a drawer opening this soon after another closed takes its place: no sliding in
+let lastClosed = -Infinity;
+const clock = () => globalThis.performance?.now?.() ?? Date.now();
 
 export function createSheet({ className = '', outside = true, onClose = () => {}, win = window } = {}) {
   const heading = el('h2');
@@ -38,7 +42,8 @@ export function createSheet({ className = '', outside = true, onClose = () => {}
   const foot = el('div', { className: 'sheet-foot' });
   const note = el('p', { className: 'sheet-note' });
   note.setAttribute('role', 'status');
-  const box = el('div', { className: 'sheet' }, el('header', { className: 'sheet-head' }, heading, x), body, foot, note);
+  const extra = el('span', { className: 'sheet-extra' });
+  const box = el('div', { className: 'sheet' }, el('header', { className: 'sheet-head' }, heading, extra, x), body, foot, note);
   box.tabIndex = -1;
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-modal', 'true');
@@ -47,8 +52,9 @@ export function createSheet({ className = '', outside = true, onClose = () => {}
   const st = { before: null, pressed: null };
 
   const sheet = {
-    body, foot, note, panel,
+    body, foot, note, panel, extra, box,
     get isOpen() { return !panel.hidden; },
+    get returnsTo() { return st.before; },
     setTitle(text, closeLabel) {
       heading.textContent = text;
       box.setAttribute('aria-label', text);
@@ -56,7 +62,13 @@ export function createSheet({ className = '', outside = true, onClose = () => {}
     },
     open() {
       if (!panel.hidden) return;
-      st.before = document.activeElement;
+      // opened from inside another drawer (one section of the panel to another): the focus will go back to where
+      // that one came from, since it is leaving
+      const from = stack.find((other) => other.box.contains(document.activeElement));
+      st.before = from ? from.returnsTo : document.activeElement;
+      const swap = stack.length > 0 || clock() - lastClosed < SWAP_MS;
+      if (swap) box.classList.add('sheet-still');
+      else box.classList.remove('sheet-still');
       document.body.append(panel);                     // last in the page: in front of a drawer already open
       panel.hidden = false;
       stack.push(sheet);
@@ -68,6 +80,7 @@ export function createSheet({ className = '', outside = true, onClose = () => {}
       const at = document.activeElement;
       const ours = !at || at === document.body || box.contains(at);
       panel.hidden = true;
+      lastClosed = clock();
       stack.splice(stack.indexOf(sheet), 1);
       // back to where the drawer came from, if that is still in the page
       if (ours && st.before?.isConnected !== false) st.before?.focus?.({ preventScroll: true });

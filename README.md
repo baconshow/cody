@@ -194,9 +194,10 @@ shapes and their numbers are described at the top of `web/js/forms.js`. The choi
 
 ## Is everything on?
 
-The light in the corner of the mascot says it at a glance (green: all good; red: something to fix, for example
-"voice session closed"). Tap it for the **Status** screen: server, voice session, voice channel, hooks, Tailscale,
-phone, microphone, sound and voice, each with one plain sentence, what to do and, where Cody can do it, a button.
+The pill in the corner of the mascot says it at a glance (a green light and "all good"; red and what to fix, for
+example "voice session closed"). Tap it for **Status**: server, voice session, voice channel, hooks, Tailscale,
+phone, microphone, sound and voice, each with one plain sentence, what to do and, where Cody can do it, a line to
+press. Status is the last entry of the same panel as Settings, so one tap goes from a problem to its setting.
 Buttons that change the computer (open the voice session, add the hooks) only work on the computer itself, not
 from the phone. Errors show their real reason, for example `ElevenLabs: payment pending`.
 
@@ -207,9 +208,12 @@ sessions are open, Cody says so: only the newest one hears you.
 
 The first time you open Cody on the computer, it walks you through three steps, out loud: language and voice, the
 phone (a QR code to scan), and the voice session, ending in "say hi". **Settings** (the gear in the top corner of
-the mascot page, the tray menu, or the page's `#settings`) opens beside the mascot and has the rest: voice
-(ElevenLabs with your own key and a **Test** button, the device's voice or Cody's sounds; Cody's hosted voice is
-listed as coming soon), the phone, language, the hooks, starting with Windows and privacy. Next to the gear, a small
+the mascot page, the tray menu, or the page's `#settings`) opens beside the mascot and has the rest, one section
+at a time from a list (Voice, On your phone, General, Skins, About, and Status at the end): voice (ElevenLabs with
+your own key and a **Test** button, the device's voice or Cody's sounds; Cody's hosted voice is listed as coming
+soon), the phone (the codes to scan and the private address with a Copy button), language, the hooks, starting
+with Windows and privacy. On a phone lying down the panel is the whole screen: a back arrow, the list on the left,
+the section on the right. Next to the gear, a small
 light shows whether Cody is listening for its name (green) or not (red); a tap switches it. The same light shows
 what the microphone is doing: it swells a little with every sound it hears, **grows and shrinks while Cody is
 taking a command** (after its name, after an answer, or while you hold it), and turns amber, with the reason in

@@ -623,11 +623,14 @@ async function start() {
     reactions.play = (name) => voice.play(name);
     wireTimers(voice, cycle, loop.request);
     wireAlerts(voice, cycle, loop.request);
-    createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request });
-    createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m),
+    let settings = null;                                   // made after Status, which tells it the light
+    const status = createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request,
+      onLight: (light) => settings?.setLight(light) });
+    settings = createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m), light: () => status.light(),
       play: (bytes) => voice.playAudio(bytes),
       prefs: { followUp: { get: () => remembered(PREF_FOLLOW_UP, true), set: (on) => remember(PREF_FOLLOW_UP, on) } },
-      skins: { list: () => skins.list, current: () => skins.current, wear: (id) => wearSkin(faces[0], id, loop.request) } }).firstRun();
+      skins: { list: () => skins.list, current: () => skins.current, wear: (id) => wearSkin(faces[0], id, loop.request) } });
+    settings.firstRun();
     createNetwork({ api, t });
   }
   if (!op.gallery) { await loadSkins(op.skin); await loadScenes(faces[0], op.scene, op.over); }

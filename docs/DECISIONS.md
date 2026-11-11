@@ -592,3 +592,30 @@ calls ("Cody", "Claude", "Cory") were not picked up with nothing on screen to te
   pulse is a bigger light with a ring.
 - A recognition session that produced nothing for 45 seconds and never ended is aborted and started again; an
   old session ending late no longer schedules a second one.
+
+## 2026-11-11 · Settings and Status as one panel, after the design for the Android page
+
+The design (made for the page lying down on a phone, 800 by 360) turns the two drawers into one panel: a bar with
+a back arrow and the title, a list of sections on the left with Status at its foot, the content on the right; on a
+computer the same content in a side panel of 480.
+
+- **Two drawers that read as one.** `web/js/panel.js` gives both the same list of sections (`navList`); a pick
+  goes to the section's `#hash` (`#settings/voice`, `#status`), which each drawer already follows, so one leaves
+  as the other comes. Each module still stands alone (and is tested alone); merging them into one module was not
+  needed for what the eye sees. A drawer that opens within a moment of another closing takes its place without
+  sliding in (`sheet-still`), and the focus goes back to where the first one was opened from.
+- **Every section stays in the drawer, hidden but one.** A key typed under Voice survives a look at another
+  section, and a section's title stays as a heading for screen readers.
+- **The sections are the app's, not the mock-up's.** The design lists Voice, On your phone, Heads-up, Language and
+  Status; Cody also has skins, the first steps, restart and more switches, so the list is Voice, On your phone,
+  General, Skins, About, Status. From the phone it is still only what that browser may change, plus Status.
+- **No font fetched.** The design uses Roboto Flex; the panel asks for `'Roboto Flex', Roboto, system-ui`, which is
+  Roboto on Android and the system's own font elsewhere. Shipping the font is a file to add later if the look on a
+  computer must match to the letter. The mascot's caption keeps Varela Round.
+- **The layout switches on the screen's shape**, not on "is it a phone": short and wide (`max-height: 520px` and
+  `min-width: 600px`) is the full-screen panel with the list on the left; anything else is the drawer with the
+  list across the top.
+- **Left as it was, to decide with the maintainer:** the design's page overlays are three pills with words
+  (Settings, "all good", listening for "Cody") that hide after four seconds without a touch. The Status pill was
+  restyled; the gear and the wake word light stay, since the light had just been asked to show the microphone at
+  work, which a word that hides cannot do.
