@@ -60,6 +60,7 @@ const reactions = { play: () => {} };   // name → sound; an unknown or empty n
 const sceneSound = createSceneSounds();
 const VOICE_NOTICE_MS = 9000;
 const WAKE_TOLD_MS = 1800;            // how long the wake word light spells out its state after a switch
+const HEARD_MS = 420;                 // how long the light swells when the microphone hears something
 
 function readOptions(search) {
   const q = new URLSearchParams(search);
@@ -341,8 +342,10 @@ function wireCursor(faces, cycle, request, local) {
 
 // voice commands (voice.js): hold the face or call "Cody". The caption at the top, the box with the link or
 // command at the bottom (a tap copies it and, for a link, opens it), the light in the corner that turns the wake word
-// on and off (green: listening for "Cody"; red: off; the words show on hover and for a moment after a switch), and
-// the mouth following the volume of the speech
+// on and off and shows what the microphone is doing (red: off; green: listening for "Cody", swelling a little with
+// every sound it hears; green growing and shrinking: taking a command now, after the word, after an answer or
+// while the face is held; amber: it cannot hear, and the words say why; the words show on hover and for a moment
+// after a switch), and the mouth following the volume of the speech
 function wireVoice(f, cycle, request) {
   const make = (tag, className) => Object.assign(document.createElement(tag), { className });
   const caption = make('p', 'caption');
@@ -355,8 +358,31 @@ function wireVoice(f, cycle, request) {
   notice.setAttribute('role', 'status');
   document.body.append(caption, attachment, wake, notice);
   const shot = createShot();
+  const light = { on: false, awake: false, trouble: null };
+  const troubleText = (code) => {
+    const text = t(`mascot.voice.trouble.${code}`);
+    return text === `mascot.voice.trouble.${code}` ? t('mascot.voice.trouble.other', { error: code }) : text;
+  };
+  const paintLight = () => {
+    const state = light.awake ? 'awake' : !light.on ? 'off' : light.trouble ? 'trouble' : 'on';
+    wake.dataset.state = state;
+    wake.setAttribute('aria-pressed', String(light.on));   // the name stays the same; pressed or not says the state
+    wake.setAttribute('aria-label', t('mascot.voice.wakeWord'));
+    wake.dataset.tip = {
+      awake: t('mascot.voice.listening'), off: t('mascot.voice.wakeWordOff'), on: t('mascot.voice.wakeWord'),
+      trouble: t('mascot.voice.trouble', { reason: troubleText(light.trouble) }),
+    }[state];
+  };
   const voice = createVoice({
     api, target: f.canvas, t,
+    followUp: () => remembered(PREF_FOLLOW_UP, true),
+    onAwake: (on) => { light.awake = on; paintLight(); },
+    onTrouble: (error) => { light.trouble = error; paintLight(); },
+    onHeard: () => {
+      wake.classList.add('heard');
+      clearTimeout(wake.heard);
+      wake.heard = setTimeout(() => wake.classList.remove('heard'), HEARD_MS);
+    },
     onImage: (id) => shot.show(id),
     onState: (mood) => { cycle.setVoice(mood); request(); },
     onCaption: (text) => { if (text) caption.textContent = text; caption.classList.toggle('visible', !!text); },
@@ -369,9 +395,9 @@ function wireVoice(f, cycle, request) {
       notice.timer = setTimeout(() => notice.classList.remove('visible'), VOICE_NOTICE_MS);
     },
     onListening: (on) => {
-      wake.setAttribute('aria-pressed', String(on));   // the name stays the same; pressed or not says the state
-      wake.setAttribute('aria-label', t('mascot.voice.wakeWord'));
-      wake.dataset.tip = t(on ? 'mascot.voice.wakeWord' : 'mascot.voice.wakeWordOff');
+      light.on = on;
+      if (!on) light.trouble = null;
+      paintLight();
       remember(PREF_WAKE_WORD, on);
     },
   });
@@ -495,6 +521,7 @@ function useAttachment(text) {
 
 // the viewer's preferences (localStorage may be missing: private tab, blocked storage)
 const PREF_WAKE_WORD = 'cody:wakeWord';
+const PREF_FOLLOW_UP = 'cody:followUp';   // the microphone stays open after an answer (voice.js)
 function remembered(key, fallback) {
   try {
     const v = localStorage.getItem(key);
@@ -599,6 +626,7 @@ async function start() {
     createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request });
     createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m),
       play: (bytes) => voice.playAudio(bytes),
+      prefs: { followUp: { get: () => remembered(PREF_FOLLOW_UP, true), set: (on) => remember(PREF_FOLLOW_UP, on) } },
       skins: { list: () => skins.list, current: () => skins.current, wear: (id) => wearSkin(faces[0], id, loop.request) } }).firstRun();
     createNetwork({ api, t });
   }

@@ -104,10 +104,26 @@ body.with-gallery { overflow-y: auto; }
   content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
   border-radius: 50%; background: var(--status-fail); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55);
 }
+.wake::before { transition: transform .12s ease-out, background-color .2s ease; }
 /* on, it also glows: the state is not told by the color alone */
 .wake[aria-pressed="true"]::before {
   background: var(--status-ok); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(76, 207, 114, .55);
 }
+/* the microphone heard something (any sound of speech): the light swells for a moment, so it is seen to be alive */
+.wake.heard::before { transform: scale(1.4); }
+/* taking a command right now (after "Cody", after an answer, or while the face is held): it grows and shrinks */
+.wake[data-state="awake"]::before {
+  background: var(--status-ok); animation: wake-listening 1.1s ease-in-out infinite;
+}
+@keyframes wake-listening {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(76, 207, 114, .55); }
+  50% { transform: scale(1.9); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 20px 9px rgba(76, 207, 114, .7); }
+}
+/* it cannot hear (no microphone, recognition offline): amber, and the words under it say why */
+.wake[data-state="trouble"]::before {
+  background: var(--status-warn); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(242, 179, 61, .5);
+}
+.wake[data-state="trouble"]::after { opacity: 1; }
 .wake::after {
   content: attr(data-tip); position: absolute; right: 4px; top: 42px;      /* under the light, clear of the gear */
   padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .82);
@@ -140,7 +156,11 @@ body.with-gallery { overflow-y: auto; }
 .settings-open:focus-visible::after { opacity: 1; }
 @media (hover: hover) { .settings-open:hover::after { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .attachment, .wake::after, .settings-open::before, .settings-open::after { transition: none; }
+  .attachment, .wake::before, .wake::after, .settings-open::before, .settings-open::after { transition: none; }
+  /* no movement: taking a command is a bigger light with a ring */
+  .wake[data-state="awake"]::before {
+    animation: none; transform: scale(1.6); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 0 6px rgba(76, 207, 114, .5);
+  }
 }
 
 /* a screenshot Claude took on request: the picture over the face, with Share, Save and Close below it */

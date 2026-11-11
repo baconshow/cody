@@ -35,6 +35,13 @@
   says hi with it.
 - The voice session knows what time it is here: everything you say carries this computer's date, time and UTC
   offset, so *"Cody, what time is it?"* is answered with your clock (Claude only knew the date, and guessed).
+- **A conversation, not a string of "Cody"s.** After an answer the microphone stays open for a few seconds: what
+  you say next goes as the next command, and a question Claude asked back can simply be answered (a switch in
+  Settings, per screen; never after a timer or a heads-up). The wake word is found more often: accents and
+  capitals no longer matter, more of the ways recognition writes it count ("Kodi", "Cory", "Clode"...), and it is
+  looked for in recognition's other guesses, not only the first. A recognition session that went silent without
+  ending is started again. **The light shows the microphone at work**: it swells with every sound heard, grows
+  and shrinks while a command is being taken, and turns amber with the reason when it cannot hear.
 - In the box at the bottom (what Claude asked to show), every http(s) address is a real link that opens in a new
   tab, even in the middle of a sentence; a tap elsewhere in the box still copies the whole text. The text is never
   read as HTML.

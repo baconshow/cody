@@ -570,3 +570,25 @@ three.js can do far better than boxes. The first skin made to that standard is J
   count (`--test-coverage-exclude="web/vendor/**"`); JavaScript line coverage went from 91% to 95%.
 - Not measured yet: the pumpkin on a phone (about 40 thousand triangles with the hat, and one more pass for the
   shadow). Known and left as it was: a scene's hat (the nightcap) goes through a skin's hat.
+
+## 2026-11-11 · The microphone stays open after an answer; the light shows what it is doing
+
+The maintainer kept saying "Cody" before every sentence, also to answer a question Claude had asked back, and some
+calls ("Cody", "Claude", "Cory") were not picked up with nothing on screen to tell why.
+
+- **No sensitivity knob exists.** The page uses the browser's speech recognition, which has no gain setting; what
+  can be improved is what is done with its answers. So: the word is compared without accents or capitals, the
+  list of spellings grew (never "code", which people say all day), and `maxAlternatives` asks for four guesses
+  per phrase, all searched for the word ("Cody" is often the second guess).
+- **After an answer to something said**, `wake.open(VOICE.followUp)` leaves the wake word's recognition taking
+  the next sentence as a command for 8 seconds; every word heard pushes the end of the wait, so a long sentence is
+  not cut. Not after a timer, a heads-up or any other announcement (a room with people talking would send their
+  words to Claude), and only while the wake word is on. The viewer's choice, kept per screen like the wake word
+  itself (`cody:followUp` in the browser), on by default.
+- **One light, four looks**, instead of a caption that may not come: red off; green listening for the word,
+  swelling for a moment at any speech it hears (so a dead microphone is noticed); green growing and shrinking
+  while a command is being taken; amber with the reason in words when recognition fails for a reason worth
+  telling (`audio-capture`, `network`; silence and deliberate stops are not trouble). With "reduce motion" the
+  pulse is a bigger light with a ring.
+- A recognition session that produced nothing for 45 seconds and never ended is aborted and started again; an
+  old session ending late no longer schedules a second one.

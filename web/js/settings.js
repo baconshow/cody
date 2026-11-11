@@ -6,8 +6,9 @@
 // with a key saved, the voices of that account are listed, and picking one makes Cody say hi with it right away.
 // The first run is three steps, said out loud, with Skip and Next at the bottom.
 //
-//   createSettings({ api, t, setLanguage, language, announce, play, win }) → { open(), close(), firstRun() }
+//   createSettings({ api, t, setLanguage, language, announce, play, win, skins, prefs }) → { open(), close(), firstRun() }
 //     play   (mp3 bytes) plays a sound through the mascot's voice (the test of a voice)
+//     prefs  what this screen alone keeps: { followUp: { get(), set(on) } } (the microphone open after an answer)
 //   firstRunSteps(info, t), providers(t), sections(info), mp3Bytes(base64) are pure, for the tests.
 
 import { createSheet, el } from './sheet.js';
@@ -47,7 +48,9 @@ async function qrImage(api, which) {
   } catch { return null; }
 }
 
-export function createSettings({ api, t, setLanguage, language, announce = () => {}, play = () => {}, win = window, skins = null }) {
+export function createSettings({
+  api, t, setLanguage, language, announce = () => {}, play = () => {}, win = window, skins = null, prefs = null,
+}) {
   // renders: each render's turn (a slower, older one must not paint over a newer one) · draftKey: a key typed and
   // not saved yet, so redrawing the drawer does not throw it away · run: the first run's drawer, made when needed
   const st = { info: null, renders: 0, draftKey: '', run: null };
@@ -181,6 +184,15 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
       voiceRow, test);
   }
 
+  // what this screen alone keeps (the browser's storage, not the computer's settings): it works from the phone too
+  function ownSwitches(says) {
+    if (!prefs?.followUp) return [];
+    const box = el('input', { type: 'checkbox', checked: !!prefs.followUp.get() });
+    box.addEventListener('change', () => { prefs.followUp.set(box.checked); says.textContent = t('settings.saved'); });
+    return [el('label', { className: 'settings-check' }, box, el('span', { textContent: t('settings.followUp') }),
+      el('small', { textContent: t('settings.followUp.hint') }))];
+  }
+
   function switches(info, says) {
     const out = [];
     const check = (text, on, updates, hint, disabled = false) => {
@@ -237,7 +249,7 @@ export function createSettings({ api, t, setLanguage, language, announce = () =>
     },
     phone: async (info) => group(t('settings.phone'), await phoneBox(info)),
     general: (info) => group(t('settings.group.general'), el('div', { className: 'settings-card' }, languageField(note, redraw),
-      ...(info?.local ? switches(info, note) : [])),
+      ...ownSwitches(note), ...(info?.local ? switches(info, note) : [])),
     info?.local ? null : el('p', { className: 'settings-privacy', textContent: t('settings.onComputer') })),
     // the skin shop: every skin is free while Cody is Cody; a tap wears it on this screen (skins.js)
     skins: () => {

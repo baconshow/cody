@@ -210,7 +210,10 @@ phone (a QR code to scan), and the voice session, ending in "say hi". **Settings
 the mascot page, the tray menu, or the page's `#settings`) opens beside the mascot and has the rest: voice
 (ElevenLabs with your own key and a **Test** button, the device's voice or Cody's sounds; Cody's hosted voice is
 listed as coming soon), the phone, language, the hooks, starting with Windows and privacy. Next to the gear, a small
-light shows whether Cody is listening for its name (green) or not (red); a tap switches it.
+light shows whether Cody is listening for its name (green) or not (red); a tap switches it. The same light shows
+what the microphone is doing: it swells a little with every sound it hears, **grows and shrinks while Cody is
+taking a command** (after its name, after an answer, or while you hold it), and turns amber, with the reason in
+words, when it cannot hear (no microphone, speech recognition offline).
 
 - The key is typed in Settings, saved in Cody's data folder on this computer only (readable only by you), and never
   shown again: the page only learns that a key is there.
@@ -285,7 +288,9 @@ plans an admin has to enable them first.
    Claude Code asks you to confirm the development channel: choose **I am using this for local development**.
 2. On the mascot, **hold** it and speak, or say **"Cody"** (or "Claude") followed by your request.
 3. Claude does the work in that session and the mascot speaks a short answer. Links, commands and file paths are
-   never read aloud: they show up on screen to tap and copy.
+   never read aloud: they show up on screen to tap and copy. After the answer **the microphone stays open for a
+   few seconds**: just go on talking, no "Cody" needed (and when Claude asks something back, simply answer). The
+   light grows and shrinks while it does. It can be turned off in Settings, per screen.
 4. When Claude needs permission to run something, the mascot asks out loud and shows the command. Answer with
    just **yes** or **no** within a minute; a sentence like "ok, stop" counts as neither. Commands too long to show
    in full must be approved in the terminal. The terminal prompt stays open too; whichever answers first wins.
