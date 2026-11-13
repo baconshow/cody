@@ -206,3 +206,34 @@ test('a mirrored shape is built twice, the second one on the other side as in a 
   const glass = disc.children[0].material;
   assert.ok(glass.transparent && glass.opacity < 0.5 && glass.depthWrite === false, 'what is behind a lens still shows');
 });
+
+test('hair and dark lenses: soft strands with a sheen, lenses dark enough to hide the eye but not quite', () => {
+  const finish = createFinishes(THREE);
+  const hair = finish('hair', '#2a1b14');
+  assert.ok(hair.roughness > 0.5 && hair.sheen > 0, 'soft, with a sheen');
+  assert.equal(hair.bumpMap, null, 'no page here: no strands drawn, and no crash');
+  const lens = finish('tinted', '#1b2229');
+  assert.ok(lens.transparent && lens.opacity > 0.7 && lens.opacity < 1 && lens.depthWrite === false);
+});
+
+test('the eyes a scene asks for are smooth pieces, mirrored on the right eye, about the size of the eye', async () => {
+  const { buildEye, EYE_FORMS } = await import('../../web/js/eyes3d.js');
+  const { EYE_SHAPE_NAMES } = await import('../../web/js/eyeshapes.js');
+  assert.deepEqual(Object.keys(EYE_FORMS).sort(), [...EYE_SHAPE_NAMES].sort(), 'every glyph of the 2D face has its 3D form');
+  const black = new THREE.MeshPhysicalMaterial({ color: 0x0b0b0d });
+  for (const name of EYE_SHAPE_NAMES) {
+    const left = buildEye(THREE, name, black, 0);
+    const right = buildEye(THREE, name, black, 1);
+    assert.equal(left.scale.x, 1);
+    assert.equal(right.scale.x, -1, `${name}: the right eye is the mirror image`);
+    const size = new THREE.Box3().setFromObject(left).getSize(new THREE.Vector3());
+    assert.ok(size.x > 0.1 && size.x < 0.5 && size.y > 0.25 && size.y < 0.55, `${name}: ${size.x.toFixed(2)} x ${size.y.toFixed(2)}`);
+    assert.ok(size.z < 0.1, `${name}: a thin piece on the face`);
+    left.traverse((o) => {
+      if (!o.isMesh) return;
+      assert.equal(o.material, black, 'the same plastic as the bars');
+      for (const v of o.geometry.attributes.position.array) assert.ok(Number.isFinite(v));
+    });
+  }
+  assert.equal(buildEye(THREE, 'square', black), null, 'an unknown name builds nothing');
+});

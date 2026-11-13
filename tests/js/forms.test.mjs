@@ -140,3 +140,12 @@ test('a tube may close into a ring, and any shape may ask for its mirror image; 
   assert.equal(lens.finish, 'glass');
   assert.equal(validShapes([{ kind: 'plate', outline: [[0, 0], [1, 0], [1, 1]], finish: 'gloss' }])[0].finish, 'gloss');
 });
+
+test('a carved mouth may hold its light still; hair and dark lenses are finishes', () => {
+  const outline = [[-1, 0], [1, 0], [0, 1]];
+  assert.equal(carveOf({ outline }).flicker, true, 'a candle by default');
+  assert.equal(carveOf({ outline, flicker: false }).flicker, false);
+  for (const finish of ['hair', 'tinted']) {
+    assert.equal(validShapes([{ kind: 'plate', outline, finish }])[0].finish, finish);
+  }
+});

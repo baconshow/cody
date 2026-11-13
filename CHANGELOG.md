@@ -48,9 +48,16 @@
 - **Restart Cody** from Settings (About) and from the tray menu: the server stops and starts again with the same
   command line, the page reloads itself, and the voice session is left alone. No terminal needed after an update.
 - **Other eyes**: a scene can give Cody ♥ ♥, ● ×, > <, ! < or ★ ★ instead of its two bars (`"eyes"` in the scene
-  data, half-voxel glyphs drawn in 3D and in 2D). Five scenes on request do only that: `love`, `laugh`, `wink`,
-  `dizzy`, `stars` (*"Cody, heart eyes!"*); the party is starstruck and the bug scene dizzy. A custom scene by
-  voice can set them too (eyes alone make a scene).
+  data: half-voxel glyphs in 2D, smooth glossy shapes in 3D). Five scenes on request do only that: `love`,
+  `laugh`, `wink`, `dizzy`, `stars` (*"Cody, heart eyes!"*); the party is starstruck and the bug scene dizzy. A
+  custom scene by voice can set them too (eyes alone make a scene). A tap on Cody is a pat (the ^ eyes and a hop),
+  never the party: the confetti is for an agent that finished.
+- **Cody's sprout is a seedling**: a stem that thins toward the top and two real leaves, open toward you.
+- **Glasses that sit on the face**, not stickers: the Aviator's and The Boss's stand a little off the face, rest on
+  it with two clear nose pads, and their temples go around the head and lie on the ears; they shadow the face.
+  The Aviator's grin is an opening in the face with the teeth and the tongue inside; The Boss's lenses are dark
+  glass the eyes only just show through, and his moustache is made of strands. The Status pill's words now follow
+  its color (amber says how many things ask for a look, never "all good").
 - **Three new skins**, after the printed figures: the **Aviator** (round gold wire glasses with lenses, a pilot's
   cap with a winged badge and a polished peak, a toothy grin), **Pixel** (8-bit frames, a top hat: blocks on
   purpose) and **The Boss** (polished dark glasses, a red beret flopping to one side, a curled moustache). The

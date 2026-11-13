@@ -3,7 +3,7 @@
 // Run with: node --test "tests/js/*.test.mjs"
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EYE_SHAPES, EYE_SHAPE_NAMES, eyeRows, eyesOf, eyeRuns } from '../../web/js/eyeshapes.js';
+import { EYE_SHAPES, EYE_SHAPE_NAMES, eyeRows, eyesOf } from '../../web/js/eyeshapes.js';
 
 test('six shapes, every one a rectangle of cells', () => {
   assert.deepEqual(EYE_SHAPE_NAMES, ['dot', 'cross', 'chevron', 'heart', 'bang', 'star']);
@@ -31,9 +31,3 @@ test('a scene says one shape for both eyes, or one for each; anything else is no
   assert.equal(eyesOf({ left: 'dot' }), null);
 });
 
-test('the runs of a shape cover its cells once, row by row', () => {
-  const runs = eyeRuns(['##..#', '.....', '#####']);
-  assert.deepEqual(runs, [{ col: 0, row: 0, len: 2 }, { col: 4, row: 0, len: 1 }, { col: 0, row: 2, len: 5 }]);
-  const cells = eyeRuns(EYE_SHAPES.heart).reduce((n, r) => n + r.len, 0);
-  assert.equal(cells, EYE_SHAPES.heart.join('').split('#').length - 1);
-});

@@ -93,4 +93,18 @@ test('three looks from the printed figures: the aviator, the pixel one and the b
   assert.ok(kinds(byId.boss).includes('plate:pair'), 'two dark lenses');
   assert.ok(kinds(byId.boss).includes('tube:pair'), 'and the two halves of a moustache');
   assert.equal(skinNamed(skins, 'halloween').parts[0].slot, 'hat');
+  // not stuck on the face: the aviator's grin is an opening with teeth inside, its light holding still
+  assert.ok(byId.aviator.carve && byId.aviator.carve.flicker === false, 'a mouth, not a candle');
+  assert.equal(skinNamed(skins, 'halloween').carve.flicker, true, 'the pumpkin keeps its candle');
+  assert.ok(byId.aviator.parts[2].pivot[2] < 8, 'the teeth are inside the face, behind the opening');
+  // glasses stand off the face and their temples lie on the ears (x past the side of the head, y on top of the ear)
+  for (const id of ['aviator', 'boss']) {
+    const glasses = byId[id].parts[1];
+    const temple = glasses.shapes.at(-1);
+    assert.ok(temple.mirror && temple.path.length > 6, `${id}: temples around the head`);
+    const overEar = temple.path.filter(([x, , z]) => x > 12 && z < -5.4 + 0.5 && z > -10.6 - 0.5);
+    assert.ok(overEar.length >= 2 && overEar.every(([, y]) => y + glasses.pivot[1] >= 16), `${id}: on top of the ears`);
+  }
+  assert.ok(byId.boss.parts[2].finish === 'hair' && byId.boss.parts[2].shapes[0].ridges > 0, 'a moustache of strands');
+  assert.ok(byId.boss.parts[1].shapes.some((s) => s.finish === 'tinted'), 'dark lenses the eyes only just show through');
 });

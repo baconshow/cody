@@ -634,3 +634,23 @@ computer the same content in a side panel of 480.
   own growing speed, or at once with "reduce motion") and grow back after. The nightcap and the headphones take the
   hat slot; so do the hats of the pumpkin, the Aviator, The Boss and Pixel. Glasses, grins and moustaches take
   none, so they stay under the headphones.
+
+## 2026-11-13 · A pat is not a party; eyes, sprout and glasses made to look real
+
+- **A tap was a party.** The cycle had one "happy" for both a pat and an agent that finished, and the party scene
+  (confetti, star eyes) triggers on "happy". Now `cycle.js` keeps them apart: a pat (and waking up) shows the happy
+  face only; `situation().happy`, which the party listens to, is for celebrations alone.
+- **Scene eyes in 3D are curves, not cells.** The half-voxel glyphs built from little rounded boxes looked like a
+  grey pile of blocks in the 3D light (every tiny rounded face caught the room). `eyes3d.js` draws each one as a
+  curve (a heart, a five-pointed star, round-ended strokes) pressed out with a rounded edge, of the bars' plastic.
+  The 2D face keeps the glyphs; `eyeRuns` went away with the old builder.
+- **The sprout** is a tapering stem and two pressed leaves, faces toward the viewer, made with the skins' shapes.
+- **Glasses rest on the head.** A voxel in front of the face (the eyes stand out half a voxel), two clear pads on
+  the face, temples around the front corner of the head, along its side and over the top of the ears, measured from
+  where the ears are. The key light's shadow map went from 1024 to 2048 so a wire frame shadows the face, which is
+  most of what tells a thing sitting on a face from a sticker. Two new finishes: `tinted` (dark lenses, the eye only
+  just showing) and `hair` (soft, with a sheen and drawn strands along a tube's length).
+- **The Aviator's grin is carved** (the pumpkin's stencil hole, `"flicker": false` so the light inside holds
+  still), with the teeth, the gaps and the tongue as pieces inside the face, seen only through the opening.
+- **The Status pill** said "all good" beside an amber light (a warning that is not urgent, such as the sound
+  waiting for a first tap). It now says how many ask for a look, and Status looks again right after the first tap.
