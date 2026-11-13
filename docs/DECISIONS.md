@@ -1,0 +1,656 @@
+# Decisions
+
+Reversible choices made while preparing the launch, with the reason. Newest last.
+
+## 2026-11-05 · three.js and the font ship in the repository
+
+three.js 0.186.1 (`build/three.module.js`, `build/three.core.js` and the two examples the mascot uses) lives in
+`web/vendor/three`, with its MIT license, in the same folder layout as the npm package, so the importmap only changes
+its base URL. The package has no minified build for this version, so the files are kept as published (about 2 MB).
+The font lives in `web/fonts` as the two woff2 subsets Google Fonts serves (latin and latin-ext), declared with
+`@font-face` in `style.css`. The Content-Security-Policy now allows only `'self'` (plus the importmap
+hash): the page loads nothing from outside and works without internet.
+
+## 2026-11-05 · Lint at 140 columns
+
+`ruff check` (pyflakes and pycodestyle errors) runs in CI. The code wraps at about 120 columns; a handful of literals
+and test tables go a little over, so the limit is 140 instead of reflowing them.
+
+## 2026-11-05 · Coverage floors
+
+CI fails below 65% line coverage for Python (72% today on Linux; `overlay.py` is Windows-only and reads 0% elsewhere)
+and below 85% for the JavaScript tests. The JavaScript floor started at 90% and was lowered to 85% when the Status,
+Settings and network screens and the audio fallback arrived: their decisions are pure functions with tests, but the
+DOM and WebAudio wiring cannot run in Node, so it is checked with headless Chromium captures instead (88% today).
+
+## 2026-11-05 · Windows app: PyInstaller folder build and Inno Setup
+
+`CodySetup.exe` is built in CI (`.github/workflows/windows-app.yml`) from `packaging/`: PyInstaller makes one folder
+with two programs sharing the same files, `Cody.exe` (no console: the tray app) and `cody-cli.exe` (console: what
+Claude Code runs for hooks and the voice channel, which talk over stdin and stdout). A folder build starts in a
+fraction of a second, which matters for hooks; a one-file build unpacks itself on every run. Inno Setup installs per
+user in `%LOCALAPPDATA%\Programs\Cody`, so no admin rights and no UAC prompt. The tray menu uses pystray and Pillow,
+bundled only in the app: Cody from source still needs nothing from pip.
+
+## 2026-11-05 · What opening the app does
+
+Opening Cody.exe starts the server, opens the mascot in the browser and opens the voice session in a terminal
+window, unless one is already running (`channel.json` names a port that answers). Started with Windows
+(`--background`), it only starts the server and waits in the tray: a Claude Code window popping up at every login
+would be rude. The voice session's MCP config is written with `json.dumps` to the data folder, which also fixes the
+two script debts (unescaped `printf` JSON and leftover temp file in `voice.sh`, fixed `%TEMP%` path in `voice.ps1`):
+both scripts now call `python cody.py --voice`.
+
+## 2026-11-05 · Version 1.2.0
+
+The package said 0.1.0 while the README history calls the current release v1.1. The launch build is 1.2.0, in
+`cody/__init__.py`, shown by `--version` and sent as the MCP server version.
+
+## 2026-11-05 · The plugin brings hooks and commands, not the channel's MCP server
+
+The plugin (`.claude-plugin/`, `hooks/hooks.json`, `commands/`) installs with two commands from this repository's
+marketplace. It does not declare the voice channel as an MCP server, for three reasons from the current plugin and
+channel docs: a plugin's MCP servers start in every Claude Code session, while the channel belongs only in the voice
+session (in other sessions it would take over `channel.json` and offer tools that do nothing); a channel from our
+own marketplace still needs `--dangerously-load-development-channels` ("A channel published to your own marketplace
+still needs `--dangerously-load-development-channels` to run, since it isn't on the approved allowlist"), so the
+plugin would not save that step; and an MCP server is started without a shell, so there is no command that finds
+Python on every system (`python3` is missing on most Windows machines). `/cody:voice` opens the voice session, which
+loads the channel from the plugin's own folder with the absolute path of the Python that runs it.
+
+A plugin cannot pre-approve tools for every session (the docs list only per-command `allowedTools`), so the list of
+harmless tools stays in the voice session's command line (`cody/launcher.py`, `SAFE_TOOLS`).
+
+## 2026-11-05 · No double hooks
+
+With the plugin enabled (`enabledPlugins` in Claude Code's user settings), `--install-hooks` adds nothing and the
+first-run question about hooks is not asked. If both copies are there anyway (the plugin enabled after
+`--install-hooks`), the server counts a repeated "needs you" from the same session within 3 seconds once; a repeated
+"done" is already ignored, since the first one consumes the turn's start.
+
+## 2026-11-05 · One doctor for the terminal, the API and the screen
+
+`cody/doctor.py` holds the checks once: `--doctor` prints them, `GET /api/status` returns them in the page's
+language (cached 10 s, since it runs `tailscale`), and the Status screen adds what only the browser knows
+(microphone, speech recognition, sound, HTTPS). Buttons that change the computer (`POST /api/action`: open the voice
+session, add the hooks) are refused through Tailscale: from the phone the screen shows the advice without the
+button. Each voice channel registers itself in `voice-sessions/<pid>.json`; the doctor counts the ones whose port
+answers (more than one is a warning) and deletes the rest. The channel marks `channel.json` as loaded when Claude
+Code sends `notifications/initialized`. The known false alarm (`no MCP server configured with that name`) is
+explained next to the channel item.
+
+`channel.log` not being written by real sessions could not be reproduced here (the same `data_dir()` writes
+`channel.json`, which works). The doctor now shows whether the channel loaded without relying on that log; the check
+on a real machine is in `docs/MANUAL-TESTS.md`.
+
+## 2026-11-05 · QR codes made in Cody, and settings only from the computer
+
+`cody/qr.py` encodes QR codes itself (byte mode, level M, versions 1 to 10, standard mask scoring), so no QR service
+sees the phone's address. It was checked by decoding seven samples (versions 2 to 10, including version 7 with
+version bits and version 10 with a 16-bit count) with OpenCV; the test pins the output of the one that was checked.
+The Settings screen reads everything from anywhere it is allowed to load, but every change (`POST /api/settings`,
+`/api/settings/key`, `/api/settings/test`) is refused through Tailscale: the phone is trusted to talk to Claude, not
+to change the computer. The ElevenLabs key goes to `elevenlabs.key` in the data folder (mode 600) and is never
+returned; the environment variable and `~/.elevenlabs-key` still work and win in that order.
+
+## 2026-11-05 · Cody's sounds and the voice fallback
+
+The sounds are synthesized by `tools/make_sounds.py` with a fixed seed (a soft odd-harmonic voice through two
+vowel-like resonances, plus vibrato), 16 kHz mono WAV, 22 files, 236 KB. A test remakes them and compares the bytes,
+so the committed files are provably ours. The chatter picks one syllable per vowel group of the text, with pauses at
+spaces and punctuation and a rise at a question, so the same reply always sounds the same.
+
+The page tries the outputs from the chosen one down to Cody's sounds (`order()` in `web/js/sounds.js`). The hosted
+voice is listed but returns "not available" until P1.6 exists. A fallback is announced once per visit per reason, not
+on every reply. Timers now ring with the alarm sound (the old two-note chime still repeats while ringing).
+
+## 2026-11-05 · Scenes as data
+
+A scene is an entry in `web/scenes/scenes.json`: parts made of boxes in voxel units, an optional clip per part, an
+optional sound when it starts, a trigger name and a priority. Triggers are a fixed list in `web/js/scenes.js`, so a
+community scene can only use known conditions; an entry with an unknown trigger is dropped instead of breaking the
+page. The 3D renderer shares one box geometry and one material per color, grows a scene in and out in about 0.2 s,
+and stops all clips with "reduce motion". The 2D fallback shows no scenes. The debug scene needs a failure signal:
+the activity reader now emits a content-free `!failed` event for a `tool_result` marked `is_error`. The headphones
+scene is ready, but its trigger (music) only fires once P1.3 reads what is playing. Everything is drawn from
+scratch; the reference figures were used only as a list of accessory ideas.
+
+## 2026-11-05 · Security review of P0: what changed
+
+- **Tailscale requests are recognized by the headers serve adds, not by the Host.** Serve passes the client's Host
+  header through, so a tailnet device could send `Host: 127.0.0.1:7420`, look local, change settings and skip
+  `allowed_logins` (that last part was already possible on main). A request with `X-Forwarded-For`,
+  `X-Forwarded-Proto`, `X-Forwarded-Host` or a `Tailscale-*` header, or with a Tailscale host name, now counts as
+  coming through Tailscale; "this computer" also requires Host `127.0.0.1:port` or `localhost:port`. Tests send the
+  spoofed request.
+- The slash commands no longer pre-approve `Bash(python3:*)`: that allowed any Python for the turn. Claude Code asks.
+- The installer no longer shows the folder page, and uninstall only removes the folder if it is empty.
+- The voice test in Settings goes through the same per-minute and per-day limits as spoken replies.
+- `tailscale login` output is read by a thread with a timeout, so a silent process cannot hold a request forever.
+- A Tailscale address added with no known login (a tagged device) is logged as open to the whole tailnet.
+- Known and unchanged: another user account on the same computer can load the page from 127.0.0.1.
+
+## 2026-11-05 · Varela Round instead of the pixel font
+
+The maintainer asked for Varela Round (SIL Open Font License, license in `web/fonts/OFL.txt`): the app looks modern
+and the 8-bit pixel font no longer fits. It ships in `web/fonts` like the old one (no font service at run time).
+Varela Round is much wider than the condensed pixel font, so every size in the mascot's font went to 80%. The debug
+scene's terminal sign uses the system monospace font.
+
+## 2026-11-06 · The feet follow a real turn, not the gaze
+
+The legs were outside the group that turns, so listening sideways rotated the body box over four legs that stayed
+put. They are now one group under the body. The rule the maintainer asked for (planted for small head movements,
+following past a threshold) is split by where the turn comes from: the body's turn with the gaze (at most 0.32 rad)
+leaves the feet planted up to 0.2 rad and drags them only by the excess; the sideways turn (0.95 rad) takes them
+all the way, on a spring a little slower than the body's, stepping in diagonal pairs while they move. A threshold
+on the total angle was tried on paper first: at a full sideways turn it made the legs shuffle with every glance.
+The rule lives in `animator.js` (`feetYaw`), so the tests cover it without WebGL.
+
+## 2026-11-06 · Scene parts are worn or stand in the room
+
+A scene part with `"on": "body"` goes in a group on the mascot's body and turns, hops, tilts and breathes with it; a
+`"pivot"` says where it grows from and sways around. Everything else stands still around the mascot. An anchor this
+version does not know is treated as the room, so a newer scene file cannot break an older page. Worn today: the
+nightcap (right half of the head, clear of the sprout; the Z letters moved to the left), the headphones (the band
+leans back behind the sprout), the coffee mug (in the right hand) and the debug bug (walking on the head). The mug
+and the bug used to sit on the floor in front, which a wide screen cuts off: only the steam showed.
+
+## 2026-11-06 · The camera slides for a wide scene
+
+The monitor and the debug sign stand beside the mascot and did not fit on a wide phone or a narrow window. Instead
+of shrinking them or the mascot, the camera moves sideways by the least that fits both (the mascot keeps its size)
+and pulls back only when the mascot and the scene together are wider than the screen (`scenes.js` `frameFor`). The
+extent is read from the scene's own boxes, so a community scene gets the same treatment with no extra field.
+
+## 2026-11-06 · A tap is silent, and only the mascot is tapped
+
+Tapping and holding the face is how you call Cody when the wake word misses, so the pet sound no longer plays on a
+tap; `pet.wav` stays in `web/sounds` (the sound test still remakes it) for a later use. A scene that was gone for
+less than 5 seconds returns without its sound: a tap shows the party for a second, and the debug scene behind it
+used to return with its error sound. What counts is how long the scene was away, not when its sound last played, so
+a tap late in a long failure stays silent and a new failure after a real pause sounds again. A tap on a button or a panel drawn over the mascot is not a pat any more (no hop
+and confetti while changing a setting), and Space or Enter typed in a field does not poke it.
+
+## 2026-11-06 · The wake word light, and Settings as a drawer
+
+The corner said "listening for Cody" in words; it is now a 12 px light (green on, red off) on a 44 px target. Its
+words show on hover, on keyboard focus and for 1.8 s after a switch, since a phone has no hover. Next to it, a gear
+opens Settings: before, only the tray menu and `#settings` did. Settings is a drawer on the right (the full width on
+a phone) so the mascot stays in view, with a title bar and its close button at the top (Esc and a click outside
+close it too) instead of a Close button floating in the bottom corner. The ElevenLabs fields show only while
+ElevenLabs is the chosen voice. The hosted voice is listed as "coming soon" and cannot be picked: choosing it only
+fell through to the device's voice with a notice.
+
+The Status screen, the network screen and the first-run card still used the old full-screen layout at this point:
+the drawer was the direction to be confirmed by the maintainer before the other three followed it (next entry but
+one).
+
+## 2026-11-06 · Code review of the polish: what changed
+
+- **A broken scene box could take the camera away for good.** A box with missing numbers made the scene's width
+  NaN, the camera slid to NaN and never came back (only "reduce motion" healed it). `sceneSpan` now skips a box it
+  cannot measure, `frameFor` answers "the middle" for a width it cannot use, and the camera refuses a number that is
+  not finite. A community scene still cannot break the page.
+- **Picking a voice no longer redraws the whole drawer.** It redrew everything (two QR codes and a version request
+  per pick), threw away the focused radio so the arrow keys stopped after one press, and two quick picks could
+  paint out of order. Now only the box under the choice changes; a full redraw (a language change) carries a turn
+  number so an older one cannot paint over a newer one, and a key typed but not saved survives it. Closing the
+  drawer empties it, so nothing typed stays in a hidden field.
+- **The drawer is a dialog.** `role="dialog"` and `aria-modal`, Tab stays inside it, closing returns the focus to
+  the gear, the voice group keeps its name for screen readers (the legend is hidden from sight only), and the
+  "Saved." line stays in the page while empty so it is announced. A drag that starts inside the drawer and ends
+  outside does not close it.
+- **The wake word light** keeps one name ("listening for Cody") and says its state with `aria-pressed`; on, it also
+  glows, so the state is not told by red and green alone. Its words show under the light, clear of the gear.
+- The first-run card's voice radios have their own group name: they shared one with the drawer's, and a redraw of
+  the drawer could clear the card's selection.
+- Found by opening the page, not by the review: the first version of the radio-name fix read a variable before its
+  declaration and the drawer opened empty. The unit tests cannot see that (no DOM), so the check in
+  `docs/MANUAL-TESTS.md` section 7 matters.
+
+## 2026-11-06 · One drawer for every screen, and a fake page to test it
+
+The maintainer confirmed the drawer, so Status, the private network and the first run moved into it. The drawer is
+now its own module, `web/js/sheet.js`: the dialog behaviour (role, Esc, Tab kept inside, focus returned, a click
+outside, only the top drawer answering the keyboard) is written once and the four screens only fill it. The first
+run differs in one thing: a click outside does not close it, since a stray click should not skip the welcome; Skip,
+the X and Esc all end it and mark it done. Its steps are said again when the language changes on the first one. The
+old full-screen styles (`.status-panel`, `.settings-panel`, the floating Close buttons) are gone.
+
+The screens had no tests: their code needs a page, and the first version of one fix opened an empty drawer that only
+a browser showed. `tests/js/fake-dom.mjs` is a page small enough to read in one sitting (elements, classes, events
+that bubble, focus, a `#hash`), and `tests/js/sheet.test.mjs` runs the drawer and the four screens on it: what
+opens, what a key or a click does, what the server is asked. It found one real bug on its first run (the first run
+could show twice in one visit: the page did not remember it was done). JavaScript line coverage on a developer
+machine went from 80% to 96%, measured without the fake page itself (CI leaves it out with
+`--test-coverage-exclude`); the 85% floor in CI stays.
+
+## 2026-11-06 · Your ElevenLabs key, then a list of your voices to hear
+
+A voice used to be an id copied from the ElevenLabs site into a field. With a key saved, Settings (and the first
+step of the first run, when ElevenLabs is the chosen voice) now asks ElevenLabs for the voices of that account
+(`GET /v1/voices`, no credits) and shows them by name; picking one saves it and Cody says one short sentence with it.
+
+- **The sample is Cody speaking, not ElevenLabs' preview file.** Each voice has a preview mp3 on ElevenLabs' storage,
+  free to play, but the page loads nothing from outside (the Content-Security-Policy allows only this server) and a
+  preview is a stranger reading English. So the test is a real synthesis of "Hi! I'm Cody. Can you hear me?" in the
+  page's language: about 30 characters, counted against the same per-minute and per-day limits as replies. The mp3
+  comes back as base64 in the JSON answer and plays through the mascot's own output, so the mouth moves.
+- **A key that cannot list voices still works.** ElevenLabs keys can be restricted per feature; one made for text to
+  speech only gets "the key lacks permission for this". Settings then shows the reason and takes a voice id typed by
+  hand, as before.
+- **From the computer only.** The list names the voices of someone's account, so `GET /api/settings/voices` is
+  refused through Tailscale, like every change to Settings.
+- **The default without a key** was the device's voice, then Cody's sounds. The maintainer chose Cody's sounds
+  (next entry).
+
+## 2026-11-06 · Code review of the drawers: what changed
+
+- **The newest drawer is in front.** The first run sat above the others by a higher `z-index`; "Create your private
+  network" on its second step opened the network drawer underneath, where nobody could see it, while the keyboard
+  already belonged to it. A drawer now moves to the end of the page when it opens, so what is on top of the stack is
+  also what is in front, and the special `z-index` is gone.
+- **The focus finds its way back.** Status draws its rows again after an action and on every look; the button that
+  had the focus was thrown away, the focus fell to the page, and closing then did not return it to the light. Now
+  the rows are only drawn again when something changed, the button of the same check gets the focus back, and
+  closing returns the focus also when it had fallen to the page (but never to an element that is no longer there).
+- Status takes its title and its close label again on each open, so they follow a language change. The private
+  network forgets an old message when it opens again, marks the current step with `aria-current` and says "done" in
+  words on a finished one. The first run keeps the keyboard on the language after saying the step again.
+- **The fake page got stricter**, because it had hidden two of these: only an element that is in the page, shown and
+  enabled takes the focus; the focus falls to the body when its element leaves; `querySelectorAll` returns a list
+  without array methods (a first version of the focus fix called `find()` on it: fine on the fake, nothing in a
+  browser); and a new `#hash` is told a moment later. Each fix has a test that fails without it.
+
+## 2026-11-06 · Security review of the voice list: what changed
+
+Nothing serious was found: the key never reaches the page or a log, the address asked is fixed, and both routes
+answer the computer only. Four things were tightened:
+
+- **No redirect is followed when ElevenLabs is asked.** urllib copies the request's headers to wherever a 30x
+  points, the key included. It would take ElevenLabs itself, or a proxy that opens TLS, to send one; still, both
+  calls (speech and the voice list) now go through an opener that refuses redirects, and a test with two local
+  servers shows the second one is never asked.
+- **The voice test counts under the same lock as replies.** It took its slot in the per-minute limit without the
+  lock the spoken replies use, so a test racing a reply could slip past the limit.
+- **Only real audio of a sane size passes for a working voice.** The answer is read up to 4 MB and has to start like
+  an mp3; a 200 with something else used to end in "the voice works" with no sound.
+- **The list is kept for a minute**, for the key it was asked with (a digest of it, not the key), and forgotten when
+  the key changes. The drawer asks for it on every redraw; ElevenLabs is asked once. A failure is not kept.
+
+Smaller: a voice id is the whole string (`\Z`, since `$` lets a trailing newline through); names and labels keep
+only printable characters, so a shared voice cannot use direction marks to look like another; the test route's
+refusal through Tailscale has its own test, since it spends credits.
+
+## 2026-11-06 · Without a voice picked, Cody's sounds
+
+A new install spoke with the device's voice (the browser's speech synthesis), which is robotic on most computers,
+and only fell back to Cody's sounds when that failed. The maintainer chose the sounds as the start: no words, the
+text shows on screen, and they are Cody's own. The device's voice stays in Settings for whoever prefers words.
+`config.json` without a `voice_provider` now means `sounds` (`elevenlabs` when a voice is configured, as before),
+on the server and on the page alike; an install that never picked a voice changes with the upgrade, which the
+changelog says.
+
+## 2026-11-06 · The private network in one press
+
+The network screen asked for a press per step and a "check again" after each one. Now one press starts a chain
+that goes on by itself: install (then wait for winget), sign in (the browser opens on the Tailscale page, where
+Google, Microsoft, GitHub or Apple sign you in), the DNS page if MagicDNS or HTTPS is off, share, the two codes.
+While a step needs the user in the browser, the drawer looks again every 4 seconds (`GET /api/network`, which
+runs `tailscale status`: cheap) and goes on when the state moves. Each page opens once per chain and each
+automatic step runs once, so a slow install does not start twice; closing the drawer stops the looking; a failed
+step shows its reason and gives the button back. The screen's first words say what this is for: it is how the phone
+reaches the computer.
+
+## 2026-11-06 · The thought bubble in front, and a real keyboard
+
+The thinking scene's bubble and the thought spheres sat at the back of the head (z 0.2 to 0.4, behind the face at
+0.8) and stayed in the room, so a turn of the head left them behind, as the maintainer saw. They are now worn (the
+spheres live in the decorations group, which goes on the body too, with the Z letters) and float in front of the
+face, at the upper right, like the keyboard and the coffee: they turn and hop with the head.
+
+The keyboard was three staggered rows of equal keys with the space bar at the back. It is now laid out like a real
+one seen from the viewer's seat: the number row far away by the mascot, Tab, Caps Lock and Enter, the two Shifts,
+the bottom row with the space bar nearest the viewer, and a numeric keypad on the right with + and Enter two rows
+tall and a wide 0. 78 keys, from a table of widths per row (`KEY_SLOTS`), with a test that no two overlap.
+
+## 2026-11-06 · The keyboard faces the mascot, the hands land on it, one leg up to think
+
+The maintainer, looking at the real keyboard: it was laid out for the viewer, not for Cody, who sits behind it;
+the arms went through it; it was a bit big. And in the thinking scene, the spheres next to the bubble made a
+tangle, and from the side one leg looked loose.
+
+- The keyboard is now laid out from the mascot's seat: the space bar by its belly, the number row nearest the
+  viewer, the keypad on its right (the viewer's left). The viewer sees it the wrong way round, which is what a
+  keyboard looks like from across a desk. The keys shrank from 0.125 to 0.105 units (the whole from 3.25 to
+  2.74 wide) and the tilt from 0.35 to 0.25 rad, so the keys still face the viewer.
+- The arms no longer cut through it: they come out nearly flat (1.3 rad), a little inward (0.25 rad) and thinner
+  as they stretch (×0.6 in depth), so the hand's lower edge rests on the Shift row and clears the space bar. Each
+  hand lifts in its turn, to the keyboard's own clock (`KEYBOARD.rhythm`, shared by `mascot3d.js`), and the key
+  that lights up is under the hand that is down (`pickKey`: the mascot's left hand on even beats, its right on odd
+  ones, each on its outer third of the keyboard). The numbers come from the shoulder's height (1.1) and the key
+  tops (0.6 to 0.67); change one and the other moves.
+- Thinking keeps only the block with the three dots (a scene part); the four spheres of `decorations3d.js` are
+  gone, and the module draws the Z letters alone.
+- Thinking lifts the front leg opposite the bubble (leg 0, at the mascot's right; the bubble floats at its
+  left), swung forward 0.95 rad and tapping in the air, through a new spring, `q.lift` (`SPRINGS.lift`), so it
+  comes up in about half a second and goes down again when the mood changes; with reduce motion it is simply up.
+  The maintainer asked for the leg opposite the bubble; it is also the leg that looked loose from the side.
+- Not done: the keyboard follows Claude (an edit on a code file, through the hooks, for 5 s), not the person
+  typing. Reading the person's own typing is item 13 of the refinement list and has its rule: it may tell that
+  keys are being pressed, never which ones.
+
+
+## 2026-11-07 · The hips follow the body, and the thinking leg is held up, not swung out
+
+- From the front, the thinking leg swung 0.95 rad forward looked splayed outward (the camera is close, so the
+  foot coming toward it projects further from the middle) and the front leg under the bubble looked loose: the
+  body pitches back to look up at the bubble (`body.rotation.x`, applied about the figure's x axis after the
+  body's yaw), so its underside rose off the front legs by about 0.04 units, a thin dark gap.
+- Now each hip follows the body's underside at its own place (`hipRise()` in `mascot3d.js`: the leg's z in the
+  figure after the feet's turn, times the tangent of the pitch) and the leg stretches or shrinks so the foot stays
+  on the floor. Looking down does the opposite, so the keyboard look no longer sinks the body into the front legs.
+  Pure function, tested in `tests/js/legs.test.mjs`.
+- The thinking leg is pulled up into the body (0.14 units) and swung 0.55 rad forward, like a paw held up: still
+  clearly up from the side, no longer a stilt from the front.
+
+## 2026-11-07 · Headphones when music plays (Windows), worn over the other scenes
+
+- Music is read from the system's own list of media sessions (SMTC, what the volume flyout shows), so any
+  player counts: Spotify, a browser tab, a desktop app. No account, no key, no player-specific integration, and
+  nothing leaves the machine. A Spotify OAuth integration (client id and secret, tokens per user) was on the
+  table; it would need the maintainer to keep a backend with the users' refresh tokens, which the privacy rule
+  forbids, and a Spotify app in development mode serves 25 users at most. If a player-specific link ever comes,
+  it is PKCE on the user's own machine, with the token in `%LOCALAPPDATA%\cody`; not now.
+- The reader is one Windows PowerShell child process (`cody/media.py`: the newer pwsh cannot load the WinRT
+  types; `powershell.exe` loads them in about 3 s, so it stays up instead of being run per poll) that prints one
+  word every 2 s, `playing` or `silent`. It reads nothing else: no title, no artist, no app name (the tests check
+  the script never names those properties). A word older than 15 s counts as silent; the child is restarted after
+  5, 30 and 120 s if it dies, then left down until Cody starts again. `/api/activity` carries `music` (polled
+  every 3 s), so the headphones come and go within a few seconds. On by default, off with the Settings checkbox
+  "Headphones when music plays" (`"music": false` in config.json); the checkbox only shows on Windows.
+- A scene can now be worn over another: `"over": true` in `scenes.json` (`pickOver` beside `pickScene`), so the
+  headphones stay on while the monitor is up or the thought bubble floats; `?over=headphones` shows it for a
+  look. Before this, the headphones (priority 20) would have lost to coding and thinking nearly all the time.
+
+## 2026-11-07 · "Cody, take a screenshot" is answered on the spot
+
+- A short sentence asking for a screenshot (`is_print_command` in `voice.py`: up to six words with "printa", "tira
+  um print", "take a screenshot", "print screen", "capture the screen"...) never reaches Claude: the server takes
+  the picture itself, keeps it in memory (the latest five) and answers the POST with `quick: {text, image}`; the
+  page plays the shutter (`snap`, a new Cody sound), shows the picture with Share and says the word. Works with
+  the voice session closed. A longer sentence ("send a screenshot to my WhatsApp") still goes to Claude, who can
+  send it somewhere.
+- This skips the permission prompt the `screenshot` tool shows. The maintainer asked for a fast shortcut; the
+  words are the consent, and the picture goes only to the page that asked (the phone or the computer), never
+  into the conversation. The README says so.
+- "Even with another window in focus": the page listens in the background tab, so the wake word works while
+  another window is in front; a native hotkey would need an always-on key hook, which Cody does not do.
+
+## 2026-11-07 · Toc-toc: Cody knocks on the screen when Claude needs you
+
+- The "needs you" heads-up (hook `Notification`, `permission_prompt` and the like) now knocks: the alert carries
+  a tag (`cycle.alert(mood, seconds, now, 'knock')`), the animator gets a `knock` spring (`setKnock`, `q.knock`),
+  and the mascot's right arm comes up in front of its face, stretched to the glass, rapping twice a period
+  (`knockTap`, pure), the body leaning toward the viewer; the `knock` scene (priority 70, above the debug sign)
+  draws little white impact marks around the fist, worn on the body; and the `knock` sound (two knuckle raps,
+  a click with a low thump under it) plays before the spoken phrase. `?mood=pointing&knock=1` shows it.
+- The arm's Euler order is now YXZ (out to the side, forward, then across), so a forward arm can turn toward
+  the middle of the face; every older pose has rotation.y = 0, so nothing else moved.
+- Item 12 (the notification reader) reuses the same knock for an important notification.
+
+## 2026-11-07 · Windows notifications, read aloud: opt-in, the title only, nothing leaves
+
+- The reader is `UserNotificationListener` through a Windows PowerShell child (`cody/notices.py`, on the shared
+  `cody/winrt.py` plumbing that `media.py` now uses too): it asks for access (Windows shows the permission under
+  Privacy > Notifications; denied, the child says so once and stays down), remembers the newest toast id at its
+  start, and prints one JSON line per new toast: id, app name and the first text line. The notification database
+  on disk was the other way in; it holds every toast's whole payload, so it was not touched.
+- Important (`notices.important`, pure): the app's name contains one of a short list of messaging, mail, calendar
+  and phone apps (`notification_apps` in config.json replaces the list), or the title has an urgent word. The rest
+  is dropped before it becomes an event. The same app and title within a minute is said once; at most one notice
+  per 15 s, the rest of a burst dropped, not queued.
+- A notice is an event on the hooks feed (`HookFeed.add`, same cursor as done and needs you), so the page's
+  alerts reader needed one more kind; the mascot knocks on the screen for it, as for "needs you". The device's
+  voice or Cody's sounds say "app: title" locally; ElevenLabs is given only "Something new on {app}." (the server
+  makes that text from the event's seq, `notice:<seq>`), so the title never leaves the computer. Documented in
+  PRIVACY.md and the README; off by default.
+
+## 2026-11-07 · Typing along: input with the pointer still, never a key
+
+- The rule was "detect that there is typing, never which key". No keyboard hook, no key state: `cody/typist.py`
+  reads `GetLastInputInfo` (one tick for any input), the pointer position and whether the front window's title
+  has "Claude" in it, a few times a second. The tick moved and the pointer did not: that was the keyboard. A
+  click without a move counts too, which is fine. The title is checked for the word and dropped.
+- The flag rides on `/api/activity` (`typing`), and the page's `claudeProp` puts the keyboard in hand before
+  anything else while it is on, so Cody types with you. Opt-in (`"typing": true`, the Settings checkbox), Windows
+  only, documented in the README and PRIVACY.md.
+
+## 2026-11-07 · Usage limits from Claude Code's status line, not from the API
+
+- There is no `claude usage` command and nothing in the transcripts or the config folder carries the plan's
+  windows. The one local, stable source is the status line: Claude Code hands its command a JSON with
+  `rate_limits.five_hour` and `rate_limits.seven_day` (`used_percentage`, `resets_at`: epoch seconds or ISO
+  8601, both handled) on subscription plans. The alternative, calling the OAuth usage endpoint with the token
+  from `.credentials.json`, reads a credential file and leans on an undocumented endpoint: no.
+- So Cody offers to be the status line (`cody/usage.py`, `cody.py --statusline`, the Settings switch "Usage
+  limits"): it keeps only the two windows in `usage.json` (private file, data folder), then runs the status line
+  the person had, with the same input, printing its output (the previous `statusLine` is kept in config.json
+  under `statusline_previous` and put back on removal); with none, it prints "Cody · session 42% · week 10%".
+  Always exit 0: a status line must never break the terminal.
+- "How much usage do I have left?" (≤ 9 words with a usage word and a "mine" word, `is_usage_question`) is
+  answered on the spot by the server, like the quick screenshot: session and week with their reset times, and
+  how old the numbers are when Claude Code has not refreshed them for six hours. Without the switch on, Cody
+  says how to turn it on.
+
+## 2026-11-07 · The skin shop: skins are data, free, picked per screen
+
+- A skin (`web/skins/skins.json`, `web/js/skins.js`) is colors for the figure's plastic (the keys of `COLOR` in
+  `mascot3d.js`: body, leg, eye, mouth, stem, leaf...), pieces it wears (the same shape as a scene's worn parts,
+  drawn by `scenes3d.js` as a scene named `skin:<id>`, shown beside the scene of the moment and the headphones;
+  a part may `glow`, an emissive color, for the pumpkin's grin) and two looks: `smile` (the ^ eyes always on, except
+  asleep) and `mouth: false` (the talking mouth hidden, the skin draws its own). Nothing in JS per skin.
+- Jack-o'-Cody from the reference picture: three darker ridges on the front, a glowing yellow zigzag grin with a
+  lower lip, the ^ eyes, and a squat voxel witch hat on the right half of the head (clear of the sprout), purple
+  band, gold buckle. The hat was first drawn taller and the camera's frame cut its tip: worn parts do not widen
+  or heighten the frame, so a skin's pieces stay within about 2.8 units from the floor.
+- The shop is a group in the Settings drawer, on the computer and on the phone: name, "free", Wear. No prices,
+  no payment, no account (the rule: no real charge until a character of Cody's own). The choice is the viewer's,
+  in localStorage, so each screen picks its own; `?skin=<id>` for a look.
+
+## 2026-11-07 · Scenes on request, and Cody writing scenes for itself (data, never code)
+
+- Two voice tools in `abilities.py`. `scene` shows a built-in or custom scene for a while because the person
+  asked ("put your headphones on"): the channel writes `custom/wanted.json` (id, until) in the data folder, the
+  server hands the id on `/api/activity` (`wanted`), and the page puts it above the pick (`wantedScene` in
+  `scenes.js`: in the over slot when the scene is worn over the others, else in the scene slot). The maintainer
+  asked for exactly this: Cody putting its headphones on and taking them off when told.
+- `custom_scene` writes a scene of Claude's own: the same shape as `scenes.json` (boxes, colors, clips, a sign,
+  `on`, a pivot, a trigger, a priority, `over`), validated field by field in `custom.py` (every problem named,
+  unknown keys dropped, limits on count, boxes, reach and sizes), saved as `custom/<id>.json`, twelve at most.
+  Never JavaScript, never a file of any repository. `trigger: "request"` (the default) shows only when asked;
+  a custom scene may also take a built-in trigger and compete on priority. Created, it shows at once; "undo"
+  removes the newest (or a named one). The server lists them on `/api/scenes` and carries a version number on
+  `/api/activity`; the page rebuilds its scenes when the number changes (`setScenes` again: the old groups are
+  removed, `mascot.unwear`).
+- The channel's tool list and the instructions name the two tools, so Claude knows the ids it may show (the
+  built-in ids are read from `scenes.json` when the channel starts).
+
+## 2026-11-07 · The Android app: a Trusted Web Activity, not a WebView, not a rewrite
+
+- The maintainer asked for the phone side as an Android app, on Google Play, with notifications while the app is
+  closed and a home screen widget. The page is the product; the app wraps it. Of the three ways to wrap, the
+  Trusted Web Activity (`androidbrowserhelper`, Chrome in full screen with the app's identity) was chosen over a
+  WebView: Android's WebView has no Web Speech API, so the wake word and the voice would need a native bridge and a
+  second implementation of what Chrome already does. A native rewrite of the mascot (Compose and a 3D engine) was
+  out of proportion. Chrome has to vouch the site is the app's: the computer serves `/.well-known/assetlinks.json`
+  with the app's certificates (`cody/android.py`; a developer's own build adds its debug fingerprint in
+  `android_fingerprints`); without a match the page still opens, as a Custom Tab.
+- The address is not in the manifest: the app pairs with the computer (typed, or the `cody://pair?url=` QR code
+  next to the old one in Settings) and keeps it in its own preferences. Only `https://` addresses are accepted,
+  except `http://` to this computer or the emulator (`10.0.2.2`) for development.
+- Notifications with the app closed are an opt-in foreground service (`WatchService`, type `specialUse`: Android 15
+  caps `dataSync` at six hours a day), one thread that asks `/app/hello` for the token and then holds
+  `/api/events?wait=25` open on the computer (new `wait=` parameter, 30 s at most, polled every 0.5 s on the
+  server). The first read only marks the cursor, so the past is never announced, and a cursor that went back
+  (the computer restarted) is not news: the same rules as `alerts.js`. The events' words come from the computer
+  in its language; the app adds only the title ("Claude needs you", "Done", the app's name for a notice).
+- `/app/hello` gives the same token the page carries in its HTML, to the same requesters (this computer, or an
+  allowed Tailscale login through serve); no new exposure. The app never stores it: a 403 means the computer
+  restarted and it asks again.
+- The widget shows the last heads-up with a still of the mascot (four captures of the page: listening, pointing,
+  happy, talking) and the words; it is updated by the service, never on a timer, so a phone without the switch on
+  shows "All quiet". Play Store distribution needs the maintainer's own developer account, the upload key and the
+  listing: `docs/BACON-TODO.md`. The workflow builds the debug APK and the release bundle (signed only when the
+  repository has the key in its secrets).
+
+## 2026-11-07 · The app's first run: six screens from the design, with the real check at pairing
+
+- The maintainer designed the first run in Claude Design (welcome, prerequisites, pairing, the heads-up switch, the
+  widget, done; black, `#f2f2f2`, `#8a8a8a`, `#ff8a3d`) and wanted it to feel like a product. It replaces the one
+  pairing form in `PairActivity`: plain views in a `ViewFlipper`, the order in `Onboarding` (pure, tested), the
+  address cleaned by `Pairing` as before. The pairing contract with the computer did not change: `/app/hello` is
+  the one real check, and the `cody://pair` link and the Settings shortcut still land in the same activity.
+- The QR code is read by the phone's own camera (`INTENT_ACTION_STILL_IMAGE_CAMERA`): every camera app offers the
+  link it sees, and the app has no camera permission and no scanner library. The link comes back through
+  `onNewIntent` (launchMode singleTask), so the flow stays where it was.
+- The prerequisites warn, never block (the design's rule). Tailscale is "Installed" or "Not found" by package
+  (`<queries>` names `com.tailscale.ipn`; no permission); whether it is connected cannot be known without a VPN
+  permission, so the pairing check answers that. Cody on the computer is checked only when an address is already
+  known (the Settings shortcut); a first run shows Pending.
+- The system's notification prompt comes the moment the switch goes on, not at Continue, and a refusal turns the
+  switch back off; the watch service starts at Continue, after the address is saved (it stops itself without one).
+- Cody's head on the welcome, the result and the done screens is drawn by the app (`CodyHead`, a View with the
+  design's shapes and gradients) instead of a bitmap, so it can blink and change eyes; it holds still when the
+  phone's animations are off. The widget preview uses the same head; the real widget keeps its stills of the 3D
+  mascot.
+- One addition to the design: a "Change the address" line under "Computer not found", so a typo is not a dead end
+  (back does the same).
+- The Settings shortcut goes through the pairing check: the heads-up switch comes after "Hi! Cody is awake.", so
+  with the computer off there is no way to that switch from the phone. Kept that way by the maintainer on
+  2026-11-07; the Settings panel of the landscape page (the next design piece) is where that will live.
+
+## 2026-11-10 · Skins beyond voxels: shapes as data, a gourd for a body, a mouth cut with the stencil
+
+The voxel boxes were where Cody came from, and a test. The maintainer's reference for the pumpkin (a rendered
+picture: lobed rind, a twisted stem, a leather hat with a bent tip, a carved grin) cannot be said in boxes, and
+three.js can do far better than boxes. The first skin made to that standard is Jack-o'-Cody; the other three
+(aviator, pixel, boss) are still boxes.
+
+- **Still data, not code per skin and not model files.** `web/js/forms.js` (pure, tested in Node) checks three
+  shapes a part may carry besides `boxes`: `tube` (a spine through points, a radius along it, optional
+  lengthwise ridges and `bands` around it), `lathe` (a profile turned around, with a `wave` for a brim) and
+  `plate` (a flat outline with a hole, a depth and a bevel). Shapes are measured from the part's pivot, in
+  voxels, and a part may `tilt`. `web/js/forms3d.js` turns them into meshes and gives them a `finish` (plastic,
+  matte, leather, satin, metal), with a fine grain drawn once on a small canvas for leather and rind.
+  Modelling in Blender and loading glTF was considered: best ceiling for sculpted detail, but a skin becomes a
+  binary of megabytes someone has to model, split in the same pieces the figure is animated by. A `model` kind
+  of part can come later for a skin that needs it; this pumpkin did not.
+- **The body may be a gourd** (`"body": { "form": "gourd" }`): the box's rounded section (`roundedRect`, walked
+  by arc length so ribs are evenly spaced), closed to a point above and below along a superellipse, the ribs
+  running pole to pole and meeting under the stem (`crown`). Each rib has its own shade and the grooves are
+  darker and redder (vertex colors), which is most of what reads as "pumpkin" in real-time light. The legs now
+  go further up into the body (hidden in the box, needed under a round belly) and the arms move in (`inset`).
+- **The carved mouth is a real hole, without cutting the mesh.** Its outline is drawn first into the stencil
+  buffer only; the torso's material skips those pixels; what shows there is a small lit room behind the front
+  (walls from the skin's color to the light, a glowing back). So the cut has depth and parallax from the side.
+  The renderer is created with `stencil: true` for this. Only the torso has that material: an arm in front of
+  the mouth is drawn whole. The mouth opens a little taller with the voice and its light wavers like a candle.
+- **A skin may stand lower** (`"legs"`, in voxels): a round belly shows more of the legs, and the pumpkin looked
+  long-legged. What the figure wears hangs from the body, so it comes down with it; the numbers in the data
+  stay those of the usual figure.
+- **A skin's own stem is no antenna.** The sprout swings on a spring; a thick pumpkin stem doing that looked
+  wrong. A skin's `sprout` stands still, and a shape in it may keep a share of the swing (`"sway"`, the
+  tendril).
+- `skins.json` now keeps each point and box on one line (a separate commit, same data): a skin made of curves
+  has to be readable by hand.
+- Tests build the gourd, the shapes, the whole figure and every skin of the shop with the real three.js in Node
+  (geometry needs no page; the canvases get a stand-in). The vendored three.js is left out of the coverage
+  count (`--test-coverage-exclude="web/vendor/**"`); JavaScript line coverage went from 91% to 95%.
+- Not measured yet: the pumpkin on a phone (about 40 thousand triangles with the hat, and one more pass for the
+  shadow). Known and left as it was: a scene's hat (the nightcap) goes through a skin's hat.
+
+## 2026-11-11 · The microphone stays open after an answer; the light shows what it is doing
+
+The maintainer kept saying "Cody" before every sentence, also to answer a question Claude had asked back, and some
+calls ("Cody", "Claude", "Cory") were not picked up with nothing on screen to tell why.
+
+- **No sensitivity knob exists.** The page uses the browser's speech recognition, which has no gain setting; what
+  can be improved is what is done with its answers. So: the word is compared without accents or capitals, the
+  list of spellings grew (never "code", which people say all day), and `maxAlternatives` asks for four guesses
+  per phrase, all searched for the word ("Cody" is often the second guess).
+- **After an answer to something said**, `wake.open(VOICE.followUp)` leaves the wake word's recognition taking
+  the next sentence as a command for 8 seconds; every word heard pushes the end of the wait, so a long sentence is
+  not cut. Not after a timer, a heads-up or any other announcement (a room with people talking would send their
+  words to Claude), and only while the wake word is on. The viewer's choice, kept per screen like the wake word
+  itself (`cody:followUp` in the browser), on by default.
+- **One light, four looks**, instead of a caption that may not come: red off; green listening for the word,
+  swelling for a moment at any speech it hears (so a dead microphone is noticed); green growing and shrinking
+  while a command is being taken; amber with the reason in words when recognition fails for a reason worth
+  telling (`audio-capture`, `network`; silence and deliberate stops are not trouble). With "reduce motion" the
+  pulse is a bigger light with a ring.
+- A recognition session that produced nothing for 45 seconds and never ended is aborted and started again; an
+  old session ending late no longer schedules a second one.
+
+## 2026-11-11 · Settings and Status as one panel, after the design for the Android page
+
+The design (made for the page lying down on a phone, 800 by 360) turns the two drawers into one panel: a bar with
+a back arrow and the title, a list of sections on the left with Status at its foot, the content on the right; on a
+computer the same content in a side panel of 480.
+
+- **Two drawers that read as one.** `web/js/panel.js` gives both the same list of sections (`navList`); a pick
+  goes to the section's `#hash` (`#settings/voice`, `#status`), which each drawer already follows, so one leaves
+  as the other comes. Each module still stands alone (and is tested alone); merging them into one module was not
+  needed for what the eye sees. A drawer that opens within a moment of another closing takes its place without
+  sliding in (`sheet-still`), and the focus goes back to where the first one was opened from.
+- **Every section stays in the drawer, hidden but one.** A key typed under Voice survives a look at another
+  section, and a section's title stays as a heading for screen readers.
+- **The sections are the app's, not the mock-up's.** The design lists Voice, On your phone, Heads-up, Language and
+  Status; Cody also has skins, the first steps, restart and more switches, so the list is Voice, On your phone,
+  General, Skins, About, Status. From the phone it is still only what that browser may change, plus Status.
+- **No font fetched.** The design uses Roboto Flex; the panel asks for `'Roboto Flex', Roboto, system-ui`, which is
+  Roboto on Android and the system's own font elsewhere. Shipping the font is a file to add later if the look on a
+  computer must match to the letter. The mascot's caption keeps Varela Round.
+- **The layout switches on the screen's shape**, not on "is it a phone": short and wide (`max-height: 520px` and
+  `min-width: 600px`) is the full-screen panel with the list on the left; anything else is the drawer with the
+  list across the top.
+- **The page's overlays** are the design's three pills with words (Settings, "all good", listening for "Cody"),
+  stepping back after four seconds without a touch (`overlays.js`, a class on the page). Stepping back is not
+  hiding everything: the wake word keeps its light, so the microphone at work is always seen (the maintainer had
+  just asked for that light), and a Status that is not green stays.
+
+## 2026-11-13 · The Aviator and The Boss in real shapes; hats that give way
+
+- **Two more skins made of shapes**, after the pumpkin. What they needed was added to `forms.js` as data, not as code
+  per skin: a tube may be `closed` (a ring: a rim of a pair of glasses), any shape may ask for its `mirror` image on
+  the other side of the pivot (the other lens, the other half of a moustache: one set of numbers for both sides),
+  and two finishes, `gloss` (polished: dark lenses, a cap's peak) and `glass` (see-through, not writing depth, so
+  the eye behind a lens still shows).
+- **Pixel stays in blocks.** Its whole point is 8-bit frames and a blocky top hat; made smooth, it would be a
+  different skin.
+- **Slots, so two hats never share a head.** A worn part may say it takes the `hat` slot. While the scene of the
+  moment, or the one worn over it, has a part in a slot, the skin's parts in that slot shrink away (at the scene's
+  own growing speed, or at once with "reduce motion") and grow back after. The nightcap and the headphones take the
+  hat slot; so do the hats of the pumpkin, the Aviator, The Boss and Pixel. Glasses, grins and moustaches take
+  none, so they stay under the headphones.
+
+## 2026-11-13 · A pat is not a party; eyes, sprout and glasses made to look real
+
+- **A tap was a party.** The cycle had one "happy" for both a pat and an agent that finished, and the party scene
+  (confetti, star eyes) triggers on "happy". Now `cycle.js` keeps them apart: a pat (and waking up) shows the happy
+  face only; `situation().happy`, which the party listens to, is for celebrations alone.
+- **Scene eyes in 3D are curves, not cells.** The half-voxel glyphs built from little rounded boxes looked like a
+  grey pile of blocks in the 3D light (every tiny rounded face caught the room). `eyes3d.js` draws each one as a
+  curve (a heart, a five-pointed star, round-ended strokes) pressed out with a rounded edge, of the bars' plastic.
+  The 2D face keeps the glyphs; `eyeRuns` went away with the old builder.
+- **The sprout** is a tapering stem and two pressed leaves, faces toward the viewer, made with the skins' shapes.
+- **Glasses rest on the head.** A voxel in front of the face (the eyes stand out half a voxel), two clear pads on
+  the face, temples around the front corner of the head, along its side and over the top of the ears, measured from
+  where the ears are. The key light's shadow map went from 1024 to 2048 so a wire frame shadows the face, which is
+  most of what tells a thing sitting on a face from a sticker. Two new finishes: `tinted` (dark lenses, the eye only
+  just showing) and `hair` (soft, with a sheen and drawn strands along a tube's length).
+- **The Aviator's grin is carved** (the pumpkin's stencil hole, `"flicker": false` so the light inside holds
+  still), with the teeth, the gaps and the tongue as pieces inside the face, seen only through the opening.
+- **The Status pill** said "all good" beside an amber light (a warning that is not urgent, such as the sound
+  waiting for a first tap). It now says how many ask for a look, and Status looks again right after the first tap.

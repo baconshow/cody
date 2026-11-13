@@ -16,14 +16,15 @@ WEB_TYPES = {
     ".css": "text/css; charset=utf-8", ".png": "image/png", ".svg": "image/svg+xml",
     ".json": "application/json; charset=utf-8",
     ".webmanifest": "application/manifest+json; charset=utf-8",
+    ".woff2": "font/woff2", ".wav": "audio/wav",
 }
 _RE_INLINE_SCRIPT = re.compile(rb"<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>", re.S | re.I)
-# scripts from here and three.js from esm.sh (the inline importmap is allowed by its hash, see policy());
-# the page only talks to this server
+# everything from here (three.js in web/vendor, the font in web/fonts): the page works offline and only talks to this
+# server; the inline importmap is allowed by its hash, see policy()
 CSP = (
     "default-src 'none'",
-    "style-src 'self' https://fonts.googleapis.com",
-    "font-src https://fonts.gstatic.com",
+    "style-src 'self'",
+    "font-src 'self'",
     "img-src 'self' blob:",       # the screenshot, shown from the bytes fetched with the token
     "connect-src 'self'",
     "manifest-src 'self'",
@@ -53,8 +54,8 @@ def script_hashes(page: bytes) -> list[str]:
 
 
 def policy(page: bytes) -> str:
-    """The Content-Security-Policy header of the page: CSP plus esm.sh and the importmap hash."""
-    script = " ".join(["'self'", "https://esm.sh", *script_hashes(page)])
+    """The Content-Security-Policy header of the page: CSP plus the importmap hash."""
+    script = " ".join(["'self'", *script_hashes(page)])
     return "; ".join([CSP[0], f"script-src {script}", *CSP[1:]])
 
 

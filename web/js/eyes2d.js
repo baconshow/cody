@@ -13,6 +13,7 @@
 
 import { rect, glyph } from './pixel.js';
 import { COLOR, EYE, LAYER, PX, clamp } from './measures.js';
+import { eyeRows } from './eyeshapes.js';
 
 const REACH = Object.freeze({ x: 1.3, y: 0.7 });          // voxels the bar travels to each side
 const CENTER_Y = EYE.top + EYE.height / 2;
@@ -44,12 +45,14 @@ function normalLook(q) {
 
 export function drawEyes(ctx, g, q) {
   const [gx, gy] = normalLook(q);
-  for (const x of EYE.xs) {
+  EYE.xs.forEach((x, i) => {
     const cx = x + EYE.width / 2;
-    if (q.mood === 'resting') stampEye(ctx, g, CURVE, cx, CENTER_Y + 0.6);
+    const scene = q.eyes?.[i] ? eyeRows(q.eyes[i], i) : null;   // a scene's eyes (eyeshapes.js) replace the bar
+    if (scene) stampEye(ctx, g, scene, cx + gx * REACH.x * 0.5, CENTER_Y);
+    else if (q.mood === 'resting') stampEye(ctx, g, CURVE, cx, CENTER_Y + 0.6);
     else if (q.mood === 'happy' && q.squint > 0.6) stampEye(ctx, g, ARC, cx, CENTER_Y - 0.4);
     else openEye(ctx, g, q, cx + gx * REACH.x, q.mood === 'sleepy' ? Math.max(gy, 0) : gy);   // sleepy, it won't look up
-  }
+  });
 }
 
 function stampEye(ctx, g, rows, cx, cy) {

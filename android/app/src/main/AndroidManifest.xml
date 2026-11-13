@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cody for Android: the mascot page from your computer, opened as a Trusted Web Activity (Chrome, full screen,
+     with the microphone and speech of a normal Chrome tab), and the two things a page cannot do on its own: tell
+     you with the app closed (WatchService, a foreground service that waits on the computer's /api/events) and a
+     home screen widget (MoodWidget). Nothing here talks to anyone but the computer you paired, through your own
+     private network. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- To tell whether Tailscale is on this phone (the first run's second prerequisite); nothing else is asked -->
+    <queries>
+        <package android:name="com.tailscale.ipn" />
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Cody"
+        tools:targetApi="36">
+
+        <!-- The front door: the first run (welcome, prerequisites, pairing, the heads-up switch, the widget), then the mascot -->
+        <activity
+            android:name=".PairActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- cody://pair?url=https://my-pc.tailnet.ts.net/ : the QR code the computer shows -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="cody" android:host="pair" />
+            </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- The mascot itself: Chrome, full screen, landscape, at the paired address -->
+        <activity
+            android:name=".MascotActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.Cody.Launcher">
+            <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="https://localhost/" />
+            <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR" android:resource="@color/black" />
+            <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR" android:resource="@color/black" />
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE" android:resource="@drawable/splash" />
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR" android:resource="@color/black" />
+            <meta-data android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION" android:value="300" />
+            <meta-data android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY" android:value="io.github.baconshow.cody.fileprovider" />
+            <meta-data android:name="android.support.customtabs.trusted.DISPLAY_MODE" android:value="immersive" />
+            <meta-data android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION" android:value="landscape" />
+        </activity>
+
+        <!-- androidbrowserhelper switches this one on or off every time the mascot opens, so it has to exist; nothing
+             opens it (MascotActivity drops its "Site Settings" shortcut, which would point at a fixed address) -->
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
+            android:exported="false" />
+
+        <!-- The splash image is handed to Chrome through a FileProvider (androidbrowserhelper needs it) -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="io.github.baconshow.cody.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/filepaths" />
+        </provider>
+
+        <!-- Waits on the computer for "done" and "needs you" while the app is closed; opt-in, one quiet notification -->
+        <service
+            android:name=".WatchService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps a connection to the user's own computer on their private network (Tailscale) so a desk-mascot app can tell them when their coding assistant finished or needs them. Opt-in, no data leaves the user's network." />
+        </service>
+
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".MoodWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/mood_widget_info" />
+        </receiver>
+    </application>
+</manifest>

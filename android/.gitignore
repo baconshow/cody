@@ -1,0 +1,10 @@
+# Gradle and build output
+.gradle/
+build/
+.kotlin/
+
+# this computer's SDK path and signing key (never committed)
+local.properties
+keystore.properties
+*.jks
+*.keystore

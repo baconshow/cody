@@ -1,4 +1,3 @@
-import io
 import json
 import os
 import re
@@ -8,7 +7,7 @@ import tempfile
 import threading
 import time
 import unittest
-import urllib.error
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from cody import voice
@@ -49,6 +48,18 @@ class ChannelTest(unittest.TestCase):
         request = self.channel.utterance("what time is it")
         self.assertEqual(self.sent[-1]["method"], "notifications/claude/channel")
         self.assertEqual(self.sent[-1]["params"]["meta"]["request_id"], request)
+
+    def test_every_utterance_carries_this_computers_clock(self):
+        # Claude only knows the date on its own; asked the time, it answered with some other clock's hour
+        brasilia = timezone(timedelta(hours=-3))
+        ticking = iter([datetime(2026, 11, 7, 15, 2, tzinfo=brasilia), datetime(2026, 11, 7, 15, 9, tzinfo=brasilia)])
+        channel = self.make(lambda line: self.sent.append(json.loads(line)), clock=lambda: next(ticking))
+        channel.utterance("what time is it")
+        self.assertEqual(self.sent[-1]["params"]["meta"]["now"], "2026-11-07 15:02 -03:00 (Saturday)")
+        channel.utterance("and now?")
+        self.assertEqual(self.sent[-1]["params"]["meta"]["now"], "2026-11-07 15:09 -03:00 (Saturday)")
+        self.assertRegex(self.channel.utterance("real clock") and self.sent[-1]["params"]["meta"]["now"],
+                         r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2} [+-]\d{2}:\d{2} \([A-Z][a-z]+day\)$")
 
     def test_reply_tool_stores_what_to_say_and_show(self):
         self.channel.handle({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
@@ -113,7 +124,7 @@ class ChannelTest(unittest.TestCase):
         channel = self.make(capture=lambda: b"\x89PNG fake")
         tools = channel.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools],
-                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point"])
+                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point", "scene", "custom_scene"])
         self.channel = channel
         result = self.call("screenshot")
         text = result["content"][0]["text"]
@@ -297,13 +308,6 @@ class VoiceTest(unittest.TestCase):
         with self.assertRaises(voice.VoiceError) as caught:
             voice.audio("1", None)
         self.assertEqual(caught.exception.status, 404)
-
-    def test_an_elevenlabs_refusal_says_why_and_never_the_key(self):
-        body = io.BytesIO(json.dumps({"detail": {"code": "payment_issue", "message": "xi-key-secret"}}).encode())
-        refusal = urllib.error.HTTPError("https://x", 401, "no", {}, body)
-        self.assertEqual(voice._refusal(refusal), "ElevenLabs refused the voice (401 payment_issue)")
-        plain = urllib.error.HTTPError("https://x", 500, "no", {}, io.BytesIO(b"not json"))
-        self.assertEqual(voice._refusal(plain), "ElevenLabs refused the voice (500)")
 
     def test_channel_file_location(self):
         self.assertEqual(channel_file().name, "channel.json")

@@ -5,7 +5,9 @@
 // device's own voice) and stays in the caption; a link, command or path Claude asked to show appears in the box at
 // the bottom, which a tap copies (and opens, if it is a link). When Claude asks permission to run something, the
 // mascot asks, shows the command and opens the microphone right away: "yes" approves, "no" denies (the channel turns
-// the answer into a verdict).
+// the answer into a verdict). After an answer to something you said, the microphone stays open for a few seconds
+// (VOICE.followUp): what you say then goes as the next command, with no "Cody" needed, so a conversation flows and
+// a question Claude asked back can simply be answered. It only happens while the wake word is on.
 //
 //   createVoice({ api, win, target, onState, onCaption, onAttachment, onImage, onListening, onSide, t }) → { start(), stop(),
 //     volume(), listen(on), listening, announce({ text, alert }), chime() }
@@ -17,8 +19,14 @@
 //     onListening   (on) whether the wake word is on (the on-screen button)
 //     onSide        (on) listening sideways: no word within VOICE.lowVoice while listening (speaking softly) or
 //                   "didn't catch that"
+//     onAwake       (on) the microphone is taking a command right now (after "Cody", after an answer, or held)
+//     onHeard       () recognition heard speech, whatever it was: the microphone is alive
+//     onTrouble     (error | null) recognition cannot hear ('audio-capture', 'network'...); null: it can again
+//     followUp      () → whether the microphone stays open after an answer (the viewer's choice)
 //   announce        the mascot says something on its own (a timer ringing, Claude finished): in the caption and
 //                   out loud, in turn with the replies; alert is the key of /api/voice/alert (the mascot's voice)
+//   playAudio       an mp3 the page already has (the voice test in Settings): played in turn with the replies, the
+//                   face talking while it lasts
 
 import { joinTranscript } from './transcript.js';
 import { createVoiceAudio } from './voice-audio.js';
@@ -29,12 +37,25 @@ export { joinTranscript };
 
 export const VOICE = Object.freeze({
   hold: 350, wait: 180000, caption: 9000, fast: 1200, slow: 4000, lowVoice: 2200, didntCatch: 3000,
+  followUp: 8000,                     // how long the microphone stays open after an answer, waiting for you to go on
 });
 
-export function createVoice({ api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {}, onSide = () => {}, t }) {
+export function createVoice({
+  api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {},
+  onSide = () => {}, onNotice = () => {}, onAwake = () => {}, onHeard = () => {}, onTrouble = () => {}, followUp = () => true, t,
+}) {
   const Recognizer = win.SpeechRecognition || win.webkitSpeechRecognition;
-  const audio = createVoiceAudio({ api, win });
-  const st = { hold: 0, recognition: null, text: '', after: null, session: null, waitUntil: 0, poll: 0, clear: 0, on: false, queue: Promise.resolve(), side: 0 };
+  const said = new Set();                             // each fallback is told once per visit, not on every reply
+  const audio = createVoiceAudio({ api, win, onFallback: ({ from, to, reason }) => {
+    const key = `${from}>${to}:${reason}`;
+    if (said.has(key)) return;
+    said.add(key);
+    onNotice(t('mascot.voice.fallback', { from: t(`settings.voice.${from}`), to: t(`settings.voice.${to}`),
+      reason: reason || t('mascot.voice.unavailable') }));
+  } });
+  // follow: the microphone was left open after an answer (not woken by the word): the answer stays in the caption
+  const st = { hold: 0, recognition: null, text: '', after: null, session: null, waitUntil: 0, poll: 0, clear: 0, on: false,
+    queue: Promise.resolve(), side: 0, follow: false };
 
   // listening sideways: the count starts when it begins to listen; the first word undoes it; "didn't catch that"
   // turns it for a while
@@ -54,26 +75,49 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
 
   const wake = createWakeWord({
     Recognizer,
-    onWake: () => { win.navigator.vibrate?.(25); onState('listening'); caption(t('mascot.voice.listening'), false); startedListening(); },
+    onWake: () => {
+      st.follow = false;
+      win.navigator.vibrate?.(25);
+      onState('listening');
+      onAwake(true);
+      caption(t('mascot.voice.listening'), false);
+      startedListening();
+    },
     onPartial: (text) => { wordArrived(); caption(t('mascot.voice.you', { text }), false); },
-    onCommand: (text) => send(text),
-    onGiveUp: () => { side(false); onState(null); onCaption(null); },
-    onDenied: () => onListening(false),
+    onCommand: (text) => { st.follow = false; onAwake(false); send(text); },
+    onGiveUp: () => {
+      side(false);
+      onState(null);
+      onAwake(false);
+      if (!st.follow) onCaption(null);                   // after an answer, the answer stays until it fades by itself
+      st.follow = false;
+    },
+    onDenied: () => { onAwake(false); onListening(false); },
+    onHeard,
+    onTrouble,
   });
 
-  // one reply at a time, without the microphone hearing the mascot itself
-  function speak(reply) {
+  // one reply at a time, without the microphone hearing the mascot itself. converse: it answers something you
+  // said (not a timer or a heads-up), so the microphone stays open after it for you to go on
+  function speak(reply, converse = false) {
     st.queue = st.queue.then(async () => {
       caption(String(reply.text));
       if (!reply.alert) onAttachment(reply.show ? String(reply.show) : null);   // an alert leaves the link box alone
       if (reply.image) onImage(String(reply.image));
+      wake.rest();
       wake.pause();
+      onAwake(false);
       onState('talking');
       await audio.speak(reply);
       onState(null);
       // a permission request (Claude wants to run something): open the microphone right away for "yes" or "no"
-      if (reply.permission) openMic(false);
-      else wake.resume();
+      if (reply.permission) { openMic(false); return; }
+      wake.resume();
+      if (converse && followUp() && wake.open(VOICE.followUp)) {
+        st.follow = true;
+        onState('listening');
+        onAwake(true);
+      }
     });
     return st.queue;
   }
@@ -102,7 +146,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
         if (st.after !== null) {
           for (const x of list) {
             if (!(Number(x.seq) > st.after)) continue;
-            if (x.text) { st.waitUntil = 0; speak(x); } else if (x.note) note(String(x.note));
+            if (x.text) { st.waitUntil = 0; speak(x, true); } else if (x.note) note(String(x.note));
           }
         }
         st.after = last;
@@ -126,8 +170,16 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     }
     side(false);
     try {
-      await api.voice(text);
+      const r = await api.voice(text);
+      if (r?.quick) {                                    // answered on the spot ("Cody, take a screenshot"): the shutter, then the word
+        caption(t('mascot.voice.you', { text }), false);
+        await audio.play('snap');
+        speak({ text: String(r.quick.text || ''), show: r.quick.show ? String(r.quick.show) : null,
+          image: r.quick.image ? String(r.quick.image) : null }, true);
+        return;
+      }
       onState('thinking');
+      audio.play('thinking');
       caption(t('mascot.voice.you', { text }), false);
       st.waitUntil = Date.now() + VOICE.wait;
       clearTimeout(st.poll);
@@ -135,6 +187,7 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
     } catch (error) {
       onState(null);
       caption(error?.status === 503 ? t('mascot.voice.noChannel') : String(error?.message || error));
+      audio.play('error');
     }
   }
 
@@ -142,7 +195,9 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
   // replaces the wake word's, since the two never listen at the same time
   function openMic(continuous = true) {
     if (!Recognizer) { caption(t('mascot.voice.noRecognition')); return; }
+    wake.rest();
     wake.pause();
+    st.follow = false;
     audio.silence();
     win.navigator.vibrate?.(25);
     const recognition = new Recognizer();
@@ -155,12 +210,13 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
       if (st.text) { wordArrived(); caption(t('mascot.voice.you', { text: st.text }), false); }
     };
     recognition.onerror = () => {};                      // no microphone or silence: onend sorts it out
-    recognition.onend = () => { st.recognition = null; send(st.text); wake.resume(); };
+    recognition.onend = () => { st.recognition = null; onAwake(false); send(st.text); wake.resume(); };
     st.recognition = recognition;
     onState('listening');
+    onAwake(true);
     caption(t('mascot.voice.listening'), false);
     startedListening();
-    try { recognition.start(); } catch { st.recognition = null; onState(null); wake.resume(); }
+    try { recognition.start(); } catch { st.recognition = null; onState(null); onAwake(false); wake.resume(); }
   }
 
   const pressed = () => { clearTimeout(st.hold); st.hold = setTimeout(() => openMic(true), VOICE.hold); };
@@ -171,12 +227,24 @@ export function createVoice({ api, win = window, target, onState, onCaption, onA
 
   return {
     volume: () => audio.volume(),
+    sound: { unlock: () => audio.unlock(), state: () => audio.state() },
+    play: (name) => audio.play(name),
     get listening() { return wake.active; },
     announce: ({ text, alert }) => (text ? speak({ text: String(text), alert: String(alert || '') || null }) : st.queue),
     chime: () => audio.chime(),
+    playAudio(bytes) {
+      st.queue = st.queue.then(async () => {
+        wake.pause();
+        onState('talking');
+        try { await audio.playBytes(bytes); } catch { /* sound still locked, or not an mp3: nothing to hear */ }
+        onState(null);
+        wake.resume();
+      });
+      return st.queue;
+    },
     listen(on) {
       if (on && Recognizer) wake.start();
-      else wake.stop();
+      else { wake.stop(); onAwake(false); }
       onListening(wake.active);
     },
     start() {

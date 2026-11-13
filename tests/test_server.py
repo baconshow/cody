@@ -3,9 +3,12 @@ import json
 import re
 import socket
 import threading
+import time
 import unittest
+from unittest import mock
 
 from cody import page
+from cody import server as server_module
 from cody.server import App, Server
 
 
@@ -51,6 +54,23 @@ class ServerTest(unittest.TestCase):
             self.assertIn(script_hash, csp)
         self.assertIn("frame-ancestors 'none'", csp)
 
+    def test_page_loads_nothing_from_outside(self):
+        # no CDN at run time: three.js and the font ship in web/, so the page works offline
+        response, body = self.request("GET", "/")
+        csp = response.getheader("Content-Security-Policy")
+        self.assertNotIn("http", csp)
+        for path in ("index.html", "style.css"):
+            text = (page.WEB_DIR / path).read_text(encoding="utf-8")
+            self.assertNotRegex(text, r"https?://(?!127\.0\.0\.1)[a-z]", path)
+
+    def test_vendored_three_and_font_are_served(self):
+        for path, kind in (("/web/vendor/three/build/three.module.js", "text/javascript"),
+                           ("/web/vendor/three/examples/jsm/geometries/RoundedBoxGeometry.js", "text/javascript"),
+                           ("/web/fonts/varelaround-latin.woff2", "font/woff2")):
+            response, _ = self.request("GET", path)
+            self.assertEqual(response.status, 200, path)
+            self.assertTrue(response.getheader("Content-Type").startswith(kind), path)
+
     def test_meta_csp_hash_matches_the_importmap(self):
         _, body = self.request("GET", "/")
         meta = re.search(rb'http-equiv="Content-Security-Policy" content="([^"]+)"', body)
@@ -68,7 +88,11 @@ class ServerTest(unittest.TestCase):
     def test_activity_shape(self):
         response, body = self.request("GET", "/api/activity?cursor=0", {"X-Cody-Token": self.token()})
         self.assertEqual(response.status, 200)
-        self.assertEqual(set(json.loads(body)), {"cursor", "events", "sessions"})
+        data = json.loads(body)
+        self.assertEqual(set(data), {"cursor", "events", "sessions", "music", "typing", "wanted", "custom"})
+        self.assertIsNone(data["wanted"])           # no scene asked for by voice
+        self.assertIs(data["music"], False)          # the test app has the music reader off
+        self.assertIs(data["typing"], False)         # and the typing watcher
 
     def test_timers_events_and_alerts(self):
         token = {"X-Cody-Token": self.token()}
@@ -79,10 +103,41 @@ class ServerTest(unittest.TestCase):
         self.assertEqual((response.status, set(json.loads(body))), (200, {"cursor", "events"}))
         response, _ = self.request("GET", "/api/events?after=x", token)
         self.assertEqual(response.status, 400)
+        response, _ = self.request("GET", "/api/events?after=0&wait=x", token)
+        self.assertEqual(response.status, 400)
         response, _ = self.request("GET", "/api/voice/alert?key=done", token)
         self.assertEqual(response.status, 404, "no ElevenLabs voice configured: the phone uses its own")
         response, _ = self.request("GET", "/api/timers")
         self.assertEqual(response.status, 403)
+
+    def test_events_wait_until_something_happens(self):
+        token = {"X-Cody-Token": self.token()}
+        started = time.monotonic()
+        response, body = self.request("GET", "/api/events?after=999999&wait=2", token)
+        self.assertEqual(response.status, 200)
+        self.assertLess(time.monotonic() - started, 1.0, "a count that went back comes back at once")
+        cursor = json.loads(body)["cursor"]
+        threading.Timer(0.3, lambda: self.app.hooks.add("notice", "WhatsApp: hi", app="WhatsApp")).start()
+        started = time.monotonic()
+        response, body = self.request("GET", f"/api/events?after={cursor}&wait=5", token)
+        taken = time.monotonic() - started
+        events = json.loads(body)["events"]
+        self.assertEqual([e["say"] for e in events], ["WhatsApp: hi"])
+        self.assertTrue(0.2 < taken < 2.0, f"held until the event, not the full wait: {taken:.2f}s")
+
+    def test_the_android_app_gets_the_token_and_the_asset_links(self):
+        response, body = self.request("GET", "/app/hello")
+        self.assertEqual(response.status, 200)
+        data = json.loads(body)
+        self.assertEqual((data["app"], data["token"], data["language"]), ("cody", self.token(), "en"))
+        response, body = self.request("GET", "/.well-known/assetlinks.json")
+        self.assertEqual((response.status, json.loads(body)), (200, []), "no certificate known yet")
+        self.assertIn("application/json", response.getheader("Content-Type"))
+        response, _ = self.request("GET", "/app/hello", {"Host": "pc.example.ts.net", "Tailscale-User-Login": "else@example.com"})
+        self.assertEqual(response.status, 403, "another login through Tailscale gets no token")
+        response, body = self.request("GET", "/api/qr?for=app", {"X-Cody-Token": self.token()})
+        self.assertEqual(response.status, 200)
+        self.assertIn(b"<svg", body)
 
     def test_unknown_host_is_refused(self):
         response, _ = self.request("GET", "/", {"Host": "evil.example:80"})
@@ -126,6 +181,46 @@ class ServerTest(unittest.TestCase):
         response, body = self.request("GET", "/api/activity?cursor=abc", {"X-Cody-Token": self.token()})
         self.assertEqual(response.status, 400)
         self.assertEqual(json.loads(body), {"error": "invalid cursor"})
+
+
+class BurstTest(unittest.TestCase):
+    """The phone loads the page through Tailscale serve, which opens dozens of connections at once."""
+
+    def test_connections_beyond_the_cap_wait_their_turn_instead_of_being_dropped(self):
+        port = free_port()
+        app = App({"port": port, "extra_hosts": [], "allowed_logins": [], "language": "en", "voice": None})
+        with mock.patch.object(server_module, "MAX_CONNECTIONS", 4):
+            burst_server = Server(app)
+        threading.Thread(target=burst_server.serve_forever, daemon=True).start()
+        self.addCleanup(burst_server.server_close)
+        self.addCleanup(burst_server.shutdown)
+        statuses = []
+
+        def get(path, headers=None):
+            connection = http.client.HTTPConnection("127.0.0.1", port, timeout=15)
+            connection.request("GET", path, headers={"Host": f"127.0.0.1:{port}", **(headers or {})})
+            response = connection.getresponse()
+            body = response.read()
+            connection.close()
+            statuses.append(response.status)
+            return body
+
+        token = re.search(rb'name="cody-token" content="([^"]+)"', get("/")).group(1).decode()
+        # four long polls take every slot for two seconds...
+        holders = [threading.Thread(target=get, args=("/api/events?after=0&wait=2", {"X-Cody-Token": token}))
+                   for _ in range(4)]
+        for thread in holders:
+            thread.start()
+        time.sleep(0.3)
+        # ...and the page's burst of files arrives on top of them
+        started = time.monotonic()
+        burst = [threading.Thread(target=get, args=("/web/js/measures.js",)) for _ in range(8)]
+        for thread in burst:
+            thread.start()
+        for thread in holders + burst:
+            thread.join(timeout=15)
+        self.assertEqual(statuses, [200] * 13, "every request is answered once a slot frees up")
+        self.assertLess(time.monotonic() - started, 8)
 
 
 if __name__ == "__main__":

@@ -6,7 +6,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createVoice, VOICE, joinTranscript } from '../../web/js/voice.js';
-import { findCommand, createWakeWord } from '../../web/js/wake-word.js';
+import { findCommand, createWakeWord, WAKE } from '../../web/js/wake-word.js';
 import { createCycle } from '../../web/js/cycle.js';
 import { setLanguage, locale } from '../../web/js/i18n.js';
 
@@ -31,9 +31,10 @@ function scenario({ failWithStatus = null } = {}) {
     voice: async (text) => {
       if (failWithStatus) throw Object.assign(new Error('closed'), { status: failWithStatus });
       st.sent.push(text);
-      return { request_id: '1' };
+      return st.quick ? { request_id: '', quick: st.quick } : { request_id: '1' };
     },
     voiceReplies: async (after) => ({ channel: true, session: st.session, replies: st.replies.filter((r) => r.seq > after) }),
+    settings: async () => ({ voice_provider: 'device' }),   // these tests listen to the device's voice (the fake speechSynthesis)
   };
   const target = new EventTarget();
   st.attachments = [];
@@ -42,8 +43,10 @@ function scenario({ failWithStatus = null } = {}) {
     api, win, target, t: (key, v) => (v?.text ? `${key}:${v.text}` : key),
     onState: (m) => st.states.push(m), onCaption: (text) => st.captions.push(text), onAttachment: (x) => st.attachments.push(x), onSide: (x) => st.sides.push(x),
     onImage: (id) => st.images.push(id),
+    onAwake: (on) => st.awake.push(on), followUp: () => st.followUp !== false,
   });
   st.images = [];
+  st.awake = [];
   return { st, voice, target };
 }
 
@@ -298,4 +301,214 @@ test('an alert mood holds above a pat for its seconds, below the voice', () => {
   assert.notEqual(cycle.mood(7), 'pointing');
   cycle.cheer(10);
   assert.equal(cycle.mood(10.5), 'happy');
+});
+
+test('"Cody, take a screenshot" is answered on the spot: the picture shows and the word is spoken, no thinking, no poll', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice, target } = scenario();
+  st.quick = { text: 'Screenshot taken. Tap share to send it.', image: 'q1' };
+  voice.start();
+  await flush();
+  target.dispatchEvent(new Event('pointerdown'));
+  t.mock.timers.tick(VOICE.hold + 1);
+  st.recognition.onresult({ results: [[{ transcript: 'take a screenshot' }]] });
+  target.dispatchEvent(new Event('pointerup'));
+  await flush();
+  assert.deepEqual(st.sent, ['take a screenshot']);
+  assert.ok(!st.states.includes('thinking'), 'no round trip through Claude');
+  assert.deepEqual(st.images, ['q1']);
+  assert.equal(st.spoken.at(-1).text, 'Screenshot taken. Tap share to send it.');
+  assert.equal(st.states.at(-1), 'talking');
+  voice.stop();
+});
+
+test('"how much usage do I have left?" is spoken and the two numbers stay in the box at the bottom', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice, target } = scenario();
+  st.quick = { text: 'Session: 42% used, resets at 10:00. Week: 10% used, resets on Monday at 10:00.', image: null, show: 'session 42% · week 10%' };
+  voice.start();
+  await flush();
+  target.dispatchEvent(new Event('pointerdown'));
+  t.mock.timers.tick(VOICE.hold + 1);
+  st.recognition.onresult({ results: [[{ transcript: 'how much usage do I have left' }]] });
+  target.dispatchEvent(new Event('pointerup'));
+  await flush();
+  assert.equal(st.attachments.at(-1), 'session 42% · week 10%');
+  assert.deepEqual(st.images, [], 'no picture');
+  assert.equal(st.spoken.at(-1).text, 'Session: 42% used, resets at 10:00. Week: 10% used, resets on Monday at 10:00.');
+  voice.stop();
+});
+
+test('the word as recognition writes it: other spellings, any accent, and the command keeps its own accents', () => {
+  assert.deepEqual(findCommand('Cory what time is it'), { woke: true, command: 'what time is it' });
+  assert.deepEqual(findCommand('KODI, stop'), { woke: true, command: 'stop' });
+  assert.equal(findCommand('the code is ready').woke, false, '"code" is a word people say all day');
+  setLanguage('pt-BR', { save: false });
+  try {
+    assert.deepEqual(findCommand('Córy, você está aí?'), { woke: true, command: 'você está aí?' });
+    assert.deepEqual(findCommand('ei kódi que horas são'), { woke: true, command: 'que horas são' });
+    assert.deepEqual(findCommand('CLÓVIS'), { woke: true, command: '' });
+    assert.equal(findCommand('o código está pronto').woke, false);
+    assert.equal(findCommand('acorde cedo').woke, false, 'the word inside another word does not count');
+  } finally {
+    setLanguage('en', { save: false });
+  }
+});
+
+// a wake word alone on fake recognition sessions: say(texts) is one result event; each text may be a list of guesses
+function listener(t) {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const sessions = [];
+  class Recognizer { constructor() { sessions.push(this); } start() { this.onstart?.(); } stop() { this.onend?.(); } abort() {} }
+  const st = { woke: 0, partial: [], commands: [], gaveUp: 0, heard: 0, trouble: [], denied: 0 };
+  const wake = createWakeWord({
+    Recognizer, onWake: () => st.woke++, onPartial: (x) => st.partial.push(x), onCommand: (c) => st.commands.push(c),
+    onGiveUp: () => st.gaveUp++, onHeard: () => st.heard++, onTrouble: (e) => st.trouble.push(e), onDenied: () => st.denied++,
+  });
+  const say = (texts, final = true) => sessions.at(-1).onresult({ results: texts.map((x, i) => Object.assign(
+    [].concat(x).map((transcript) => ({ transcript })), { isFinal: final && i === texts.length - 1 })) });
+  return { wake, st, sessions, say };
+}
+
+test('"Cody" is often recognition\u2019s second guess: the word is looked for in every guess', (t) => {
+  const { wake, st, sessions, say } = listener(t);
+  wake.start();
+  assert.equal(sessions.at(-1).maxAlternatives, WAKE.guesses, 'more than one guess is asked for');
+  say([['rode what time is it', 'Cody what time is it']]);
+  assert.equal(st.woke, 1);
+  assert.deepEqual(st.commands, ['what time is it']);
+  say([['nothing here', 'nor here']]);
+  assert.equal(st.commands.length, 1, 'no word in any guess: not a command');
+  wake.stop();
+});
+
+test('the microphone left open takes the next sentence without the word, and a long one is not cut short', (t) => {
+  const { wake, st, say } = listener(t);
+  assert.equal(wake.open(), false, 'not while the wake word is off');
+  wake.start();
+  assert.equal(wake.open(5000), true);
+  assert.equal(wake.awake, true);
+  t.mock.timers.tick(4000);
+  say(['and what about'], false);                           // still talking when the wait would have ended
+  t.mock.timers.tick(4000);
+  assert.equal(st.gaveUp, 0, 'every word pushes the end of the wait');
+  say(['and what about tomorrow']);
+  assert.deepEqual(st.commands, ['and what about tomorrow']);
+  assert.equal(st.woke, 0, 'it was already listening: no wake, no buzz');
+  assert.equal(wake.awake, false);
+  wake.open(5000);
+  t.mock.timers.tick(5001);
+  assert.equal(st.gaveUp, 1, 'nobody went on: it goes back to waiting for the word');
+  wake.open(5000);
+  wake.rest();
+  t.mock.timers.tick(6000);
+  assert.equal(st.gaveUp, 1, 'put to rest (the mascot is about to speak): no giving up later');
+  wake.stop();
+});
+
+test('the light\u2019s signals: any speech is heard; a real failure is told, silence is not; permission denied turns it off', (t) => {
+  const { wake, st, sessions, say } = listener(t);
+  wake.start();
+  assert.deepEqual(st.trouble, [null], 'a session that starts is fine');
+  say(['just talking'], false);
+  assert.equal(st.heard, 1, 'heard, though it is not for Cody');
+  assert.equal(st.woke, 0);
+  sessions.at(-1).onerror({ error: 'no-speech' });
+  sessions.at(-1).onerror({ error: 'aborted' });
+  assert.deepEqual(st.trouble, [null]);
+  sessions.at(-1).onerror({ error: 'audio-capture' });
+  assert.deepEqual(st.trouble, [null, 'audio-capture']);
+  sessions.at(-1).onend();
+  t.mock.timers.tick(WAKE.restart + 1);
+  assert.deepEqual(st.trouble, [null, 'audio-capture', null], 'it starts again and is fine again');
+  sessions.at(-1).onerror({ error: 'not-allowed' });
+  assert.equal(st.denied, 1);
+  assert.equal(wake.active, false);
+});
+
+test('a session that neither hears nor ends is started again', (t) => {
+  const { wake, sessions, say } = listener(t);
+  wake.start();
+  assert.equal(sessions.length, 1);
+  t.mock.timers.tick(WAKE.stale - 1000);
+  say(['still here'], false);                               // a result: the session is alive, the count starts over
+  t.mock.timers.tick(WAKE.stale - 1000);
+  assert.equal(sessions.length, 1);
+  t.mock.timers.tick(1001);
+  assert.equal(sessions.length, 2, 'silent for too long: a fresh session');
+  sessions[0].onend();                                      // the old one ending late changes nothing
+  t.mock.timers.tick(WAKE.restart + 1);
+  assert.equal(sessions.length, 2);
+  wake.stop();
+});
+
+// "Cody, <question>" answered out loud, up to the end of the speech
+async function asked(t, { announce = false } = {}) {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const s = scenario();
+  const { st, voice } = s;
+  s.say = (words, final = true) => st.recognition.onresult({ results: [Object.assign([{ transcript: words }], { isFinal: final })] });
+  voice.listen(true);
+  voice.start();
+  await flush();
+  if (announce) voice.announce({ text: 'Claude finished.', alert: 'done' });
+  else {
+    s.say('cody what time is it');
+    await flush();
+    st.replies = [{ seq: 1, request_id: '1', text: 'Three. Anything else?' }];
+    t.mock.timers.tick(VOICE.fast + 1);
+  }
+  await flush();
+  st.spoken.at(-1).onend();
+  await flush();
+  return s;
+}
+
+test('after an answer the microphone stays open: what you say next goes without "Cody"', async (t) => {
+  const { st, voice, say } = await asked(t);
+  assert.deepEqual(st.sent, ['what time is it']);
+  assert.equal(st.states.at(-1), 'listening', 'the face attends');
+  assert.equal(st.awake.at(-1), true, 'the light grows and shrinks');
+  assert.equal(st.captions.at(-1), 'Three. Anything else?', 'the answer stays in the caption');
+  say('and in Tokyo');
+  await flush();
+  assert.deepEqual(st.sent, ['what time is it', 'and in Tokyo']);
+  assert.equal(st.awake.at(-1), false);
+  assert.equal(st.states.at(-1), 'thinking');
+  voice.stop();
+});
+
+test('nobody goes on: the microphone closes by itself and the answer is still there to read', async (t) => {
+  const { st, voice, say } = await asked(t);
+  t.mock.timers.tick(VOICE.followUp + 1);
+  assert.equal(st.awake.at(-1), false);
+  assert.equal(st.states.at(-1), null, 'the face goes back to its own life');
+  assert.equal(st.captions.at(-1), 'Three. Anything else?', 'giving up does not wipe the answer');
+  say('talking to someone else');
+  await flush();
+  assert.deepEqual(st.sent, ['what time is it'], 'the word is needed again');
+  voice.stop();
+});
+
+test('the microphone does not open after an announcement, nor when the viewer turned that off', async (t) => {
+  const told = await asked(t, { announce: true });
+  assert.ok(!told.st.awake.includes(true), 'a heads-up is not a conversation');
+  told.voice.stop();
+  t.mock.timers.reset();
+  const off = scenario();
+  off.st.followUp = false;
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  off.voice.listen(true);
+  off.voice.start();
+  await flush();
+  off.st.recognition.onresult({ results: [Object.assign([{ transcript: 'cody hello' }], { isFinal: true })] });
+  await flush();
+  off.st.replies = [{ seq: 1, request_id: '1', text: 'Hi.' }];
+  t.mock.timers.tick(VOICE.fast + 1);
+  await flush();
+  off.st.spoken.at(-1).onend();
+  await flush();
+  assert.equal(off.st.awake.at(-1), false);
+  assert.equal(off.st.states.at(-1), null);
+  off.voice.stop();
 });

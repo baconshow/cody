@@ -9,9 +9,11 @@ Optional ElevenLabs voice: the API key comes from the ELEVENLABS_API_KEY environ
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
+import secrets
 import threading
 import time
 import urllib.error
@@ -19,15 +21,30 @@ import urllib.request
 from collections import OrderedDict, deque
 from pathlib import Path
 
-from cody import hooks, timers
+from cody import hooks, screen, timers, usage
 from cody.channel import channel_file
 
 MAX_TEXT = 500
+# "Cody, printa": a screenshot on the spot, without the round trip through Claude (the saying is the asking). Short
+# sentences only: a longer one ("send a screenshot to my WhatsApp") goes to Claude, who can send it somewhere
+PRINT_WORDS = re.compile(r"\b(printa|tira(r)?\s+(um\s+|uma\s+)?print|print\s+da\s+tela|captura\s+de\s+tela|screen\s?shot"
+                         r"|print\s*screen|capture\s+(the\s+|my\s+)?screen|picture\s+of\s+(the|my)\s+screen)\b", re.I)
+PRINT_MAX_WORDS = 6
+QUICK_TEXT = {
+    "en": {"print_done": "Screenshot taken. Tap share to send it.", "print_failed": "I could not take the screenshot."},
+    "pt-BR": {"print_done": "Print tirado. Toca em compartilhar para mandar.", "print_failed": "Não consegui tirar o print."},
+}
+MAX_QUICK_IMAGES = 5
+_quick_images: OrderedDict = OrderedDict()   # image id -> PNG of a quick screenshot, in memory only
 MAX_IMAGE_BYTES = 40 * 1024 * 1024
 TIMEOUT_S = 3
 _NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 KEY_FILE = Path.home() / ".elevenlabs-key"
 ELEVEN_URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice}?output_format=mp3_44100_128"
+ELEVEN_VOICES_URL = "https://api.elevenlabs.io/v1/voices"
+MAX_VOICES = 300                                 # what the list in Settings shows at most
+MAX_VOICES_BYTES = 4 * 1024 * 1024
+MAX_AUDIO_BYTES = 4 * 1024 * 1024                # a reply of MAX_TEXT characters is well under 1 MB of mp3
 ELEVEN_TIMEOUT_S = 30
 ELEVEN_LANGUAGE = {"en": "en", "pt-BR": "pt"}
 MAX_AUDIOS = 50                                  # as many as the channel keeps; in memory only, never on disk
@@ -78,9 +95,35 @@ def validate_text(text) -> str:
     return cleaned[:MAX_TEXT]
 
 
-def say(body: dict, path: Path | None = None) -> dict:
-    """POST /api/voice {"text"} -> {"request_id"}: what you said becomes a message in the channel's session."""
+def is_print_command(text: str) -> bool:
+    """A short sentence asking for a screenshot and nothing else."""
+    return len(text.split()) <= PRINT_MAX_WORDS and PRINT_WORDS.search(text) is not None
+
+
+def quick_print(language: str = "en", capture=screen.capture) -> dict:
+    """The screenshot right away, kept here for the page that asked (never sent to Claude): {"quick": {text, image}}."""
+    texts = QUICK_TEXT.get(language, QUICK_TEXT["en"])
+    try:
+        png = capture()
+    except screen.ScreenError:
+        return {"request_id": "", "quick": {"text": texts["print_failed"], "image": None}}
+    image_id = secrets.token_urlsafe(9)
+    with _lock:
+        _quick_images[image_id] = png
+        while len(_quick_images) > MAX_QUICK_IMAGES:
+            _quick_images.popitem(last=False)
+    return {"request_id": "", "quick": {"text": texts["print_done"], "image": image_id}}
+
+
+def say(body: dict, path: Path | None = None, language: str = "en", capture=screen.capture) -> dict:
+    """POST /api/voice {"text"} -> {"request_id"}: what you said becomes a message in the channel's session. A short
+    "take a screenshot" is answered on the spot instead ({"request_id": "", "quick": {...}}), channel or no channel."""
     text = validate_text((body or {}).get("text"))
+    if is_print_command(text):
+        return quick_print(language, capture)
+    if usage.is_usage_question(text):              # "how much usage do I have left?": from usage.json, no Claude
+        known = usage.read()                        # said in full; the two numbers stay in the box on screen
+        return {"request_id": "", "quick": {"text": usage.phrase(known, language), "show": usage.short(known, language), "image": None}}
     channel = _channel(path)
     if channel is None:
         raise VoiceError(503, "the voice channel is not open")
@@ -110,6 +153,10 @@ def image(image_id: str, path: Path | None = None) -> bytes:
     """GET /api/voice/image?id=X -> the PNG of a screenshot the channel took for the phone."""
     if not isinstance(image_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", image_id):
         raise VoiceError(400, "invalid image id")
+    with _lock:
+        quick = _quick_images.get(image_id)
+    if quick is not None:
+        return quick
     channel = _channel(path)
     if channel is None:
         raise VoiceError(503, "the voice channel is not open")
@@ -128,14 +175,49 @@ def image(image_id: str, path: Path | None = None) -> bytes:
     return data
 
 
+def saved_key_file() -> Path:
+    """Where the Settings screen keeps the key: the data folder, readable only by you."""
+    from cody.store import data_dir
+    return data_dir() / "elevenlabs.key"
+
+
 def _api_key() -> str | None:
     key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
     if key:
         return key
-    try:
-        return KEY_FILE.read_text(encoding="utf-8").strip() or None
-    except OSError:
+    for path in (saved_key_file(), KEY_FILE):
+        try:
+            found = path.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if found:
+            return found
+    return None
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """ElevenLabs is asked at one fixed address. A redirect would carry the key along to wherever it points (urllib
+    copies the headers), so none is followed: the 3xx then comes back as an ordinary HTTP error."""
+
+    def redirect_request(self, *args, **kwargs):
         return None
+
+
+_ELEVEN = urllib.request.build_opener(_NoRedirect)
+
+
+def _ask_eleven(request: urllib.request.Request, limit: int) -> bytes:
+    """One request to ElevenLabs, following no redirect and reading at most `limit` bytes (more is an error)."""
+    with _ELEVEN.open(request, timeout=ELEVEN_TIMEOUT_S) as response:
+        data = response.read(limit + 1)
+    if len(data) > limit:
+        raise ValueError("ElevenLabs sent more than expected")
+    return data
+
+
+def _is_mp3(data: bytes) -> bool:
+    """An mp3 starts with an ID3 tag or with a frame (eleven set bits)."""
+    return data[:3] == b"ID3" or (len(data) > 1 and data[0] == 0xFF and data[1] & 0xE0 == 0xE0)
 
 
 def _eleven(text: str, voice: dict, language: str) -> bytes:
@@ -149,24 +231,93 @@ def _eleven(text: str, voice: dict, language: str) -> bytes:
                                      headers={"xi-api-key": key, "Content-Type": "application/json",
                                               "Accept": "audio/mpeg"})
     try:
-        with urllib.request.urlopen(request, timeout=ELEVEN_TIMEOUT_S) as response:
-            return response.read()
+        audio = _ask_eleven(request, MAX_AUDIO_BYTES)
     except urllib.error.HTTPError as error:
-        raise VoiceError(502, _refusal(error)) from error
-    except (urllib.error.URLError, OSError) as error:
+        reason = eleven_reason(error.code, _error_body(error))
+        _note(reason)
+        raise VoiceError(502, f"ElevenLabs: {reason}") from error
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError) as error:
         raise VoiceError(502, "ElevenLabs did not answer") from error
+    if not _is_mp3(audio):                             # a 200 that is not sound must not pass for a working voice
+        _note("the answer was not audio")
+        raise VoiceError(502, "ElevenLabs: the answer was not audio")
+    _note(None)
+    return audio
 
 
-def _refusal(error: urllib.error.HTTPError) -> str:
-    """Why ElevenLabs said no, so a failed payment or a bad key does not look like a network problem. Only the
-    status and the error code from the answer: the key is never part of it."""
+def eleven_voices() -> list[dict]:
+    """The voices of the ElevenLabs account behind the key, by name: [{"id", "name", "about"}], for the list in
+    Settings. Asking costs no credits. A key made for speech only may not be allowed to list voices: that comes
+    back as a VoiceError with ElevenLabs' reason, and Settings falls back to a voice id typed by hand."""
+    key = _api_key()
+    if not key:
+        raise VoiceError(503, "no ElevenLabs API key on this computer")
+    request = urllib.request.Request(ELEVEN_VOICES_URL, headers={"xi-api-key": key, "Accept": "application/json"})
     try:
-        detail = json.loads(error.read(2048)).get("detail")
-        code = detail.get("code") or detail.get("status") if isinstance(detail, dict) else None
-    except (ValueError, AttributeError, OSError):
-        code = None
-    reason = re.sub(r"[^a-z0-9_]", "", str(code or "").casefold())[:40]
-    return f"ElevenLabs refused the voice ({error.code}{' ' + reason if reason else ''})"
+        data = json.loads(_ask_eleven(request, MAX_VOICES_BYTES))
+    except urllib.error.HTTPError as error:
+        raise VoiceError(502, f"ElevenLabs: {eleven_reason(error.code, _error_body(error))}") from error
+    except (urllib.error.URLError, http.client.HTTPException, OSError, ValueError, RecursionError) as error:
+        raise VoiceError(502, "ElevenLabs did not answer") from error
+    return voice_list(data)
+
+
+def voice_list(data) -> list[dict]:
+    """ElevenLabs' answer to "which voices?" cut down to what the list needs. Anything that is not a voice with a
+    usable id and a name is left out; `about` joins the labels ElevenLabs gives (accent, gender, age). A voice can
+    be named anything by whoever made it, so only printable characters are kept (no control or direction marks)."""
+    from cody.config import VALID_VOICE
+
+    def clean(text: str) -> str:
+        return " ".join("".join(ch for ch in text if ch.isprintable()).split())
+
+    found = []
+    for entry in (data.get("voices") if isinstance(data, dict) else None) or []:
+        if not isinstance(entry, dict):
+            continue
+        voice_id, name = entry.get("voice_id"), entry.get("name")
+        if not (isinstance(voice_id, str) and VALID_VOICE.fullmatch(voice_id) and isinstance(name, str) and clean(name)):
+            continue
+        labels = entry.get("labels") if isinstance(entry.get("labels"), dict) else {}
+        about = ", ".join(clean(labels[k]) for k in ("accent", "gender", "age") if isinstance(labels.get(k), str)
+                          and clean(labels[k]))
+        found.append({"id": voice_id, "name": clean(name)[:60], "about": about[:60]})
+    found.sort(key=lambda v: v["name"].casefold())
+    return found[:MAX_VOICES]
+
+
+ELEVEN_REASONS = {
+    "payment_required": "payment pending", "payment_issue": "payment pending",
+    "quota_exceeded": "monthly characters used up",
+    "invalid_api_key": "the key is not valid", "missing_permissions": "the key lacks permission for this",
+    "voice_not_found": "the voice id does not exist", "too_many_concurrent_requests": "too many requests at once",
+    "system_busy": "ElevenLabs is busy",
+}
+ELEVEN_BY_STATUS = {401: "the key is not valid", 402: "payment pending", 404: "the voice id does not exist",
+                    429: "too many requests"}
+
+
+def _error_body(error) -> dict:
+    try:
+        data = json.loads(error.read(4096) or b"{}")
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def eleven_reason(status: int, body: dict) -> str:
+    """ElevenLabs' error in plain words: its detail.status when it is a known one, else by HTTP status."""
+    detail = body.get("detail")
+    code = (detail.get("status") or detail.get("code")) if isinstance(detail, dict) else None
+    return ELEVEN_REASONS.get(str(code), ELEVEN_BY_STATUS.get(status, f"error {status}"))
+
+
+def _note(reason: str | None) -> None:
+    from cody import doctor
+    try:
+        doctor.note_voice_error(reason)
+    except OSError:
+        pass
 
 
 def audio(seq_raw: str, voice: dict | None, language: str = "en", path: Path | None = None,
@@ -197,11 +348,12 @@ def alert_text(key: str, language: str = "en", timers_path: Path | None = None) 
 
 
 def alert_audio(key: str, voice: dict | None, language: str = "en", timers_path: Path | None = None,
-                synthesize=_eleven) -> bytes:
-    """GET /api/voice/alert?key=K -> the mp3 of a timer ringing or a heads-up (404 without a configured voice)."""
+                synthesize=_eleven, lookup=None) -> bytes:
+    """GET /api/voice/alert?key=K -> the mp3 of a timer ringing or a heads-up (404 without a configured voice).
+    lookup(key) → text | None comes first: the server's own alerts (a Windows notification: the app's name)."""
     if voice is None:
         raise VoiceError(404, "no voice configured")
-    text = alert_text(key, language, timers_path)
+    text = (lookup(key) if lookup else None) or alert_text(key, language, timers_path)
     if text is None:
         raise VoiceError(404, "unknown alert")
     return _spoken(text, voice, language, synthesize)

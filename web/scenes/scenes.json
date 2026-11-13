@@ -1,0 +1,840 @@
+{
+ "format": 1,
+ "about": "Cody's scenes: voxel pieces shown around the mascot when their trigger is on (the highest priority wins). Boxes are [x, y, z, width, height, depth] in voxels (0.1 unit), measured from the floor under the mascot's middle; the front is +z. A part with \"on\": \"body\" is worn: it turns, hops and breathes with the mascot (the others stand still around it); \"pivot\": [x, y, z] is the point a worn part grows from and sways around. Clips: bob, blink, dots, steam, walk, confetti, sway. Drawn from scratch for Cody. \"eyes\": one shape for both eyes or [left, right] from dot, cross, chevron, heart, bang, star (web/js/eyeshapes.js): while the scene shows, the eyes take that shape (the right eye is the mirror of the left, so chevron is > <).",
+ "scenes": [
+  {
+   "id": "debug",
+   "trigger": "failed",
+   "priority": 60,
+   "sound": "error",
+   "parts": [
+    {
+     "color": "#15131a",
+     "on": "body",
+     "pivot": [
+      3,
+      19,
+      3
+     ],
+     "clip": "walk",
+     "boxes": [
+      [
+       3,
+       20,
+       3,
+       4,
+       2,
+       3
+      ],
+      [
+       3,
+       21.5,
+       3,
+       3,
+       1,
+       2
+      ],
+      [
+       1,
+       19.5,
+       2,
+       1,
+       1,
+       1
+      ],
+      [
+       5,
+       19.5,
+       2,
+       1,
+       1,
+       1
+      ],
+      [
+       1,
+       19.5,
+       4,
+       1,
+       1,
+       1
+      ],
+      [
+       5,
+       19.5,
+       4,
+       1,
+       1,
+       1
+      ]
+     ]
+    },
+    {
+     "color": "#ff3b3b",
+     "on": "body",
+     "pivot": [
+      3,
+      19,
+      3
+     ],
+     "clip": "walk",
+     "boxes": [
+      [
+       2,
+       21.5,
+       4.1,
+       0.8,
+       0.8,
+       0.4
+      ],
+      [
+       4,
+       21.5,
+       4.1,
+       0.8,
+       0.8,
+       0.4
+      ]
+     ]
+    },
+    {
+     "color": "#1d2b22",
+     "boxes": [
+      [
+       -19,
+       16,
+       -2,
+       12,
+       9,
+       1
+      ]
+     ]
+    },
+    {
+     "sign": [
+      "> DEBUG MODE",
+      "> BUG FOUND",
+      "> FIXING..."
+     ],
+     "box": [
+      -19,
+      16,
+      -1.4,
+      11,
+      8,
+      0.2
+     ],
+     "ink": "#7dff9b"
+    }
+   ],
+   "eyes": [
+    "dot",
+    "cross"
+   ]
+  },
+  {
+   "id": "party",
+   "trigger": "done",
+   "priority": 55,
+   "parts": [
+    {
+     "color": "#ff5b8a",
+     "clip": "confetti",
+     "boxes": [
+      [
+       -16,
+       24,
+       4,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       6,
+       26,
+       9,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       18,
+       22,
+       6,
+       1.6,
+       1.6,
+       0.5
+      ]
+     ]
+    },
+    {
+     "color": "#ffd23f",
+     "clip": "confetti",
+     "boxes": [
+      [
+       -7,
+       27,
+       10,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       15,
+       25,
+       2,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       -19,
+       21,
+       -2,
+       1.6,
+       1.6,
+       0.5
+      ]
+     ]
+    },
+    {
+     "color": "#3fd2ff",
+     "clip": "confetti",
+     "boxes": [
+      [
+       1,
+       23,
+       11,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       -12,
+       25,
+       8,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       11,
+       27,
+       5,
+       1.6,
+       1.6,
+       0.5
+      ]
+     ]
+    },
+    {
+     "color": "#7cf29a",
+     "clip": "confetti",
+     "boxes": [
+      [
+       -3,
+       26,
+       9,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       20,
+       24,
+       1,
+       1.6,
+       1.6,
+       0.5
+      ],
+      [
+       -17,
+       27,
+       6,
+       1.6,
+       1.6,
+       0.5
+      ]
+     ]
+    }
+   ],
+   "eyes": "star"
+  },
+  {
+   "id": "sleeping",
+   "trigger": "sleeping",
+   "priority": 50,
+   "parts": [
+    {
+     "color": "#3b5bdb",
+     "on": "body",
+     "pivot": [
+      5.5,
+      19,
+      0
+     ],
+     "clip": "sway",
+     "boxes": [
+      [
+       5.5,
+       20.8,
+       0,
+       10.5,
+       1.6,
+       9.5
+      ],
+      [
+       6,
+       22.2,
+       0,
+       8,
+       1.4,
+       8
+      ],
+      [
+       6.8,
+       23.4,
+       0,
+       5.4,
+       1.2,
+       6
+      ],
+      [
+       9.6,
+       23.9,
+       0,
+       3.4,
+       1.2,
+       4
+      ],
+      [
+       11.7,
+       23,
+       0,
+       2.2,
+       1.4,
+       3
+      ]
+     ],
+     "slot": "hat"
+    },
+    {
+     "color": "#f4f1ff",
+     "on": "body",
+     "pivot": [
+      5.5,
+      19,
+      0
+     ],
+     "clip": "sway",
+     "boxes": [
+      [
+       5.5,
+       19.6,
+       0,
+       12,
+       1,
+       11
+      ],
+      [
+       12.7,
+       21.4,
+       0,
+       2.2,
+       2.2,
+       2.2
+      ]
+     ],
+     "slot": "hat"
+    }
+   ]
+  },
+  {
+   "id": "coding",
+   "trigger": "coding",
+   "priority": 40,
+   "parts": [
+    {
+     "color": "#2a2733",
+     "boxes": [
+      [
+       21,
+       15,
+       -6,
+       16,
+       11,
+       1.5
+      ],
+      [
+       21,
+       8,
+       -6,
+       2,
+       3,
+       1
+      ],
+      [
+       21,
+       6.5,
+       -6,
+       8,
+       0.6,
+       5
+      ]
+     ]
+    },
+    {
+     "color": "#0f1a14",
+     "boxes": [
+      [
+       21,
+       15,
+       -5.2,
+       14.4,
+       9.4,
+       0.2
+      ]
+     ]
+    },
+    {
+     "color": "#7dff9b",
+     "clip": "blink",
+     "boxes": [
+      [
+       18,
+       18.5,
+       -5,
+       7,
+       0.8,
+       0.2
+      ],
+      [
+       20,
+       17,
+       -5,
+       10,
+       0.8,
+       0.2
+      ],
+      [
+       19,
+       15.5,
+       -5,
+       6,
+       0.8,
+       0.2
+      ],
+      [
+       21,
+       14,
+       -5,
+       9,
+       0.8,
+       0.2
+      ],
+      [
+       17.5,
+       12.5,
+       -5,
+       4,
+       0.8,
+       0.2
+      ]
+     ]
+    },
+    {
+     "color": "#ffd23f",
+     "boxes": [
+      [
+       25,
+       11.2,
+       -5,
+       4,
+       0.8,
+       0.2
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "thinking",
+   "trigger": "thinking",
+   "priority": 30,
+   "parts": [
+    {
+     "color": "#f4f1ff",
+     "on": "body",
+     "pivot": [
+      13,
+      19,
+      9.5
+     ],
+     "boxes": [
+      [
+       14.5,
+       20.5,
+       9.5,
+       10,
+       5.5,
+       2
+      ],
+      [
+       11.8,
+       17.3,
+       9.5,
+       1.6,
+       1.6,
+       1.5
+      ]
+     ]
+    },
+    {
+     "color": "#15131a",
+     "on": "body",
+     "pivot": [
+      13,
+      19,
+      9.5
+     ],
+     "clip": "dots",
+     "boxes": [
+      [
+       12,
+       20.5,
+       10.7,
+       1.4,
+       1.4,
+       0.4
+      ],
+      [
+       14.5,
+       20.5,
+       10.7,
+       1.4,
+       1.4,
+       0.4
+      ],
+      [
+       17,
+       20.5,
+       10.7,
+       1.4,
+       1.4,
+       0.4
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "headphones",
+   "trigger": "music",
+   "priority": 20,
+   "over": true,
+   "parts": [
+    {
+     "color": "#2f62e8",
+     "on": "body",
+     "pivot": [
+      0,
+      19,
+      0
+     ],
+     "boxes": [
+      [
+       -14.2,
+       13.5,
+       0,
+       4.6,
+       7,
+       5.5
+      ],
+      [
+       14.2,
+       13.5,
+       0,
+       4.6,
+       7,
+       5.5
+      ],
+      [
+       -15.4,
+       18.2,
+       -0.5,
+       2.2,
+       3,
+       3
+      ],
+      [
+       15.4,
+       18.2,
+       -0.5,
+       2.2,
+       3,
+       3
+      ],
+      [
+       -13.8,
+       20.6,
+       -1.5,
+       3,
+       2,
+       3
+      ],
+      [
+       13.8,
+       20.6,
+       -1.5,
+       3,
+       2,
+       3
+      ],
+      [
+       -11,
+       22,
+       -2.5,
+       3.4,
+       2,
+       3
+      ],
+      [
+       11,
+       22,
+       -2.5,
+       3.4,
+       2,
+       3
+      ],
+      [
+       0,
+       23,
+       -2.5,
+       19,
+       2,
+       3
+      ]
+     ],
+     "slot": "hat"
+    },
+    {
+     "color": "#1d3fa8",
+     "on": "body",
+     "pivot": [
+      0,
+      19,
+      0
+     ],
+     "clip": "bob",
+     "boxes": [
+      [
+       -16.6,
+       13.5,
+       0,
+       0.6,
+       4.5,
+       3.5
+      ],
+      [
+       16.6,
+       13.5,
+       0,
+       0.6,
+       4.5,
+       3.5
+      ]
+     ],
+     "slot": "hat"
+    }
+   ]
+  },
+  {
+   "id": "coffee",
+   "trigger": "idle",
+   "priority": 10,
+   "parts": [
+    {
+     "color": "#f4efe6",
+     "on": "body",
+     "pivot": [
+      15.4,
+      12,
+      5
+     ],
+     "boxes": [
+      [
+       15.4,
+       12,
+       5,
+       3.8,
+       4.2,
+       3.8
+      ],
+      [
+       17.8,
+       12.2,
+       5,
+       1.2,
+       2.6,
+       1.2
+      ]
+     ]
+    },
+    {
+     "color": "#5a3a22",
+     "on": "body",
+     "pivot": [
+      15.4,
+      12,
+      5
+     ],
+     "boxes": [
+      [
+       15.4,
+       13.95,
+       5,
+       3,
+       0.4,
+       3
+      ]
+     ]
+    },
+    {
+     "color": "#d8d4e6",
+     "on": "body",
+     "pivot": [
+      15.4,
+      12,
+      5
+     ],
+     "clip": "steam",
+     "boxes": [
+      [
+       14.7,
+       15.2,
+       5,
+       0.7,
+       1.4,
+       0.7
+      ],
+      [
+       16.1,
+       15.9,
+       5,
+       0.7,
+       1.4,
+       0.7
+      ],
+      [
+       15.4,
+       16.9,
+       5,
+       0.7,
+       1.4,
+       0.7
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "knock",
+   "trigger": "knock",
+   "priority": 70,
+   "parts": [
+    {
+     "color": "#ffffff",
+     "on": "body",
+     "pivot": [
+      8.1,
+      12.3,
+      14
+     ],
+     "clip": "blink",
+     "boxes": [
+      [
+       8.1,
+       16.1,
+       14,
+       1,
+       2.2,
+       0.6
+      ],
+      [
+       11.899999999999999,
+       12.3,
+       14,
+       2.2,
+       1,
+       0.6
+      ],
+      [
+       10.899999999999999,
+       15.100000000000001,
+       14,
+       1,
+       1,
+       0.6
+      ],
+      [
+       4.3,
+       12.3,
+       14,
+       2.2,
+       1,
+       0.6
+      ],
+      [
+       5.3,
+       15.100000000000001,
+       14,
+       1,
+       1,
+       0.6
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "id": "love",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": "heart",
+   "parts": []
+  },
+  {
+   "id": "laugh",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": "chevron",
+   "parts": []
+  },
+  {
+   "id": "wink",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": [
+    "bang",
+    "chevron"
+   ],
+   "parts": []
+  },
+  {
+   "id": "dizzy",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": [
+    "dot",
+    "cross"
+   ],
+   "parts": []
+  },
+  {
+   "id": "stars",
+   "trigger": "request",
+   "priority": 45,
+   "eyes": "star",
+   "parts": []
+  }
+ ]
+}

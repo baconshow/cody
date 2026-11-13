@@ -4,6 +4,9 @@
     remember   a fact kept for the next voice sessions (cody/memory.py); forget drops it
     look       the screen, scaled down, for Claude to see (only when you ask about something on it)
     point      the mini Cody flies to a spot on the screen and points at it (cody/pointer.py, Windows)
+    scene      shows one of the mascot's scenes for a while because you asked ("put your headphones on")
+    custom_scene   writes a scene of Claude's own making, data only, checked field by field (cody/custom.py);
+               undo removes the newest one
 
 Each tool is a JSON schema plus a handler that returns an MCP tool result. Texts in English and Portuguese, like the
 channel's; the tool descriptions carry the details, so the channel's instructions stay short.
@@ -13,7 +16,11 @@ from __future__ import annotations
 import base64
 from datetime import datetime
 
+import json
+from pathlib import Path
+
 from cody import timers as timer_module
+from cody.custom import CustomScenes
 from cody.memory import MIN_QUERY, Memory, clean_fact
 from cody.pointer import Pointer
 
@@ -57,6 +64,26 @@ TEXTS = {
         "need_look": "Call look first: point uses the pixels of the latest look picture.",
         "outside": "That spot is outside the latest look picture.",
         "point_failed": "The mini Cody could not be shown on this computer: describe where it is instead.",
+        "scene": "Shows one of the mascot's scenes for a while, because the user asked for it (\"put your headphones "
+                 "on\", \"show the party\"): action \"show\" with `id` and `seconds` (default 30, at most 600), "
+                 "action \"clear\" to take it off. Built-in ids: {ids}; plus any custom scene. Then reply.",
+        "custom_scene": "Makes a scene of your own for the mascot, as data, never code. action \"create\" with "
+                        "`scene`: {{id, parts: [{{boxes: [[x, y, z, width, height, depth]...] in voxels (the mascot "
+                        "is 24 wide and 19 tall from the floor, x 0 at its middle, +z in front), color \"#rrggbb\", "
+                        "on: \"world\" (stands around it) or \"body\" (worn: then a pivot [x, y, z]), clip: bob, "
+                        "blink, dots, steam, walk, confetti or sway, or a sign: [lines] with one box}}], "
+                        "trigger: request (shown only when asked, the default) or failed, done, coding, thinking, "
+                        "music, idle, sleeping, priority 1 to 100, over: true to wear it over other scenes, eyes: a "
+                        "shape for both eyes or [left, right] from dot, cross, chevron, heart, bang, star (eyes alone "
+                        "make a scene: {{id: \"love\", eyes: \"heart\"}})}}. It is "
+                        "checked and refused with the reasons if anything is off; created, it shows right away. "
+                        "action \"undo\" removes the newest custom scene (or `id`); action \"list\" names them. "
+                        "Only when the user asks for a scene of their own.",
+        "shown": "Showing \"{id}\" for {seconds} seconds. Now reply.", "cleared": "Nothing asked for any more.",
+        "unknown_scene": "No scene named \"{id}\". Known: {ids}.", "created": "Scene \"{id}\" saved and showing. Now reply.",
+        "invalid": "The scene was refused: {errors}", "undone": "Removed the custom scene \"{id}\".",
+        "nothing_undo": "There is no custom scene to remove.", "listed": "Custom scenes: {ids}.",
+        "no_custom": "No custom scenes yet.",
     },
     "pt-BR": {
         "timer": "Cronômetros e lembretes que tocam no celular do usuário, como um timer de cozinha. action \"set\" "
@@ -97,8 +124,38 @@ TEXTS = {
         "need_look": "Chame look antes: o point usa os pixels da última imagem do look.",
         "outside": "Esse ponto está fora da última imagem do look.",
         "point_failed": "Não deu para mostrar o mini Cody neste computador: descreva onde fica.",
+        "scene": "Mostra uma das cenas do mascote por um tempo, porque o usuário pediu (\"põe os fones\", \"mostra a "
+                 "festa\"): action \"show\" com `id` e `seconds` (padrão 30, no máximo 600), action \"clear\" para "
+                 "tirar. Ids de fábrica: {ids}; mais qualquer cena personalizada. Depois responda.",
+        "custom_scene": "Cria uma cena sua para o mascote, como dados, nunca código. action \"create\" com "
+                        "`scene`: {{id, parts: [{{boxes: [[x, y, z, largura, altura, profundidade]...] em voxels (o "
+                        "mascote tem 24 de largura e 19 de altura a partir do chão, x 0 no meio, +z na frente), color "
+                        "\"#rrggbb\", on: \"world\" (fica em volta) ou \"body\" (vestida: aí um pivot [x, y, z]), clip: "
+                        "bob, blink, dots, steam, walk, confetti ou sway, ou um sign: [linhas] com um box}}], "
+                        "trigger: request (só quando pedirem, o padrão) ou failed, done, coding, thinking, music, "
+                        "idle, sleeping, priority de 1 a 100, over: true para vestir por cima das outras, eyes: uma "
+                        "forma para os dois olhos ou [esquerdo, direito] entre dot, cross, chevron, heart, bang, star "
+                        "(só os olhos já fazem uma cena: {{id: \"love\", eyes: \"heart\"}})}}. É "
+                        "conferida e recusada com os motivos se algo estiver errado; criada, aparece na hora. "
+                        "action \"undo\" remove a cena personalizada mais nova (ou `id`); action \"list\" lista. "
+                        "Só quando o usuário pedir uma cena própria.",
+        "shown": "Mostrando \"{id}\" por {seconds} segundos. Agora responda.", "cleared": "Não estou mais pedindo cena.",
+        "unknown_scene": "Não existe cena \"{id}\". Conhecidas: {ids}.", "created": "Cena \"{id}\" salva e aparecendo. Agora responda.",
+        "invalid": "A cena foi recusada: {errors}", "undone": "Removi a cena personalizada \"{id}\".",
+        "nothing_undo": "Não há cena personalizada para remover.", "listed": "Cenas personalizadas: {ids}.",
+        "no_custom": "Ainda não há cena personalizada.",
     },
 }
+
+SCENES_FILE = Path(__file__).resolve().parent.parent / "web" / "scenes" / "scenes.json"
+
+
+def builtin_scene_ids(path: Path = SCENES_FILE) -> list[str]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return [s["id"] for s in data["scenes"] if isinstance(s, dict) and isinstance(s.get("id"), str)]
+    except (OSError, ValueError, KeyError, TypeError):
+        return []
 
 
 def _text(text: str, error: bool = False) -> dict:
@@ -108,7 +165,7 @@ def _text(text: str, error: bool = False) -> dict:
     return result
 
 
-def schemas(texts: dict) -> list[dict]:
+def schemas(texts: dict, scene_ids: list[str] = ()) -> list[dict]:
     string, number = {"type": "string"}, {"type": "number"}
     return [
         {"name": "timer", "description": texts["timer"], "inputSchema": {
@@ -125,27 +182,38 @@ def schemas(texts: dict) -> list[dict]:
         {"name": "point", "description": texts["point"], "inputSchema": {
             "type": "object", "required": ["x", "y"],
             "properties": {"x": number, "y": number, "text": string}}},
+        {"name": "scene", "description": texts["scene"].format(ids=", ".join(scene_ids) or "none"), "inputSchema": {
+            "type": "object", "required": ["action"],
+            "properties": {"action": {"type": "string", "enum": ["show", "clear"]}, "id": string,
+                           "seconds": {**number, "description": "show: for how long (default 30, at most 600)"}}}},
+        {"name": "custom_scene", "description": texts["custom_scene"], "inputSchema": {
+            "type": "object", "required": ["action"],
+            "properties": {"action": {"type": "string", "enum": ["create", "undo", "list"]},
+                           "scene": {"type": "object", "description": "create: the scene as data"},
+                           "id": {**string, "description": "undo: which one (default: the newest)"}}}},
     ]
 
 
 class Abilities:
     def __init__(self, lang: str = "en", store=None, memory: Memory | None = None, pointer: Pointer | None = None,
-                 now=None):
+                 now=None, custom: CustomScenes | None = None, scene_ids: list[str] | None = None):
         self._texts = TEXTS.get(lang, TEXTS["en"])
+        self._custom = custom or CustomScenes()
+        self._scene_ids = list(scene_ids) if scene_ids is not None else builtin_scene_ids()
         self._store = store or timer_module.TimerStore()
         self.memory = memory or Memory()
         self._pointer = pointer or Pointer()
         self._now = now or datetime.now          # naive local time: right across a daylight saving change
 
     def tools(self) -> list[dict]:
-        return schemas(self._texts)
+        return schemas(self._texts, self._scene_ids)
 
     def handles(self, name) -> bool:
-        return name in ("timer", "remember", "forget", "look", "point")
+        return name in ("timer", "remember", "forget", "look", "point", "scene", "custom_scene")
 
     def call(self, name: str, arguments: dict) -> dict:
         handler = {"timer": self._timer, "remember": self._remember, "forget": self._forget, "look": self._look,
-                   "point": self._point}[name]
+                   "point": self._point, "scene": self._scene, "custom_scene": self._custom_scene}[name]
         try:
             return handler(arguments if isinstance(arguments, dict) else {})
         except OSError:                      # a file held open or damaged: a tool error, never a dead channel
@@ -217,3 +285,41 @@ class Abilities:
         except OSError:
             return _text(self._texts["point_failed"], error=True)
         return _text(self._texts["pointed"])
+
+    # ---- scenes --------------------------------------------------------------------------------------------------
+    def _known_scenes(self) -> list[str]:
+        return [*self._scene_ids, *(s["id"] for s in self._custom.list())]
+
+    def _scene(self, a: dict) -> dict:
+        t = self._texts
+        if a.get("action") == "clear":
+            self._custom.want(None)
+            return _text(t["cleared"])
+        scene_id = str(a.get("id") or "").strip()
+        known = self._known_scenes()
+        if scene_id not in known:
+            return _text(t["unknown_scene"].format(id=scene_id, ids=", ".join(known)), error=True)
+        seconds = a.get("seconds")
+        seconds = float(seconds) if isinstance(seconds, (int, float)) and not isinstance(seconds, bool) else None
+        self._custom.want(scene_id, seconds)
+        from cody.custom import DEFAULT_SECONDS, MAX_SECONDS
+        shown = int(max(1, min(MAX_SECONDS, seconds or DEFAULT_SECONDS)))
+        return _text(t["shown"].format(id=scene_id, seconds=shown))
+
+    def _custom_scene(self, a: dict) -> dict:
+        t = self._texts
+        action = a.get("action")
+        if action == "list":
+            ids = [s["id"] for s in self._custom.list()]
+            return _text(t["listed"].format(ids=", ".join(ids)) if ids else t["no_custom"])
+        if action == "undo":
+            gone = self._custom.undo(str(a.get("id") or "") or None)
+            if gone is None:
+                return _text(t["nothing_undo"], error=True)
+            self._custom.want(None)
+            return _text(t["undone"].format(id=gone))
+        scene, errors = self._custom.create(a.get("scene"))
+        if errors:
+            return _text(t["invalid"].format(errors="; ".join(errors)), error=True)
+        self._custom.want(scene["id"])                 # it shows right away, whatever its trigger
+        return _text(t["created"].format(id=scene["id"]))

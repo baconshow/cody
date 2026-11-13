@@ -1,4 +1,5 @@
-"""Settings from config.json at the repo root. Every key is optional; a missing or invalid value falls back to the default.
+"""Settings from config.json: at the repo root in a checkout, in the data folder in the installed app. Every key is
+optional; a missing or invalid value falls back to the default.
 
     {
       "port": 7420,
@@ -13,7 +14,8 @@ phone can open the mascot; found by itself when Tailscale runs here, see cody/se
 when set, requests through Tailscale serve must come from one of these Tailscale logins (other people and tagged
 devices in your tailnet are refused); by default, this computer's own login. language: "en" or "pt-BR", for the
 spoken replies and the wake word; by default the computer's language. voice: optional ElevenLabs voice; without it
-the phone speaks with its own built-in voice.
+the phone speaks with its own built-in voice. voice_folder: optional folder the voice session works in (by default
+the current folder, or your home folder when started from the tray icon).
 """
 from __future__ import annotations
 
@@ -21,16 +23,21 @@ import json
 import locale
 import os
 import re
+import sys
 from pathlib import Path
+
+from cody import android
+from cody.store import data_dir
 
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PORT = 7420
 DEFAULT_MODEL = "eleven_flash_v2_5"    # the fastest ElevenLabs model: a short reply comes back in under a second
 LANGUAGES = ("en", "pt-BR")
+PROVIDERS = ("elevenlabs", "hosted", "device", "sounds")   # the voice outputs, best first (see cody/settings.py)
 VALID_HOST = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?(?::\d{1,5})?$")
 VALID_LOGIN = re.compile(r"^[^\s,;]{1,254}$")
-VALID_VOICE = re.compile(r"^[A-Za-z0-9]{10,40}$")
-VALID_MODEL = re.compile(r"^[a-z0-9_]{3,40}$")
+VALID_VOICE = re.compile(r"^[A-Za-z0-9]{10,40}\Z")       # \Z, not $: a trailing newline is not part of an id
+VALID_MODEL = re.compile(r"^[a-z0-9_]{3,40}\Z")
 
 
 def _port(value) -> int:
@@ -64,9 +71,28 @@ def system_language(getlocale=locale.getlocale, env=os.environ) -> str:
     return "pt-BR" if name.startswith(("pt", "portuguese")) else "en"
 
 
-def load_config(path: Path = ROOT / "config.json", system=system_language) -> dict:
+def config_file() -> Path:
+    """config.json at the repo root in a checkout; in the installed app (read-only folder), in the data folder."""
+    return data_dir() / "config.json" if getattr(sys, "frozen", False) else ROOT / "config.json"
+
+
+def _folder(value) -> str | None:
+    if not (isinstance(value, str) and value.strip() and Path(value).expanduser().is_dir()):
+        return None
+    return str(Path(value).expanduser().resolve())
+
+
+def _provider(value, voice) -> str:
+    """The chosen voice output; without a choice, ElevenLabs when a voice is configured, else Cody's own sounds (the
+    device's voice is robotic on most computers; it is there to pick in Settings)."""
+    if value in PROVIDERS:
+        return value
+    return "elevenlabs" if _voice(voice) else "sounds"
+
+
+def load_config(path: Path | None = None, system=system_language) -> dict:
     try:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        data = json.loads(Path(path or config_file()).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         data = {}
     if not isinstance(data, dict):
@@ -80,4 +106,13 @@ def load_config(path: Path = ROOT / "config.json", system=system_language) -> di
                           if isinstance(logins, list) else [],
         "language": language if language in LANGUAGES else system(),
         "voice": _voice(data.get("voice")),
+        "voice_folder": _folder(data.get("voice_folder")),
+        "voice_provider": _provider(data.get("voice_provider"), data.get("voice")),
+        "update_check": data.get("update_check") is True,
+        "music": data.get("music") is not False,           # headphones when something plays (Windows); on unless off
+        "notifications": data.get("notifications") is True,   # read the important Windows notifications: opt-in
+        "typing": data.get("typing") is True,                 # type along when you type in a Claude window: opt-in
+        "notification_apps": [x.strip() for x in data.get("notification_apps") if isinstance(x, str) and x.strip()]
+                              if isinstance(data.get("notification_apps"), list) else [],
+        "android_fingerprints": android.clean_fingerprints(data.get("android_fingerprints")),   # your own app build
     }
