@@ -615,7 +615,22 @@ computer the same content in a side panel of 480.
 - **The layout switches on the screen's shape**, not on "is it a phone": short and wide (`max-height: 520px` and
   `min-width: 600px`) is the full-screen panel with the list on the left; anything else is the drawer with the
   list across the top.
-- **Left as it was, to decide with the maintainer:** the design's page overlays are three pills with words
-  (Settings, "all good", listening for "Cody") that hide after four seconds without a touch. The Status pill was
-  restyled; the gear and the wake word light stay, since the light had just been asked to show the microphone at
-  work, which a word that hides cannot do.
+- **The page's overlays** are the design's three pills with words (Settings, "all good", listening for "Cody"),
+  stepping back after four seconds without a touch (`overlays.js`, a class on the page). Stepping back is not
+  hiding everything: the wake word keeps its light, so the microphone at work is always seen (the maintainer had
+  just asked for that light), and a Status that is not green stays.
+
+## 2026-11-13 · The Aviator and The Boss in real shapes; hats that give way
+
+- **Two more skins made of shapes**, after the pumpkin. What they needed was added to `forms.js` as data, not as code
+  per skin: a tube may be `closed` (a ring: a rim of a pair of glasses), any shape may ask for its `mirror` image on
+  the other side of the pivot (the other lens, the other half of a moustache: one set of numbers for both sides),
+  and two finishes, `gloss` (polished: dark lenses, a cap's peak) and `glass` (see-through, not writing depth, so
+  the eye behind a lens still shows).
+- **Pixel stays in blocks.** Its whole point is 8-bit frames and a blocky top hat; made smooth, it would be a
+  different skin.
+- **Slots, so two hats never share a head.** A worn part may say it takes the `hat` slot. While the scene of the
+  moment, or the one worn over it, has a part in a slot, the skin's parts in that slot shrink away (at the scene's
+  own growing speed, or at once with "reduce motion") and grow back after. The nightcap and the headphones take the
+  hat slot; so do the hats of the pumpkin, the Aviator, The Boss and Pixel. Glasses, grins and moustaches take
+  none, so they stay under the headphones.

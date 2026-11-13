@@ -182,9 +182,10 @@ its output.
 
 Settings has a **Skin shop**: the classic Cody, **Jack-o'-Cody**, the Halloween one (a real pumpkin: a ribbed
 body, a ridged stem with a tendril, a grin carved through the front with candlelight inside, the ^ eyes and a
-leather witch hat with a bent tip, a satin band and a gold buckle), and three looks with glasses: the **Aviator** (round glasses, a
-pilot's cap and a grin), **Pixel** (8-bit frames and a top hat) and **The Boss** (sunglasses, a beret and a
-moustache). Every skin is free while Cody is Cody; a paid one comes only
+leather witch hat with a bent tip, a satin band and a gold buckle), and three looks with glasses: the **Aviator** (round gold
+wire glasses with lenses, a pilot's cap with its badge and a toothy grin), **Pixel** (8-bit frames and a top hat,
+blocks on purpose) and **The Boss** (polished dark glasses, a red beret and a curled moustache). A hat steps aside
+while a scene puts something on the head (the nightcap, the headphones) and comes back after. Every skin is free while Cody is Cody; a paid one comes only
 with a character of its own. A skin is data, in `web/skins/skins.json`: new colors for the figure's plastic,
 pieces it wears (voxel boxes like a scene's worn parts, a color, maybe a glow; or, for what boxes cannot say,
 **shapes**: a `tube` along a spine, a `lathe` profile turned around, a `plate` with rounded edges, each in a
@@ -207,14 +208,16 @@ sessions are open, Cody says so: only the newest one hears you.
 ## Settings and the first run
 
 The first time you open Cody on the computer, it walks you through three steps, out loud: language and voice, the
-phone (a QR code to scan), and the voice session, ending in "say hi". **Settings** (the gear in the top corner of
+phone (a QR code to scan), and the voice session, ending in "say hi". **Settings** (the pill in the top corner of
 the mascot page, the tray menu, or the page's `#settings`) opens beside the mascot and has the rest, one section
 at a time from a list (Voice, On your phone, General, Skins, About, and Status at the end): voice (ElevenLabs with
 your own key and a **Test** button, the device's voice or Cody's sounds; Cody's hosted voice is listed as coming
 soon), the phone (the codes to scan and the private address with a Copy button), language, the hooks, starting
 with Windows and privacy. On a phone lying down the panel is the whole screen: a back arrow, the list on the left,
-the section on the right. Next to the gear, a small
-light shows whether Cody is listening for its name (green) or not (red); a tap switches it. The same light shows
+the section on the right. Three pills sit over the mascot: **Settings** at the top, the **Status** light with its
+words at the bottom left and the **wake word** at the bottom right; after four seconds without a touch they step
+back (only the wake word's light stays, and a Status that needs you), and a tap brings them back. The wake word
+pill shows whether Cody is listening for its name (green) or not (red); a tap switches it. Its light shows
 what the microphone is doing: it swells a little with every sound it hears, **grows and shrinks while Cody is
 taking a command** (after its name, after an answer, or while you hold it), and turns amber, with the reason in
 words, when it cannot hear (no microphone, speech recognition offline).
