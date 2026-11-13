@@ -30,6 +30,8 @@ const FINISH = Object.freeze({
   leather: { roughness: 0.56, sheen: 0.6, sheenRoughness: 0.45, sheenTint: 0.35, grain: ['leather', 5, 5, 0.45] },
   satin: { roughness: 0.36, sheen: 0.9, sheenRoughness: 0.3, sheenTint: 0.5, clearcoat: 0.1, clearcoatRoughness: 0.4 },
   metal: { roughness: 0.2, metalness: 1, envMapIntensity: 4 },
+  gloss: { roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 2.5 },   // polished: dark lenses, a visor
+  glass: { roughness: 0.03, clearcoat: 1, clearcoatRoughness: 0.03, transparent: true, opacity: 0.2, depthWrite: false },
   rind: { roughness: 0.44, clearcoat: 0.3, clearcoatRoughness: 0.4, sheen: 0.4, sheenRoughness: 0.5, sheenTint: 0.4,
     grain: ['pores', 10, 5, 0.5] },
 });
@@ -100,8 +102,9 @@ export function rindMaterial(THREE) {
 }
 
 // a grid of points (columns across, rows along) as a mesh; the last column sits on the first (the seam of the
-// texture), so their normals are made one and no line shows there
-function gridGeometry(THREE, points, colors, columns, rows) {
+// texture), so their normals are made one and no line shows there. loop: the last row sits on the first too (a
+// ring), and gets the same care
+function gridGeometry(THREE, points, colors, columns, rows, loop = false) {
   const position = new Float32Array(points.length * 3);
   const uv = new Float32Array(points.length * 2);
   points.forEach((p, i) => {
@@ -124,14 +127,14 @@ function gridGeometry(THREE, points, colors, columns, rows) {
   geometry.computeVertexNormals();
   const normal = geometry.attributes.normal;
   const one = new THREE.Vector3();
-  for (let r = 0; r <= rows; r += 1) {
-    const first = r * (columns + 1);
-    const last = first + columns;
+  const join = (first, last) => {
     one.set(normal.getX(first) + normal.getX(last), normal.getY(first) + normal.getY(last), normal.getZ(first) + normal.getZ(last));
     one.normalize();
     normal.setXYZ(first, one.x, one.y, one.z);
     normal.setXYZ(last, one.x, one.y, one.z);
-  }
+  };
+  if (loop) for (let c = 0; c <= columns; c += 1) join(c, rows * (columns + 1) + c);
+  for (let r = 0; r <= rows; r += 1) join(r * (columns + 1), r * (columns + 1) + columns);
   return geometry;
 }
 
@@ -186,7 +189,8 @@ export function gourdGeometry(THREE, [width, height, depth], gourd) {
 // the rings of a tube from t = from to t = to: the spine through the path's points, the radius read along it,
 // lengthwise ridges if asked, each ring turned as little as possible from the one before (no twisting)
 function tubeRings(THREE, shape, from, to, lift) {
-  const spine = new THREE.CatmullRomCurve3(shape.path.map((p) => new THREE.Vector3(p[0], p[1], p[2])), false, 'centripetal');
+  const loop = shape.closed && !lift && from === 0 && to === 1;      // a ring: no ends, the last ring is the first
+  const spine = new THREE.CatmullRomCurve3(shape.path.map((p) => new THREE.Vector3(p[0], p[1], p[2])), shape.closed, 'centripetal');
   const rows = Math.max(2, Math.round(shape.path.length * TUBE.perPoint * (to - from)));
   const columns = shape.ridges ? shape.ridges * TUBE.perRidge : TUBE.around;
   const points = [];
@@ -223,13 +227,16 @@ function tubeRings(THREE, shape, from, to, lift) {
     if (lift) add(t, radius);
     else if (t === from) { add(t, 0); add(t, radius); } else { add(t, radius); add(t, 0); }
   };
-  end(from);
+  if (!loop) end(from);
   for (let i = 0; i <= rows; i += 1) {
     const t = from + ((to - from) * i) / rows;
-    add(t, radiusAt(shape.radius, t) + lift);
+    if (loop && i === rows) {                              // the very points it started with: it closes exactly
+      points.push(...points.slice(0, columns + 1).map((p) => [...p]));
+      count += 1;
+    } else add(t, radiusAt(shape.radius, t) + lift);
   }
-  end(to);
-  return gridGeometry(THREE, points, null, columns, count - 1);
+  if (!loop) end(to);
+  return gridGeometry(THREE, points, null, columns, count - 1, loop);
 }
 
 export const tubeGeometry = (THREE, shape) => tubeRings(THREE, shape, 0, 1, 0);
@@ -285,13 +292,18 @@ export function buildShapes(THREE, finish, shapes, base = {}) {
     return mesh;
   };
   for (const shape of shapes) {
-    const holder = new THREE.Group();
-    holder.position.set(shape.at[0], shape.at[1], shape.at[2]);
-    holder.rotation.set(shape.turn[0] * RAD, shape.turn[1] * RAD, shape.turn[2] * RAD);
-    holder.userData.sway = shape.sway;                     // for whoever swings it (a skin's sprout: mascot3d.js)
-    holder.add(meshOf(GEOMETRY[shape.kind](THREE, shape), shape));
-    for (const band of shape.bands || []) holder.add(meshOf(bandGeometry(THREE, shape, band), band));
-    group.add(holder);
+    const pieces = [meshOf(GEOMETRY[shape.kind](THREE, shape), shape)];
+    for (const band of shape.bands || []) pieces.push(meshOf(bandGeometry(THREE, shape, band), band));
+    // side -1: the same pieces again on the other side of the pivot, as in a mirror
+    for (const side of shape.mirror ? [1, -1] : [1]) {
+      const holder = new THREE.Group();
+      holder.position.set(shape.at[0] * side, shape.at[1], shape.at[2]);
+      holder.rotation.set(shape.turn[0] * RAD, shape.turn[1] * RAD * side, shape.turn[2] * RAD * side);
+      holder.scale.x = side;
+      holder.userData.sway = shape.sway;                   // for whoever swings it (a skin's sprout: mascot3d.js)
+      holder.add(...(side === 1 ? pieces : pieces.map((mesh) => mesh.clone())));
+      group.add(holder);
+    }
   }
   return group;
 }

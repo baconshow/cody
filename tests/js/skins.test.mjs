@@ -81,4 +81,16 @@ test('three looks from the printed figures: the aviator, the pixel one and the b
   }
   assert.equal(byId.aviator.mouth, false, 'the aviator grins with its own teeth');
   assert.equal(byId.boss.mouth, true);
+  // the aviator and the boss are made of real shapes now; Pixel stays in boxes, which is its whole point
+  for (const id of ['aviator', 'boss']) {
+    assert.ok(byId[id].parts.every((p) => p.boxes.length === 0 && p.shapes.length > 0), `${id}: shapes, no boxes`);
+    assert.equal(byId[id].parts[0].slot, 'hat', `${id}: its hat gives way to a scene's`);
+  }
+  assert.ok(byId.pixel.parts.every((p) => p.boxes.length > 0 && p.shapes.length === 0));
+  const kinds = (skin) => skin.parts.flatMap((p) => p.shapes).map((s) => `${s.kind}${s.closed ? ':ring' : ''}${s.mirror ? ':pair' : ''}`);
+  assert.ok(kinds(byId.aviator).includes('tube:ring:pair'), 'two round rims');
+  assert.ok(byId.aviator.parts[1].shapes.some((s) => s.finish === 'glass'), 'with lenses to see through');
+  assert.ok(kinds(byId.boss).includes('plate:pair'), 'two dark lenses');
+  assert.ok(kinds(byId.boss).includes('tube:pair'), 'and the two halves of a moustache');
+  assert.equal(skinNamed(skins, 'halloween').parts[0].slot, 'hat');
 });

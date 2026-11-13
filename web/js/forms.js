@@ -4,11 +4,13 @@
 // logic, run in Node by the tests.
 //
 //   A part's "shapes" (measured from the part's pivot; each may have "at": [x, y, z], "turn": [x, y, z] degrees,
-//   its own "color", "glow" and "finish", and, in a skin's sprout, "sway": how much of the old sprout's swing it
-//   keeps, 0 to 1; a thick stem stands still, a tendril may wave a little):
+//   its own "color", "glow" and "finish", "mirror": true for a second one on the other side of the pivot (the
+//   other lens, the other half of a moustache), and, in a skin's sprout, "sway": how much of the old sprout's
+//   swing it keeps, 0 to 1; a thick stem stands still, a tendril may wave a little):
 //     tube    "path": points the spine goes through, "radius": one number or a list along the spine (0 ends in
 //             a tip), "ridges" and "ridge": lengthwise grooves (a pumpkin stem), "bands": rings around it
-//             ("span": [from, to] of the spine, "lift" above the surface, their own color and finish)
+//             ("span": [from, to] of the spine, "lift" above the surface, their own color and finish),
+//             "closed": true joins the end to the start (a ring: the rim of a pair of glasses)
 //     lathe   "profile": [radius, height] points turned around the vertical axis, "wave": [height, count,
 //             phase°] makes the edge go up and down (a hat brim)
 //     plate   "outline": a flat [x, y] polygon, "hole": another one cut out of it, "depth", "bevel" (rounded
@@ -28,7 +30,7 @@ import { seededRandom } from './seeded-random.js';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 export const KINDS = Object.freeze(['tube', 'lathe', 'plate']);
-export const FINISHES = Object.freeze(['plastic', 'matte', 'leather', 'satin', 'metal', 'rind']);
+export const FINISHES = Object.freeze(['plastic', 'matte', 'leather', 'satin', 'metal', 'rind', 'gloss', 'glass']);
 export const LIMIT = Object.freeze({ shapes: 24, points: 48, bands: 4, ribs: 48 });
 
 const numbers = (a, n) => Array.isArray(a) && a.length === n && a.every(Number.isFinite);
@@ -46,6 +48,7 @@ function look(shape) {
     glow: hexOr(shape.glow),
     finish: FINISHES.includes(shape.finish) ? shape.finish : null,
     sway: within(shape.sway, 0, 1, 0),
+    mirror: shape.mirror === true,
   };
 }
 
@@ -57,7 +60,7 @@ function tube(shape) {
     .filter((b) => b && numbers(b.span, 2) && b.span[0] >= 0 && b.span[1] <= 1 && b.span[0] < b.span[1])
     .map((b) => ({ span: b.span, lift: within(b.lift, 0, 2, 0.1), ...look(b) }));
   return { kind: 'tube', path: shape.path, radius: list, ridges: Math.round(within(shape.ridges, 0, 16, 0)),
-    ridge: within(shape.ridge, 0, 0.5, 0.12), bands, ...look(shape) };
+    ridge: within(shape.ridge, 0, 0.5, 0.12), bands, closed: shape.closed === true && shape.path.length >= 3, ...look(shape) };
 }
 
 function lathe(shape) {

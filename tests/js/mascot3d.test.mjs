@@ -9,6 +9,7 @@ import { createMascot } from '../../web/js/mascot3d.js';
 import { createScenes3d } from '../../web/js/scenes3d.js';
 import { createAnimator } from '../../web/js/animator.js';
 import { validSkins, skinScene, skinNamed } from '../../web/js/skins.js';
+import { validScenes } from '../../web/js/scenes.js';
 import { seededRandom } from '../../web/js/seeded-random.js';
 
 globalThis.document = { createElement: () => ({ width: 0, height: 0, getContext: () => null }) };   // no drawing here
@@ -108,4 +109,34 @@ test('the shop\'s skins build as worn scenes: the witch hat is a tilted brim, a 
   scenes.update({ quiet: true, time: 0 }, null, 0, null, 'skin:aviator');
   assert.deepEqual(scenes.worn.children.filter((c) => c.visible).length, 1);
   assert.ok(meshes(scenes.worn.children.find((c) => c.visible)).length > 10, 'the box skins still build');
+});
+
+test('a scene\u2019s hat takes the place of the skin\u2019s hat while it shows, and gives it back after', () => {
+  const all = validScenes(JSON.parse(readFileSync(new URL('../../web/scenes/scenes.json', import.meta.url))));
+  const worn = all.filter((s) => ['sleeping', 'headphones'].includes(s.id));      // the two that go on the head
+  assert.equal(worn.length, 2);
+  for (const scene of worn) assert.ok(scene.parts.every((p) => p.slot === 'hat'), `${scene.id} says it takes the hat's place`);
+  const scenes = createScenes3d(THREE, [...worn, ...skins.map(skinScene).filter(Boolean)]);
+  const quiet = { quiet: true, time: 0 };
+  const hatOf = (id) => scenes.worn.children[[...worn, ...skins.map(skinScene).filter(Boolean)].findIndex((s) => s.id === id)].children[0];
+  const witch = hatOf('skin:halloween');
+
+  scenes.update(quiet, null, 0, null, 'skin:halloween');
+  assert.equal(witch.scale.x, 1, 'awake: the witch hat is on');
+  scenes.update(quiet, 'sleeping', 0, null, 'skin:halloween');
+  assert.ok(witch.scale.x < 0.01, 'asleep: the nightcap has the head to itself');
+  assert.equal(hatOf('sleeping').scale.x, 1);
+  scenes.update(quiet, null, 0, 'headphones', 'skin:halloween');
+  assert.ok(witch.scale.x < 0.01, 'music: the headphones go over the head, not through a hat');
+  scenes.update(quiet, null, 0, null, 'skin:halloween');
+  assert.equal(witch.scale.x, 1, 'and the hat comes back');
+
+  // with motion it gives way little by little, not at once
+  scenes.update({ quiet: false, time: 0 }, 'sleeping', 0.05, null, 'skin:halloween');
+  assert.ok(witch.scale.x > 0.1 && witch.scale.x < 1, 'on its way out');
+  // what is not a hat stays: the aviator keeps its glasses and its grin under the headphones
+  scenes.update(quiet, null, 0, 'headphones', 'skin:aviator');
+  const [cap, glasses, grin] = scenes.worn.children[[...worn, ...skins.map(skinScene).filter(Boolean)].findIndex((s) => s.id === 'skin:aviator')].children;
+  assert.ok(cap.scale.x < 0.01);
+  assert.deepEqual([glasses.scale.x, grin.scale.x], [1, 1]);
 });

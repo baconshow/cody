@@ -166,3 +166,43 @@ test('the carved mouth: a hole marked in the stencil, a lit room behind it, and 
   assert.equal(body.stencilWrite, false, 'with the skin off the body is whole again');
   assert.equal(carveMouth(THREE, carve).group.children.length, 3, 'a flat front by default');
 });
+
+test('a closed tube is a ring: no ends, the last ring of points sits on the first, and it shades as one', () => {
+  const circle = Array.from({ length: 12 }, (_, i) => [3 * Math.cos((i * Math.PI) / 6), 3 * Math.sin((i * Math.PI) / 6), 0]);
+  const [ring] = validShapes([{ kind: 'tube', path: circle, radius: 0.3, closed: true }]);
+  const geometry = tubeGeometry(THREE, ring);
+  const box = whole(geometry);
+  assert.ok(near(box.max.x, 3.3, 0.05) && near(box.min.y, -3.3, 0.05) && near(box.max.z, 0.3, 0.02), 'a ring of radius 3, 0.3 thick');
+  const p = geometry.attributes.position;
+  const n = geometry.attributes.normal;
+  const columns = 28;
+  const lastRow = p.count - (columns + 1);
+  for (let c = 0; c <= columns; c += 1) {
+    assert.ok(near(p.getX(c), p.getX(lastRow + c), 1e-6) && near(p.getY(c), p.getY(lastRow + c), 1e-6), 'it closes exactly');
+    assert.ok(near(n.getX(c), n.getX(lastRow + c), 1e-6) && near(n.getZ(c), n.getZ(lastRow + c), 1e-6), 'no line where it closes');
+  }
+  let centre = 0;
+  for (let i = 0; i < p.count; i += 1) if (Math.hypot(p.getX(i), p.getY(i)) < 2) centre += 1;
+  assert.equal(centre, 0, 'no cap across the middle');
+});
+
+test('a mirrored shape is built twice, the second one on the other side as in a mirror; a lens is see-through', () => {
+  const finish = createFinishes(THREE);
+  const shapes = validShapes([
+    { kind: 'plate', outline: [[0, 0], [2, 0], [2, 1]], at: [6, 1, 0], turn: [10, 20, 30], mirror: true, finish: 'gloss', color: '#0d0d10' },
+    { kind: 'lathe', profile: [[0, -0.1], [3, -0.1], [3, 0.1], [0, 0.1]], finish: 'glass', color: '#bfe3ff' },
+  ]);
+  const group = buildShapes(THREE, finish, shapes);
+  assert.equal(group.children.length, 3, 'two lenses and one disc');
+  const [right, left, disc] = group.children;
+  assert.deepEqual(right.position.toArray(), [6, 1, 0]);
+  assert.deepEqual(left.position.toArray(), [-6, 1, 0]);
+  assert.deepEqual([right.scale.x, left.scale.x], [1, -1]);
+  assert.ok(near(left.rotation.x, right.rotation.x, 1e-9) && near(left.rotation.y, -right.rotation.y, 1e-9)
+    && near(left.rotation.z, -right.rotation.z, 1e-9));
+  assert.equal(left.children[0].geometry, right.children[0].geometry, 'one geometry for both');
+  assert.equal(left.children[0].material, right.children[0].material);
+  assert.ok(right.children[0].material.clearcoat === 1 && right.children[0].material.roughness < 0.2, 'polished');
+  const glass = disc.children[0].material;
+  assert.ok(glass.transparent && glass.opacity < 0.5 && glass.depthWrite === false, 'what is behind a lens still shows');
+});

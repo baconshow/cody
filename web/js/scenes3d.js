@@ -7,7 +7,9 @@
 //
 // A part is either around the mascot (the monitor, the confetti: it stands still in the room) or worn by it (the
 // nightcap, the headphones: "on": "body"). Worn parts live in a second group that goes on the mascot's body, so they
-// turn, hop, tilt and breathe with it instead of floating where the head used to be.
+// turn, hop, tilt and breathe with it instead of floating where the head used to be. A worn part may say which
+// place it takes ("slot": "hat"): a skin's piece in a slot gives way while the scene of the moment (or the one
+// worn over it) puts something in the same slot, so a nightcap does not go through a witch hat.
 //
 //   createScenes3d(THREE, data, finish) → { group, worn, update(q, sceneId, dt, overId, skinId), span(sceneId) }
 //     data    the scenes, plus the skins' pieces as scenes (skins.js skinScene); a part may glow ("glow": a color)
@@ -80,6 +82,7 @@ export function createScenes3d(THREE, data, finish = createFinishes(THREE)) {
     const roots = { world: new THREE.Group(), body: new THREE.Group() };
     const animated = [];
     const holders = [];                    // worn parts grow in place, from their pivot
+    const slots = new Set();               // the places its worn parts take
     for (const part of scene.parts) {
       const anchor = anchorOf(part);
       const root = roots[anchor];
@@ -111,17 +114,22 @@ export function createScenes3d(THREE, data, finish = createFinishes(THREE)) {
         if (CLIPS[part.clip]) animated.push({ o: pivot, clip: CLIPS[part.clip], i });
       });
       root.add(holder);
-      if (anchor === 'body') holders.push(holder);
+      if (anchor === 'body') {
+        holders.push(holder);
+        if (typeof part.slot === 'string') { holder.userData.slot = part.slot; holder.userData.kept = 1; slots.add(part.slot); }
+      }
     }
     roots.world.visible = roots.body.visible = false;
     roots.world.scale.setScalar(0.001);
     group.add(roots.world);
     worn.add(roots.body);
-    built.set(scene.id, { roots, holders, animated, grow: 0, span: sceneSpan(scene) });
+    built.set(scene.id, { roots, holders, animated, slots, grow: 0, span: sceneSpan(scene) });
   }
 
   let last = null;
   function update(q, sceneId, dt = 1 / 60, overId = null, skinId = null) {
+    // the slots the scene and what is worn over it take: the skin's pieces in them step aside
+    const taken = new Set([...(built.get(sceneId)?.slots ?? []), ...(built.get(overId)?.slots ?? [])]);
     for (const [id, s] of built) {
       const target = id === sceneId || id === overId || id === skinId ? 1 : 0;
       s.grow = q.quiet ? target : Math.max(0, Math.min(1, s.grow + Math.sign(target - s.grow) * GROW * dt));
@@ -129,7 +137,14 @@ export function createScenes3d(THREE, data, finish = createFinishes(THREE)) {
       if (!s.roots.world.visible) continue;
       const size = Math.max(0.001, s.grow);
       s.roots.world.scale.setScalar(size);
-      for (const holder of s.holders) holder.scale.setScalar(size);
+      for (const holder of s.holders) {
+        const data = holder.userData;
+        if (data.slot) {
+          const want = id === skinId && id !== sceneId && id !== overId && taken.has(data.slot) ? 0 : 1;
+          data.kept = q.quiet ? want : Math.max(0, Math.min(1, data.kept + Math.sign(want - data.kept) * GROW * dt));
+        }
+        holder.scale.setScalar(Math.max(0.001, size * (data.slot ? data.kept : 1)));
+      }
       if (!q.quiet) for (const a of s.animated) a.clip(a.o, q.time || 0, a.i);
     }
     const changed = sceneId !== last;

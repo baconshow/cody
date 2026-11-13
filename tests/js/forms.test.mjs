@@ -127,3 +127,16 @@ test('the radius along a tube: the given values at their places, smooth in betwe
   assert.ok(radiusAt(list, 0.05) > 3.9, 'it leaves a value slowly: no kink');
   assert.deepEqual([radiusAt(list, -1), radiusAt(list, 2)], [4, 0]);
 });
+
+test('a tube may close into a ring, and any shape may ask for its mirror image; glass and gloss are finishes too', () => {
+  const circle = [[1, 0, 0], [0, 1, 0], [-1, 0, 0], [0, -1, 0]];
+  const [ring, line, lens] = validShapes([
+    { kind: 'tube', path: circle, radius: 0.2, closed: true, mirror: true, at: [6, 0, 0] },
+    { kind: 'tube', path: [[0, 0, 0], [0, 1, 0]], radius: 0.2, closed: true, mirror: 'yes' },
+    { kind: 'lathe', profile: [[0, 0], [3, 0]], finish: 'glass' },
+  ]);
+  assert.deepEqual([ring.closed, ring.mirror], [true, true]);
+  assert.deepEqual([line.closed, line.mirror], [false, false], 'two points make no ring; mirror is true or nothing');
+  assert.equal(lens.finish, 'glass');
+  assert.equal(validShapes([{ kind: 'plate', outline: [[0, 0], [1, 0], [1, 1]], finish: 'gloss' }])[0].finish, 'gloss');
+});
