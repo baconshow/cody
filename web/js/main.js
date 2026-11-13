@@ -37,6 +37,7 @@ import { createTimers } from './timers.js';
 import { createTimerPanel } from './timer-panel.js';
 import { createAlerts } from './alerts.js';
 import { createStatus } from './status.js';
+import { createOverlays } from './overlays.js';
 import { createSettings } from './settings.js';
 import { createNetwork } from './network.js';
 import { validScenes, pickScene, pickOver, wantedScene, createSceneSounds } from './scenes.js';
@@ -59,7 +60,6 @@ const NEEDS_YOU_S = 8;                // and points at the computer when Claude 
 const reactions = { play: () => {} };   // name → sound; an unknown or empty name plays nothing
 const sceneSound = createSceneSounds();
 const VOICE_NOTICE_MS = 9000;
-const WAKE_TOLD_MS = 1800;            // how long the wake word light spells out its state after a switch
 const HEARD_MS = 420;                 // how long the light swells when the microphone hears something
 
 function readOptions(search) {
@@ -341,11 +341,11 @@ function wireCursor(faces, cycle, request, local) {
 }
 
 // voice commands (voice.js): hold the face or call "Cody". The caption at the top, the box with the link or
-// command at the bottom (a tap copies it and, for a link, opens it), the light in the corner that turns the wake word
-// on and off and shows what the microphone is doing (red: off; green: listening for "Cody", swelling a little with
-// every sound it hears; green growing and shrinking: taking a command now, after the word, after an answer or
-// while the face is held; amber: it cannot hear, and the words say why; the words show on hover and for a moment
-// after a switch), and the mouth following the volume of the speech
+// command at the bottom (a tap copies it and, for a link, opens it), the pill in the bottom corner that turns the
+// wake word on and off and shows what the microphone is doing, a light and its words (red: off; green: listening
+// for "Cody", swelling a little with every sound it hears; green growing and shrinking: taking a command now,
+// after the word, after an answer or while the face is held; amber: it cannot hear, and the words say why), and
+// the mouth following the volume of the speech
 function wireVoice(f, cycle, request) {
   const make = (tag, className) => Object.assign(document.createElement(tag), { className });
   const caption = make('p', 'caption');
@@ -366,9 +366,8 @@ function wireVoice(f, cycle, request) {
   const paintLight = () => {
     const state = light.awake ? 'awake' : !light.on ? 'off' : light.trouble ? 'trouble' : 'on';
     wake.dataset.state = state;
-    wake.setAttribute('aria-pressed', String(light.on));   // the name stays the same; pressed or not says the state
-    wake.setAttribute('aria-label', t('mascot.voice.wakeWord'));
-    wake.dataset.tip = {
+    wake.setAttribute('aria-pressed', String(light.on));
+    wake.textContent = {
       awake: t('mascot.voice.listening'), off: t('mascot.voice.wakeWordOff'), on: t('mascot.voice.wakeWord'),
       trouble: t('mascot.voice.trouble', { reason: troubleText(light.trouble) }),
     }[state];
@@ -407,12 +406,7 @@ function wireVoice(f, cycle, request) {
   attachment.addEventListener('keydown', (e) => {
     if (e.target === attachment && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); useAttachment(attachment.textContent); }
   });
-  wake.addEventListener('click', () => {
-    voice.listen(!voice.listening);
-    wake.classList.add('told');                          // a phone has no hover: say what changed, briefly
-    clearTimeout(wake.timer);
-    wake.timer = setTimeout(() => wake.classList.remove('told'), WAKE_TOLD_MS);
-  });
+  wake.addEventListener('click', () => voice.listen(!voice.listening));
   voice.listen(remembered(PREF_WAKE_WORD, true));
   const sync = () => (document.hidden ? voice.stop() : voice.start());
   document.addEventListener('visibilitychange', sync);
@@ -623,6 +617,7 @@ async function start() {
     reactions.play = (name) => voice.play(name);
     wireTimers(voice, cycle, loop.request);
     wireAlerts(voice, cycle, loop.request);
+    createOverlays();                                      // the pills step back after a while without a touch
     let settings = null;                                   // made after Status, which tells it the light
     const status = createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request,
       onLight: (light) => settings?.setLight(light) });

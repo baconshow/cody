@@ -2,7 +2,7 @@
 // right, with the mascot still in view beside it. Settings has its sections (voice, phone, general, skins, about),
 // one showing at a time, picked in the list the panel shares with Status (panel.js: #settings/voice...; Status is
 // the list's last entry). It opens
-// from the gear in the corner of the mascot page, from the tray menu and from #settings. On the computer everything
+// from the Settings pill in the corner of the mascot page, from the tray menu and from #settings. On the computer everything
 // can be changed; from the phone the drawer only shows the language (this browser) and says where to change the
 // rest. The ElevenLabs key is typed here, saved on the computer only, and never comes back (only "a key is saved");
 // with a key saved, the voices of that account are listed, and picking one makes Cody say hi with it right away.
@@ -67,13 +67,13 @@ export function createSettings({
     },
   });
   const { body, note } = sheet;                        // note: what the last change did ("Saved.")
-  const opener = el('button', { type: 'button', className: 'settings-open' });   // the gear on the mascot page
+  const opener = el('button', { type: 'button', className: 'settings-open' });   // the pill on the mascot page
   document.body.append(opener);
 
   function label() {
     sheet.setTitle(t('settings.title'), t('status.close'));
+    opener.textContent = t('settings.title');
     opener.setAttribute('aria-label', t('settings.title'));
-    opener.dataset.tip = t('settings.title');
   }
 
   async function load() { st.info = await api.settings(); return st.info; }

@@ -91,76 +91,52 @@ body.with-gallery { overflow-y: auto; }
 .attachment:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; }
 .attachment a { color: #ff8a3d; text-decoration: underline; text-underline-offset: 3px; }
 .attachment a:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: 2px; border-radius: 3px; }
-.wake:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: -8px; }
+/* The pills over the mascot: Settings in the top corner, the wake word in the bottom one (the Status pill is
+   further down, with the panel it opens). White at 8 % with a hairline, the panel's own type. After a while
+   without a touch they step back (overlays.js puts .overlays-rest on the page) and a tap brings them back */
+.settings-open, .wake {
+  position: fixed; z-index: 20; display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, .1); border-radius: 18px; background: rgba(255, 255, 255, .08);
+  color: var(--panel-ink); font: 500 13px var(--panel-font); white-space: nowrap; cursor: pointer;
+  transition: opacity .3s ease, background-color .3s ease, border-color .3s ease, color .3s ease;
+}
+.settings-open:hover, .wake:hover { background: rgba(255, 255, 255, .13); }
+.settings-open:focus-visible, .wake:focus-visible { outline: 2px solid var(--panel-ink); outline-offset: 2px; }
+.settings-open { right: max(20px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); }
 
-/* the wake word light, in the corner: green while the phone is listening for "Cody", red when it is off. A tap
-   switches it. No words on screen: they show on hover, on keyboard focus and for a moment after a switch. The
-   button is a full 44 px target around a 12 px dot */
+/* the wake word: a light and what it means. Red: off. Green: listening for "Cody", swelling a little with every
+   sound it hears. Green growing and shrinking: taking a command now (after the word, after an answer, or while
+   the face is held). Amber: it cannot hear, and the words say why. A tap switches listening on and off */
 .wake {
-  position: fixed; right: max(2px, env(safe-area-inset-right)); top: max(2px, env(safe-area-inset-top)); z-index: 20;
-  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  right: max(20px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom));
+  padding-left: 12px; color: var(--panel-ink-2);
 }
 .wake::before {
-  content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
-  border-radius: 50%; background: var(--status-fail); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55);
+  content: ''; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--status-fail);
+  transition: transform .12s ease-out, background-color .2s ease;
 }
-.wake::before { transition: transform .12s ease-out, background-color .2s ease; }
 /* on, it also glows: the state is not told by the color alone */
-.wake[aria-pressed="true"]::before {
-  background: var(--status-ok); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(76, 207, 114, .55);
-}
-/* the microphone heard something (any sound of speech): the light swells for a moment, so it is seen to be alive */
+.wake[aria-pressed="true"]::before { background: var(--status-ok); box-shadow: 0 0 9px 3px rgba(76, 207, 114, .55); }
 .wake.heard::before { transform: scale(1.4); }
-/* taking a command right now (after "Cody", after an answer, or while the face is held): it grows and shrinks */
-.wake[data-state="awake"]::before {
-  background: var(--status-ok); animation: wake-listening 1.1s ease-in-out infinite;
-}
+.wake[data-state="awake"] { color: var(--panel-ink); }
+.wake[data-state="awake"]::before { background: var(--status-ok); animation: wake-listening 1.1s ease-in-out infinite; }
 @keyframes wake-listening {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(76, 207, 114, .55); }
-  50% { transform: scale(1.9); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 20px 9px rgba(76, 207, 114, .7); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 9px 3px rgba(76, 207, 114, .55); }
+  50% { transform: scale(1.9); box-shadow: 0 0 20px 9px rgba(76, 207, 114, .7); }
 }
-/* it cannot hear (no microphone, recognition offline): amber, and the words under it say why */
-.wake[data-state="trouble"]::before {
-  background: var(--status-warn); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 9px 3px rgba(242, 179, 61, .5);
-}
-.wake[data-state="trouble"]::after { opacity: 1; }
-.wake::after {
-  content: attr(data-tip); position: absolute; right: 4px; top: 42px;      /* under the light, clear of the gear */
-  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .82);
-  color: var(--mascot-ink); font: 14px var(--mascot-font); letter-spacing: .04em; white-space: nowrap;
-  opacity: 0; pointer-events: none; transition: opacity .15s ease;
-}
-.wake:focus-visible::after, .wake.told::after { opacity: 1; }
-@media (hover: hover) { .wake:hover::after { opacity: 1; } }
+.wake[data-state="trouble"] { color: #ffc457; }
+.wake[data-state="trouble"]::before { background: var(--status-warn); box-shadow: 0 0 9px 3px rgba(255, 176, 32, .5); }
 
-/* the gear beside the wake word light: opens Settings (settings.js). Quiet until the pointer comes near; its name
-   shows on hover and on keyboard focus, like the light's */
-.settings-open {
-  position: fixed; right: calc(max(2px, env(safe-area-inset-right)) + 40px); top: max(2px, env(safe-area-inset-top));
-  z-index: 20; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer;
-}
-.settings-open::before {
-  content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
-  background: var(--mascot-ink-2); opacity: .7; transition: opacity .15s ease, background-color .15s ease;
-  -webkit-mask: url('/web/icons/settings.svg') center / contain no-repeat;
-  mask: url('/web/icons/settings.svg') center / contain no-repeat;
-}
-.settings-open:hover::before, .settings-open:focus-visible::before { background: var(--mascot-ink); opacity: 1; }
-.settings-open::after {
-  content: attr(data-tip); position: absolute; right: 4px; top: 42px;
-  padding: 4px 10px; border: 1px solid #3a3346; border-radius: 999px; background: rgba(0, 0, 0, .82);
-  color: var(--mascot-ink); font: 14px var(--mascot-font); letter-spacing: .04em; white-space: nowrap;
-  opacity: 0; pointer-events: none; transition: opacity .15s ease;
-}
-.settings-open:focus-visible { outline: 2px solid var(--mascot-ink); outline-offset: -8px; }
-.settings-open:focus-visible::after { opacity: 1; }
-@media (hover: hover) { .settings-open:hover::after { opacity: 1; } }
+/* stepped back: Settings and a Status with nothing to say fade away; the wake word keeps only its light (the
+   microphone at work is always seen), unless it has trouble to tell */
+.overlays-rest .settings-open, .overlays-rest .status-chip[data-state="ok"] { opacity: 0; pointer-events: none; }
+.overlays-rest .wake:not([data-state="trouble"]) { border-color: transparent; background: transparent; color: transparent; }
+.settings-open:focus-visible, .status-chip:focus-visible { opacity: 1; }
+
 @media (prefers-reduced-motion: reduce) {
-  .attachment, .wake::before, .wake::after, .settings-open::before, .settings-open::after { transition: none; }
+  .attachment, .settings-open, .wake, .wake::before, .status-chip { transition: none; }
   /* no movement: taking a command is a bigger light with a ring */
-  .wake[data-state="awake"]::before {
-    animation: none; transform: scale(1.6); box-shadow: 0 0 0 3px rgba(0, 0, 0, .55), 0 0 0 6px rgba(76, 207, 114, .5);
-  }
+  .wake[data-state="awake"]::before { animation: none; transform: scale(1.6); box-shadow: 0 0 0 5px rgba(76, 207, 114, .5); }
 }
 
 /* a screenshot Claude took on request: the picture over the face, with Share, Save and Close below it */
@@ -215,6 +191,7 @@ body.with-gallery { overflow-y: auto; }
   display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 40px); height: 36px; padding: 0 14px 0 12px;
   border: 1px solid rgba(255, 255, 255, .1); border-radius: 18px; background: rgba(255, 255, 255, .08);
   color: var(--panel-ink); font: 500 13px var(--panel-font); white-space: nowrap; cursor: pointer;
+  transition: opacity .3s ease, background-color .3s ease;
 }
 .status-chip::before {
   content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--status-ok);
