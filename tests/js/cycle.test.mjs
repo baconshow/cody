@@ -35,3 +35,18 @@ test('a knock alert: the mood points, knocking() is on and the scenes see it, un
   assert.equal(cycle.mood(21), 'pointing');
   assert.equal(cycle.knocking(21), false);
 });
+
+test('a pat is the happy face, never the party: the confetti is for an agent that finished', () => {
+  const finished = { n: 0 };
+  const c = createCycle({ signal: { read: () => ({ finished: finished.n, idleSeconds: 0 }) } });
+  c.mood(0);
+  c.touched(10);
+  assert.equal(c.mood(10.5), 'happy');
+  assert.equal(c.situation(10.5).happy, false, 'no celebration: the party scene stays away');
+  finished.n = 1;
+  assert.equal(c.situation(11).happy, true, 'an agent finished: now it is a party');
+  c.cheer(30);
+  assert.equal(c.situation(30.5).happy, true, 'a timer ringing celebrates too');
+  assert.equal(c.situation(30 + CYCLE.celebrate + 0.1).happy, false);
+});
+

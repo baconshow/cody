@@ -30,7 +30,7 @@ import { seededRandom } from './seeded-random.js';
 
 const HEX = /^#[0-9a-f]{6}$/i;
 export const KINDS = Object.freeze(['tube', 'lathe', 'plate']);
-export const FINISHES = Object.freeze(['plastic', 'matte', 'leather', 'satin', 'metal', 'rind', 'gloss', 'glass']);
+export const FINISHES = Object.freeze(['plastic', 'matte', 'leather', 'satin', 'metal', 'rind', 'gloss', 'glass', 'tinted', 'hair']);
 export const LIMIT = Object.freeze({ shapes: 24, points: 48, bands: 4, ribs: 48 });
 
 const numbers = (a, n) => Array.isArray(a) && a.length === n && a.every(Number.isFinite);
@@ -105,7 +105,8 @@ export function gourdOf(body) {
 }
 
 // the carved mouth: "outline" [x, y] voxels around "at" ([x, y] from the floor under the mascot's middle),
-// "depth" of the cut, "round" corners, "glow": [middle, edge] colors of the light inside, "wall": the cut edge
+// "depth" of the cut, "round" corners, "glow": [middle, edge] colors of the light inside, "wall": the cut edge,
+// "flicker": false for a light that holds still (a mouth, not a candle)
 export function carveOf(carve) {
   if (!carve || !pointList(carve.outline, 2, 3)) return null;
   const glow = Array.isArray(carve.glow) ? carve.glow : [];
@@ -116,6 +117,7 @@ export function carveOf(carve) {
     round: within(carve.round, 0, 1, 0.12),
     glow: [hexOr(glow[0], '#fff04a'), hexOr(glow[1], '#ffb21f')],
     wall: hexOr(carve.wall, '#f58a1a'),
+    flicker: carve.flicker !== false,
   };
 }
 

@@ -20,10 +20,10 @@
 //               trembling
 
 import { BODY, LEG, EYE, CHEEK, ARM, PX, BOOST } from './measures.js';
-import { eyeRows, eyeRuns } from './eyeshapes.js';
+import { buildEye } from './eyes3d.js';
 import { createKeyboard, KEYBOARD } from './keyboard3d.js';
-import { gourdScale } from './forms.js';
-import { createFinishes, buildShapes, gourdGeometry, rindMaterial, carveMouth, unmask } from './forms3d.js';
+import { createFinishes, buildShapes, gourdGeometry, rindMaterial, carveMouth, unmask, tubeGeometry, plateGeometry } from './forms3d.js';
+import { gourdScale, validShapes } from './forms.js';
 
 const V = 0.1;                                           // units per voxel
 const DEPTH = 1.6;                                       // the body's depth (the drawing is front-only)
@@ -88,7 +88,7 @@ function box(THREE, Rounded, [w, h, d], radius, mat, shadow = true) {
 }
 
 // the eye: the black plastic bar with the reflection in the top corner, the ^ of the happy face (two sticks), and
-// the shapes a scene may ask for (eyeshapes.js: ♥, ×, > <...), built from the same plastic the first time they show
+// the shapes a scene may ask for (♥, ×, > <...: eyes3d.js), smooth, of the same plastic, built the first time they show
 function eye(THREE, Rounded, m, cx, side) {
   const group = new THREE.Group();
   const bar = box(THREE, Rounded, [EYE.width * V, EYE.height * V, 0.08], 0.03, m.eye, false);
@@ -108,15 +108,8 @@ function eye(THREE, Rounded, m, cx, side) {
   const shapes = new Map();
   const shape = (name) => {
     if (!shapes.has(name)) {
-      const rows = eyeRows(name, side);
-      if (!rows) return null;
-      const cell = V / 2;                                    // half a voxel, as the glyphs are drawn
-      const made = new THREE.Group();
-      for (const run of eyeRuns(rows)) {
-        const piece = box(THREE, Rounded, [run.len * cell, cell * 1.12, 0.08], 0.012, m.eye, false);   // rows overlap: no seams
-        piece.position.set((run.col + run.len / 2 - rows[0].length / 2) * cell, (rows.length / 2 - run.row - 0.5) * cell, 0);
-        made.add(piece);
-      }
+      const made = buildEye(THREE, name, m.eye, side);
+      if (!made) return null;
       made.visible = false;
       group.add(made);
       shapes.set(name, made);
@@ -143,16 +136,34 @@ function magnifier(THREE, Rounded, m) {
   return group;
 }
 
-function sprout(THREE, Rounded, m) {
+// the sprout: a stem that thins toward the top, a little bent, and two leaves, each a pointed oval with a soft
+// edge, lying open and turned up toward the light. Measured in voxels (forms.js), like a skin's shapes
+const SPROUT = Object.freeze({
+  stem: { kind: 'tube', path: [[0, -0.6, 0], [0.12, 1.5, 0.05], [0, 3.15, 0]], radius: [0.42, 0.34, 0.27] },
+  leaf: { kind: 'plate', outline: [[0, 0], [0.45, 0.42], [1.2, 0.6], [1.95, 0.42], [2.5, 0], [1.95, -0.36], [1.2, -0.5], [0.45, -0.36]],
+    depth: 0.16, bevel: 0.06, round: 0.35 },
+  leafAt: [0.12, 3.05, 0], tilt: 30, lean: 38,
+});
+
+function sprout(THREE, m) {
   const pivot = new THREE.Group();
-  const stem = box(THREE, Rounded, [0.07, 0.32, 0.07], 0.02, m.stem);
-  stem.position.y = 0.16;
-  pivot.add(stem);
+  const [stemShape, leafShape] = validShapes([SPROUT.stem, SPROUT.leaf]);
+  const stem = new THREE.Mesh(tubeGeometry(THREE, stemShape), m.stem);
+  const leafGeometry = plateGeometry(THREE, leafShape);
+  const parts = [stem];
   for (const s of [-1, 1]) {
-    const leaf = box(THREE, Rounded, [0.22, 0.05, 0.13], 0.025, m.leaf);
-    leaf.position.set(s * 0.11, 0.34, 0);
-    leaf.rotation.z = s * 0.55;
-    pivot.add(leaf);
+    const leaf = new THREE.Mesh(leafGeometry, m.leaf);
+    leaf.position.set(SPROUT.leafAt[0] * s, SPROUT.leafAt[1], SPROUT.leafAt[2]);
+    // its face toward the viewer, the tip turned up and the leaf leaning back a little, like a real seedling's
+    leaf.rotation.set(-SPROUT.lean * Math.PI / 180, 0, s * SPROUT.tilt * Math.PI / 180);
+    leaf.scale.x = s;                                      // the left one is the mirror image
+    parts.push(leaf);
+  }
+  for (const part of parts) {
+    part.castShadow = part.receiveShadow = true;
+    part.scale.multiplyScalar(V);
+    part.position.multiplyScalar(V);
+    pivot.add(part);
   }
   pivot.position.set(x(9), BODY.height * V, 0.1);
   return pivot;
@@ -210,7 +221,7 @@ export function createMascot(THREE, Rounded) {
   face.add(curse.mesh);
   const arms = [-1, 1].map((s) => arm(THREE, Rounded, m, s));
   body.add(...arms);
-  const leaves = sprout(THREE, Rounded, m);
+  const leaves = sprout(THREE, m);
   body.add(leaves);
   const eyeMiddle = new THREE.Vector3(0, LEG.height * V + face.position.y, DEPTH / 2);
   const lens = magnifier(THREE, Rounded, m);
@@ -281,6 +292,7 @@ function dress(THREE, p, skin) {
     const middle = skin.carve.at[1] * V - LEG.height * V;          // the mouth's middle, from the body's underside
     const front = (y) => (DEPTH / 2) * (gourd ? gourdScale((middle + y - height / 2) / (height / 2), gourd.round) : 1);
     p.carve = carveMouth(THREE, skin.carve, front);
+    p.carve.flicker = skin.carve.flicker;
     p.carve.group.position.set(skin.carve.at[0] * V, middle - p.face.position.y, 0);
     p.face.add(p.carve.group);
     p.carve.mask(gourd ? p.m.rind : p.m.torso);
@@ -328,7 +340,7 @@ function applyPose(p, q) {
   if (p.carve) {
     p.carve.group.scale.y = 1 + Math.min(1, q.talk * 1.6) * CARVED.talk;
     const waver = 0.5 + 0.5 * Math.sin(q.time * CARVED.rhythm) * Math.sin(q.time * CARVED.rhythm * 0.43);
-    p.carve.light(q.quiet ? 1 : 1 - CARVED.waver * waver);
+    p.carve.light(q.quiet || !p.carve.flicker ? 1 : 1 - CARVED.waver * waver);   // a candle wavers; a mouth does not
   }
   poseArms(p, q);
   poseGrab(p, q);

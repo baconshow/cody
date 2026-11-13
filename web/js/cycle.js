@@ -1,7 +1,8 @@
 // cycle.js — the face's mood when the page has no ?mood=. In order:
 //   0. the voice conversation (voice.js): listening while you hold the face and talk, thinking until the reply,
 //      talking;
-//   1. a pat (a tap) and an agent that finished: happy for a moment;
+//   1. a pat (a tap) and an agent that finished: happy for a moment; only the second is a celebration (the party
+//      scene, with its confetti): a pat is the ^ eyes and a hop, nothing more;
 //   2. Claude's activity (signal.js, read by claudeMood): what it is doing right now;
 //   3. the idle cycle, driven only by the pointer: it moved, the face listens (and follows it with its eyes); it
 //      stopped, the face thinks for a bit, then gets sleepy and rests. The pointer coming back wakes it up happy.
@@ -24,7 +25,8 @@ const FAST = 1 / 6;
 
 export function createCycle({ fast = false, signal = null } = {}) {
   const k = fast ? FAST : 1;
-  const st = { activity: null, happyUntil: -Infinity, finished: null, voice: null, reading: null, alert: null };
+  // happyUntil: a celebration (the party scene) · pattedUntil: only the happy face (a pat, waking up)
+  const st = { activity: null, happyUntil: -Infinity, pattedUntil: -Infinity, finished: null, voice: null, reading: null, alert: null };
 
   function idle(now) {
     const still = now - st.activity;
@@ -45,7 +47,7 @@ export function createCycle({ fast = false, signal = null } = {}) {
     }
     if (st.voice) return st.voice;
     if (st.alert && now < st.alert.until) return st.alert.mood;
-    if (now < st.happyUntil) return 'happy';
+    if (now < Math.max(st.happyUntil, st.pattedUntil)) return 'happy';
     return (reading && claudeMood(reading)) || idle(now);
   }
 
@@ -63,12 +65,12 @@ export function createCycle({ fast = false, signal = null } = {}) {
     setVoice(mood) { st.voice = mood || null; },
     // the pointer came back: if the face was asleep, it wakes up happy
     moved(now) {
-      if (st.activity !== null && SLEEPING.has(mood(now))) st.happyUntil = now + CYCLE.celebrate;
+      if (st.activity !== null && SLEEPING.has(mood(now))) st.pattedUntil = now + CYCLE.celebrate;
       st.activity = now;
     },
-    // a tap or a click: a pat
+    // a tap or a click: a pat (the happy face, not a party)
     touched(now) {
-      st.happyUntil = now + CYCLE.celebrate;
+      st.pattedUntil = now + CYCLE.celebrate;
       st.activity = now;
     },
     cheer(now) { st.happyUntil = now + CYCLE.celebrate; },

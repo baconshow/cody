@@ -20,12 +20,15 @@ export function worst(items) {
   return items.reduce((bad, it) => (ORDER[it.state] < ORDER[bad] ? it.state : bad), 'ok');
 }
 
-// the short label next to the light: the first broken thing, or "all good"
+// the short label next to the light, saying what the light's color says: the first broken thing; how many ask for
+// a look (amber); or "all good" (green), never "all good" beside an amber light
 export function summary(items, t) {
   const voice = items.find((it) => it.id === 'voice');
   if (voice && voice.state === 'fail') return t('status.chip.voiceOff');
   const bad = items.find((it) => it.state === 'fail') || items.find((it) => it.state === 'warn' && it.urgent);
-  return bad ? bad.title : t('status.chip.ok');
+  if (bad) return bad.title;
+  const needy = items.filter((it) => it.state !== 'ok').length;
+  return needy ? t('status.count', { n: needy }) : t('status.chip.ok');
 }
 
 // env: { secure, recognizer, mic: 'granted' | 'denied' | 'prompt' | null, sound: 'running' | 'suspended' | null }

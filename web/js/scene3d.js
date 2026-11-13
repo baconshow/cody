@@ -34,7 +34,7 @@ function lights(scene) {
   const key = new THREE.DirectionalLight(0xffe0bf, 1.9);
   key.position.set(-3.2, 5, 4.2);
   key.castShadow = true;
-  key.shadow.mapSize.set(1024, 1024);
+  key.shadow.mapSize.set(2048, 2048);                     // fine enough for a wire frame to shadow the face
   key.shadow.camera.left = -3;
   key.shadow.camera.right = 3;
   key.shadow.camera.top = 3;

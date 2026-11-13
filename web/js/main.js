@@ -60,6 +60,7 @@ const NEEDS_YOU_S = 8;                // and points at the computer when Claude 
 const reactions = { play: () => {} };   // name → sound; an unknown or empty name plays nothing
 const sceneSound = createSceneSounds();
 const VOICE_NOTICE_MS = 9000;
+const SOUND_LOOK_MS = 400;            // after the first tap, when Status looks again (the sound is unlocked by then)
 const HEARD_MS = 420;                 // how long the light swells when the microphone hears something
 
 function readOptions(search) {
@@ -621,6 +622,8 @@ async function start() {
     let settings = null;                                   // made after Status, which tells it the light
     const status = createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request,
       onLight: (light) => settings?.setLight(light) });
+    // the first tap unlocks the sound (voice.js): look again right after, so the light turns green without waiting
+    window.addEventListener('pointerdown', () => setTimeout(() => status.refresh(), SOUND_LOOK_MS), { once: true });
     settings = createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m), light: () => status.light(),
       play: (bytes) => voice.playAudio(bytes),
       prefs: { followUp: { get: () => remembered(PREF_FOLLOW_UP, true), set: (on) => remember(PREF_FOLLOW_UP, on) } },

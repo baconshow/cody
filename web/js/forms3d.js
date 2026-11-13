@@ -32,6 +32,11 @@ const FINISH = Object.freeze({
   metal: { roughness: 0.2, metalness: 1, envMapIntensity: 4 },
   gloss: { roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.04, envMapIntensity: 2.5 },   // polished: dark lenses, a visor
   glass: { roughness: 0.03, clearcoat: 1, clearcoatRoughness: 0.03, transparent: true, opacity: 0.2, depthWrite: false },
+  // dark lenses: the eye behind only just shows, the room is reflected on top
+  tinted: { roughness: 0.04, clearcoat: 1, clearcoatRoughness: 0.03, transparent: true, opacity: 0.86, depthWrite: false,
+    envMapIntensity: 2.2 },
+  // hair: soft, a little sheen, and fine streaks along the strands (a tube's length)
+  hair: { roughness: 0.72, sheen: 0.7, sheenRoughness: 0.55, sheenTint: 0.25, grain: ['streaks', 6, 1.5, 1.6] },
   rind: { roughness: 0.44, clearcoat: 0.3, clearcoatRoughness: 0.4, sheen: 0.4, sheenRoughness: 0.5, sheenTint: 0.4,
     grain: ['pores', 10, 5, 0.5] },
 });
@@ -44,9 +49,27 @@ function grainTexture(THREE, kind, repeatX, repeatY) {
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d');
   if (!g) return null;
-  const random = seededRandom(kind === 'pores' ? 41 : 97);
+  const random = seededRandom(kind === 'pores' ? 41 : kind === 'streaks' ? 63 : 97);
   g.fillStyle = '#808080';
   g.fillRect(0, 0, size, size);
+  if (kind === 'streaks') {                                // strands: thin lines running the length of the texture
+    for (let i = 0; i < 420; i += 1) {
+      const x = random() * size;
+      const light = random() < 0.45;
+      g.strokeStyle = `rgba(${light ? '255,255,255' : '0,0,0'},${0.18 + random() * 0.3})`;
+      g.lineWidth = 0.6 + random() * 1.4;
+      for (const dx of [0, size, -size]) {
+        g.beginPath();
+        g.moveTo(x + dx, 0);
+        g.bezierCurveTo(x + dx + (random() - 0.5) * 6, size / 3, x + dx + (random() - 0.5) * 6, (2 * size) / 3, x + dx, size);
+        g.stroke();
+      }
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set(repeatX, repeatY);
+    return texture;
+  }
   const dots = kind === 'pores' ? 2600 : 520;
   for (let i = 0; i < dots; i += 1) {
     const x = random() * size;

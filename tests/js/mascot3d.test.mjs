@@ -40,6 +40,10 @@ test('the pumpkin skin swaps the box for a ribbed gourd, the leaves for a stem, 
   assert.deepEqual(arms.map((a) => +a.position.x.toFixed(6)), [-1.2, 1.2]);
 
   const eyesBefore = mascot.eyes.y;
+  // the sprout: the group whose meshes are the mascot's own stem and leaves (a tube and two pressed leaves)
+  const pivot = meshes(mascot.root).find((m) => m.geometry.type === 'ExtrudeGeometry' && m.material.color.g > m.material.color.r * 1.2).parent;
+  const own = [...pivot.children];
+  assert.equal(own.length, 3, 'a stem and two leaves');
   mascot.recolor(pumpkin.colors);
   mascot.setSkin(pumpkin);
   const worn = look(mascot);
@@ -50,8 +54,8 @@ test('the pumpkin skin swaps the box for a ribbed gourd, the leaves for a stem, 
   assert.ok(worn.hole, 'the hole is marked');
   assert.ok(arms[1].position.x < 1.2 && arms[0].position.x > -1.2, 'the arms moved in, onto the gourd');
   const sprout = meshes(mascot.root).filter((m) => m.material.color.g > m.material.color.r * 1.2 && m.material.color.g > m.material.color.b * 1.2);
-  assert.ok(sprout.some((m) => m.visible && m.parent.parent.parent.visible && !(m.geometry instanceof Rounded)), 'the stem stands');
-  assert.ok(sprout.filter((m) => m.geometry instanceof Rounded).every((m) => !m.visible), 'the two leaves are put away');
+  assert.ok(sprout.some((m) => m.visible && m.parent.parent.parent.visible && !own.includes(m)), 'the stem stands');
+  assert.ok(own.every((m) => !m.visible), 'the sprout of its own is put away');
 
   // shorter legs: the whole figure stands lower, eyes and all
   const body = worn.gourd.parent;
@@ -59,7 +63,7 @@ test('the pumpkin skin swaps the box for a ribbed gourd, the leaves for a stem, 
   assert.ok(mascot.eyes.y < eyesBefore, 'and the eyes are where the lower face is');
 
   // the stem is no antenna: it stands still while the old sprout would swing; only the tendril waves a little
-  const leaf = meshes(mascot.root).find((m) => m.geometry instanceof Rounded && m.geometry.parameters.width === 0.22);
+  const leaf = own[1];
   const [stem, tendril] = leaf.parent.children.at(-1).children;
   mascot.pose({ ...pose(0), sproutX: 1, sproutY: 1 });
   assert.deepEqual([leaf.parent.rotation.z, leaf.parent.rotation.x], [0, 0], 'the pivot of the sprout does not swing');
@@ -77,7 +81,7 @@ test('the pumpkin skin swaps the box for a ribbed gourd, the leaves for a stem, 
   assert.ok(after.box.visible && !after.gourd && !after.hole, 'the skin off: the box is back, nothing left over');
   assert.equal(after.box.material.stencilWrite, false);
   assert.deepEqual(arms.map((a) => +a.position.x.toFixed(6)), [-1.2, 1.2]);
-  assert.ok(meshes(mascot.root).filter((m) => m.geometry instanceof Rounded && m.material.color.g > m.material.color.r * 1.2).every((m) => m.visible), 'the leaves are back');
+  assert.ok(own.every((m) => m.visible) && pivot.children.length === 3, 'the sprout is back, and nothing of the skin is left on it');
   assert.ok(Math.abs(body.position.y - 0.5) < 1e-9 && mascot.eyes.y === eyesBefore, 'standing as tall as before');
   mascot.pose({ ...pose(0.5), sproutX: 1 });               // and it still moves: the sprout is an antenna again
   assert.equal(leaf.parent.rotation.z, -0.5);
