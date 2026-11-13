@@ -33,7 +33,8 @@ Things only the maintainer can do. Newest last.
       `android/keystore.properties` for a local release build; (3) Play App Signing on: copy the **app signing**
       certificate's SHA-256 from Play Console > App integrity into `RELEASE_FINGERPRINTS` in `cody/android.py`,
       so every user's computer vouches for the published app; (4) the listing: icon 512 (`web/icon-512.png`),
-      feature graphic 1024x500, phone screenshots, the privacy policy URL (PRIVACY.md on GitHub), and the
+      feature graphic and five phone screenshots, ready in `docs/media/play/` (data safety answers drafted in
+      `docs/launch/play-store.md`), the privacy policy URL (PRIVACY.md on GitHub), and the
       foreground service declaration (type `specialUse`: "keeps a connection to the user's own computer on
       their private network to show their coding assistant's notifications; opt-in; no data leaves the network",
       with a short video of the switch and a notification), and the "app access" note for reviewers (the app only

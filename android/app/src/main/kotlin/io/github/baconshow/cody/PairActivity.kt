@@ -443,12 +443,13 @@ class PairActivity : Activity() {
 
     /**
      * Android 15 draws the app under the status and navigation bars (and the keyboard): the root pads itself by
-     * what the system covers. Older versions hand it zero and keep their own frame.
+     * what the system covers, the camera cutout included (a phone lying down has it on one side). Older versions
+     * hand it zero and keep their own frame.
      */
     private fun padForSystemBars(root: View) {
         root.setOnApplyWindowInsetsListener { view, insets ->
             if (Build.VERSION.SDK_INT >= 30) {
-                val bars = insets.getInsets(WindowInsets.Type.systemBars())
+                val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
                 val ime = insets.getInsets(WindowInsets.Type.ime())
                 view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
             } else {

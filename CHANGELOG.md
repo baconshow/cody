@@ -11,6 +11,9 @@
   used to get half the files, and a black screen, on the first open). **The app icon is Cody's face**, tilted and
   peeking over the bottom edge, as an adaptive icon (background, foreground and the Android 13+ themed silhouette),
   with the same face as the web icons and the head's silhouette as the status bar icon.
+- **The app's pictures are the 3D Cody**: the opening splash (it was the old pixel drawing) and the widget's four
+  faces, rendered from the page; the first run also keeps clear of a camera cutout on a phone lying down. The Play
+  Store graphics (feature graphic, five screenshots) are in `docs/media/play/`.
 - **The app's first run** is six screens instead of a form: welcome (Cody's head, drawn by the app, blinking),
   the two prerequisites with their live state (Cody on the computer, checked at `/app/hello` once an address is
   known; the Tailscale app on the phone, with Install or Open), pairing by the QR code (the phone's own camera reads

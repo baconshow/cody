@@ -100,3 +100,30 @@ marcas da Anthropic, PBC.
 
 Bring your Claude Code to life: a desk pet that reacts to what Claude does, takes orders by voice, changes your
 code on request and tells your phone when Claude needs you. Unofficial fan project, MIT.
+
+## Graphics (ready, in `docs/media/play/`)
+
+- **App icon**: `web/icon-512.png` (512 x 512).
+- **Feature graphic**: `feature-graphic.png` (1024 x 500): the name, the line "A desk pet for Claude Code." and the
+  happy mascot.
+- **Phone screenshots**: `screenshot-1-coding.png` to `screenshot-5-love.png` (2160 x 1080, 2:1, the page as the
+  app shows it lying down: coding with the monitor, Jack-o'-Cody, the Aviator, The Boss, heart eyes). Rendered from
+  the real 3D page, with no address or name of anyone in them.
+- To make them again (after a skin changes): the script that renders them from a running Cody is in the session
+  notes, not in the repository; any screenshot of the page at 2160 x 1080 with `?mood=listening&quiet=1` will do.
+
+## Data safety (draft answers, to check against the form's own questions)
+
+- **Does the app collect or share any of the required user data types?** No data reaches the developer or any
+  third party: no account, no ads, no analytics, no crash reporting. The app talks to one place, the computer the
+  user paired, over the user's own Tailscale network (HTTPS through Tailscale serve). What it receives from there
+  (a heads-up's words, a mood) is shown on the phone and kept only as the last heads-up for the widget.
+- **Voice**: the speech recognition is Chrome's own (the page runs in Chrome as a Trusted Web Activity); the app
+  itself records nothing. The recognised words go to the user's computer.
+- **Is data encrypted in transit?** Yes (HTTPS, and Tailscale's WireGuard underneath).
+- **Can users ask for their data to be deleted?** There is nothing held by the developer; clearing the app's data
+  removes the paired address and the last heads-up.
+- **Permissions to explain**: notifications (the heads-up, opt-in), a foreground service of type `specialUse`
+  (the declaration text is in `docs/BACON-TODO.md`), start at boot (to wait on the computer again after a
+  restart, only when the heads-up switch is on).
+
