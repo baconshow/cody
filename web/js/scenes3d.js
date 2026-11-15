@@ -9,10 +9,7 @@
 // nightcap, the headphones: "on": "body"). Worn parts live in a second group that goes on the mascot's body, so they
 // turn, hop, tilt and breathe with it instead of floating where the head used to be. A worn part may say which
 // place it takes ("slot": "hat"): a skin's piece in a slot gives way while the scene of the moment (or the one
-// worn over it) puts something in the same slot, so a nightcap does not go through a witch hat. A worn part may also
-// get out of an arm's way ("lift": { "arm": "left" | "right", "turn": [x, y, z] degrees, "move": [x, y, z] voxels }):
-// while that arm types, waves, knocks or grabs, the part turns and moves that far (a headphone cup swung up off the
-// ear), and settles back after; with "reduce motion" it jumps there instead of moving.
+// worn over it) puts something in the same slot, so a nightcap does not go through a witch hat.
 //
 //   createScenes3d(THREE, data, finish) → { group, worn, update(q, sceneId, dt, overId, skinId), span(sceneId) }
 //     data    the scenes, plus the skins' pieces as scenes (skins.js skinScene); a part may glow ("glow": a color)
@@ -21,7 +18,6 @@
 //     update  shows the scene (and the one worn over it, overId: the headphones, and the skin's pieces, skinId);
 //             true when the scene changed
 //     span    [left, right] in units: how far the scene reaches to each side (scenes.js sceneSpan), for the camera
-//   armBusy(q, arm) → 0 to 1: how much an arm is out of its resting place (the animator's pose), for "lift"
 
 import { anchorOf, pivotOf, sceneSpan } from './scenes.js';
 import { validShapes } from './forms.js';
@@ -31,29 +27,6 @@ const V = 0.1;                    // units per voxel, as in mascot3d.js
 const GROW = 6;                   // how fast a scene grows in or out (per second)
 const NO_SPAN = Object.freeze([0, 0]);
 const RAD = Math.PI / 180;
-const LIFT_SPEED = 7;             // how fast a lifted part follows its arm (per second)
-const clamp01 = (v) => Math.max(0, Math.min(1, Number(v) || 0));
-const three = (v) => (Array.isArray(v) && v.length === 3 && v.every(Number.isFinite) ? v : [0, 0, 0]);
-
-// an arm away from its resting place: typing (both hands on the keys), grabbing the screen's edges, knocking (the
-// right one), or raised and stretched (each its own). A small raise (listening, the gestures of talking) keeps the
-// ear inside a headphone cup: only past RAISE.from does it count, and by RAISE.from + RAISE.span it counts fully
-const RAISE = Object.freeze({ from: 0.22, span: 0.15 });
-export function armBusy(q, arm) {
-  const left = arm === 'left';
-  const typing = q?.prop === 'keyboard' ? clamp01(q.hold) : 0;
-  const knock = left ? 0 : clamp01(q?.knock);
-  const raise = clamp01(((left ? q?.raiseL : q?.raiseR) - RAISE.from) / RAISE.span);
-  const stretch = clamp01((left ? q?.stretchL : q?.stretchR) * 2);
-  return Math.max(typing, clamp01(q?.grab), knock, raise, stretch);
-}
-
-function liftOf(part) {
-  const lift = part?.lift;
-  if (!lift || typeof lift !== 'object') return null;
-  return { arm: lift.arm === 'left' ? 'left' : 'right', turn: three(lift.turn).map((d) => d * RAD), move: three(lift.move).map((v) => v * V) };
-}
-
 const CLIPS = {
   bob: (o, t) => { o.position.y = Math.sin(t * 4) * 0.02; },
   blink: (o, t, i) => { o.visible = Math.floor(t * 2 + i * 0.7) % 4 !== 0; },
@@ -109,7 +82,6 @@ export function createScenes3d(THREE, data, finish = createFinishes(THREE)) {
     const animated = [];
     const holders = [];                    // worn parts grow in place, from their pivot
     const slots = new Set();               // the places its worn parts take
-    const lifted = [];                     // worn parts that get out of an arm's way
     for (const part of scene.parts) {
       const anchor = anchorOf(part);
       const root = roots[anchor];
@@ -144,18 +116,13 @@ export function createScenes3d(THREE, data, finish = createFinishes(THREE)) {
       if (anchor === 'body') {
         holders.push(holder);
         if (typeof part.slot === 'string') { holder.userData.slot = part.slot; holder.userData.kept = 1; slots.add(part.slot); }
-        const lift = liftOf(part);
-        if (lift) {
-          holder.userData.lift = { ...lift, now: 0, at: holder.position.clone(), rest: holder.rotation.clone() };
-          lifted.push(holder);
-        }
       }
     }
     roots.world.visible = roots.body.visible = false;
     roots.world.scale.setScalar(0.001);
     group.add(roots.world);
     worn.add(roots.body);
-    built.set(scene.id, { roots, holders, animated, slots, lifted, grow: 0, span: sceneSpan(scene) });
+    built.set(scene.id, { roots, holders, animated, slots, grow: 0, span: sceneSpan(scene) });
   }
 
   let last = null;
@@ -176,13 +143,6 @@ export function createScenes3d(THREE, data, finish = createFinishes(THREE)) {
           data.kept = q.quiet ? want : Math.max(0, Math.min(1, data.kept + Math.sign(want - data.kept) * GROW * dt));
         }
         holder.scale.setScalar(Math.max(0.001, size * (data.slot ? data.kept : 1)));
-      }
-      for (const holder of s.lifted) {
-        const lift = holder.userData.lift;
-        const want = armBusy(q, lift.arm);
-        lift.now = q.quiet ? want : lift.now + (want - lift.now) * Math.min(1, LIFT_SPEED * dt);
-        holder.rotation.set(lift.rest.x + lift.turn[0] * lift.now, lift.rest.y + lift.turn[1] * lift.now, lift.rest.z + lift.turn[2] * lift.now);
-        holder.position.set(lift.at.x + lift.move[0] * lift.now, lift.at.y + lift.move[1] * lift.now, lift.at.z + lift.move[2] * lift.now);
       }
       if (!q.quiet) for (const a of s.animated) a.clip(a.o, q.time || 0, a.i);
     }

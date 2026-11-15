@@ -145,28 +145,22 @@ test('a scene\u2019s hat takes the place of the skin\u2019s hat while it shows, 
   assert.deepEqual([glasses.scale.x, grin.scale.x], [1, 1]);
 });
 
-test('the headphone cups lift off the ears when the arms are busy, and settle back after', async () => {
-  const { armBusy } = await import('../../web/js/scenes3d.js');
-  assert.equal(armBusy({ raiseL: 0.08, raiseR: 0.08 }, 'left'), 0, 'listening: the ears stay in the cups');
-  assert.equal(armBusy({ raiseL: 0.15, raiseR: 0.15 }, 'right'), 0, 'the gestures of talking too');
-  assert.equal(armBusy({ raiseL: 0.85 }, 'left'), 1, 'happy, arms up: all the way');
-  assert.equal(armBusy({ prop: 'keyboard', hold: 1 }, 'left'), 1, 'typing: both');
-  assert.equal(armBusy({ prop: 'magnifier', hold: 1 }, 'left'), 0, 'a magnifier in the right hand is no reason');
-  assert.deepEqual([armBusy({ knock: 1 }, 'right'), armBusy({ knock: 1 }, 'left')], [1, 0], 'only the knocking arm');
-  assert.equal(armBusy({ grab: 1 }, 'left'), 1);
-
+test('the headphones: the cups sit just behind the ears, so an arm (the ear) never goes through one', () => {
   const all = validScenes(JSON.parse(readFileSync(new URL('../../web/scenes/scenes.json', import.meta.url))));
   const phones = all.find((s) => s.id === 'headphones');
-  assert.ok(phones.parts.every((p) => p.shapes.length && !(p.boxes ?? []).length), 'real shapes, no blocks');
+  assert.ok(phones.parts.every((p) => p.shapes.length && !(p.boxes ?? []).length && !p.lift), 'real shapes, nothing that moves');
   const scenes = createScenes3d(THREE, [phones]);
-  const [band, right, left] = scenes.worn.children[0].children;
   scenes.update({ quiet: true, time: 0 }, null, 0, 'headphones');
-  assert.deepEqual([right.rotation.z, left.rotation.z], [0, 0], 'at rest, on the ears');
-  scenes.update({ quiet: true, time: 0, prop: 'keyboard', hold: 1 }, null, 0, 'headphones');
-  assert.ok(right.rotation.z > 1.2 && left.rotation.z < -1.2, 'typing: both cups swing up and out');
-  assert.ok(right.position.y > band.position.y - 0.1, 'and a little higher');
-  scenes.update({ quiet: false, time: 0 }, null, 0.05, 'headphones');
-  assert.ok(right.rotation.z > 0.2 && right.rotation.z < 1.2, 'with motion they come back down little by little');
-  scenes.update({ quiet: true, time: 0, raiseL: 0.85 }, null, 0, 'headphones');
-  assert.ok(left.rotation.z < -1.2 && right.rotation.z === 0, 'one raised arm lifts its own cup only');
+  const [band, right, left] = scenes.worn.children[0].children;
+  const ARM_BACK = -0.26;                                  // the arms reach z -0.26..0.26 (units), whatever they do
+  for (const cup of [right, left]) {
+    const box = new THREE.Box3().setFromObject(cup);
+    assert.ok(box.max.z < ARM_BACK, `a cup stays behind the arm: front at ${box.max.z.toFixed(3)}`);
+    assert.ok(Math.abs(box.min.x) >= 1.19 || Math.abs(box.max.x) >= 1.19, 'on the side of the head');
+  }
+  assert.ok(right.position.x > 0 && left.position.x < 0);
+  const top = new THREE.Box3().setFromObject(band);
+  assert.ok(top.max.z < 0, 'the band passes behind the sprout');
+  const spark = meshes(right).find((m) => m.material.color.getHexString() === 'd97757');
+  assert.ok(spark, 'the spark on the cup');
 });

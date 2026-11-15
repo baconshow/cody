@@ -69,9 +69,10 @@
   The picture is kept in Cody's data folder on the computer (PNG, JPEG, WebP or GIF, told by its bytes; 12 MB at
   most; the latest 50 stay) and the session is told its path, like a sentence you said; the face thinks and the
   answer is spoken.
-- **Real headphones**: a padded band over the back of the head (clear of the sprout), metal sliders, and two cups
-  with leather cushions over the ears. When an arm moves (typing, waving, knocking) its cup swings up off the ear
-  on its hinge, so nothing goes through anything, and settles back after. The glasses got a real hinge where the
+- **Real headphones**: a padded band over the back of the head (clear of the sprout), metal sliders, a fork holding
+  each cup on two pins, leather cushions, and Claude's spark on each cup. The cups sit on the sides of the head just
+  behind Cody's ears (its arms), so the arms wave, type and knock in front of them and never go through them. The
+  coffee is a real mug now (glazed, a rounded lip, coffee inside, a handle). The glasses got a real hinge where the
   temple meets the frame. The amber "attention" pill no longer shows on the mascot's page (it is in Settings >
   Status); the pill shows "all good" or what is broken.
 - **Hats give way.** A skin's hat steps aside while a scene puts something on the head (the nightcap, the

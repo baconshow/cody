@@ -676,3 +676,16 @@ computer the same content in a side panel of 480.
   its own tools. The folder keeps the latest 50 pictures and removes only its own older ones.
 - **"Attention" stays inside Status.** The page's Status pill hides while the light is amber; it shows "all good"
   (and steps back with the other pills) or what is broken.
+
+## 2026-11-15 (later) · The cups go behind the ears; nothing lifts
+
+- The lifting cups (above) were not good enough: mid-swing, the ear showed through the cup, and the slider pointing
+  down while the cup swung up read as broken. The cause was putting a cup over a part that moves (Cody's ears are
+  its arms). The arms only move in their own slab (z within 0.26 of the middle: raised sideways, stretched,
+  forward to the keys, across to knock), so the cups now sit on the sides of the head just behind that slab, a
+  little higher than the arms so they show from the front, and nothing has to move. `"lift"` and `armBusy` went
+  away with them; a test checks every cup stays behind the arms' slab.
+- Claude's spark on each cup, as the maintainer asked: the outline traced from his picture (walking its edge,
+  then simplified to 90 points), pressed out as a plate; the shapes' point limit went from 48 to 96 for it.
+- The coffee mug, the last blocky thing beside the face, is a lathe with a lip and coffee inside and a ring for a
+  handle; the steam stays as it was.

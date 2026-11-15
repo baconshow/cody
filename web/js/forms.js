@@ -31,7 +31,7 @@ import { seededRandom } from './seeded-random.js';
 const HEX = /^#[0-9a-f]{6}$/i;
 export const KINDS = Object.freeze(['tube', 'lathe', 'plate']);
 export const FINISHES = Object.freeze(['plastic', 'matte', 'leather', 'satin', 'metal', 'rind', 'gloss', 'glass', 'tinted', 'hair']);
-export const LIMIT = Object.freeze({ shapes: 24, points: 48, bands: 4, ribs: 48 });
+export const LIMIT = Object.freeze({ shapes: 24, points: 96, bands: 4, ribs: 48 });   // 96 points: a traced logo
 
 const numbers = (a, n) => Array.isArray(a) && a.length === n && a.every(Number.isFinite);
 const pointList = (list, n, min) => Array.isArray(list) && list.length >= min && list.length <= LIMIT.points
