@@ -13,6 +13,7 @@ one. The voice session's other tool here asks for a scene to be shown for a whil
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from pathlib import Path
@@ -182,7 +183,13 @@ class CustomScenes:
         existing = [p.stem for p in self._files()]
         if scene["id"] not in existing and len(existing) >= MAX_SCENES:
             return None, [f"there are {MAX_SCENES} custom scenes already: undo one first"]
-        write_atomic(self._folder / f"{scene['id']}.json", json.dumps(scene, ensure_ascii=False, indent=1) + "\n")
+        newest = max((p.stat().st_mtime for p in self._files()), default=0.0)
+        path = self._folder / f"{scene['id']}.json"
+        write_atomic(path, json.dumps(scene, ensure_ascii=False, indent=1) + "\n")
+        # the order is the order they were made in: a scene made in the same instant as the last one (a coarse
+        # clock, a fast hand) still comes after it
+        stamp = max(self._clock(), newest + 0.01)
+        os.utime(path, (stamp, stamp))
         return scene, []
 
     def undo(self, scene_id: str | None = None) -> str | None:
