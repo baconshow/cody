@@ -16,7 +16,7 @@ setLanguage('en', { save: false });
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
 function scenario({ failWithStatus = null } = {}) {
-  const st = { states: [], captions: [], sent: [], spoken: [], replies: [], recognition: null };
+  const st = { states: [], captions: [], sent: [], spoken: [], replies: [], recognition: null, pictures: [] };
   class Recognizer {
     constructor() { st.recognition = this; }
     start() { this.on = true; }
@@ -35,6 +35,11 @@ function scenario({ failWithStatus = null } = {}) {
     },
     voiceReplies: async (after) => ({ channel: true, session: st.session, replies: st.replies.filter((r) => r.seq > after) }),
     settings: async () => ({ voice_provider: 'device' }),   // these tests listen to the device's voice (the fake speechSynthesis)
+    picture: async (file) => {
+      if (st.pictureFails) throw Object.assign(new Error('the voice channel is not open'), { status: st.pictureFails });
+      st.pictures.push(file);
+      return { request_id: '9', file: 'x.jpg' };
+    },
   };
   const target = new EventTarget();
   st.attachments = [];
@@ -511,4 +516,35 @@ test('the microphone does not open after an announcement, nor when the viewer tu
   assert.equal(off.st.awake.at(-1), false);
   assert.equal(off.st.states.at(-1), null);
   off.voice.stop();
+});
+
+test('the clip: a picture from this device goes to the voice session, and the face waits for the answer', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice } = scenario();
+  voice.start();
+  await flush();
+  const photo = { size: 2_000_000, type: 'image/jpeg' };
+  await voice.sendPicture(photo);
+  assert.deepEqual(st.pictures, [photo]);
+  assert.equal(st.captions.at(-1), 'mascot.voice.you:mascot.voice.picture', 'what was sent shows like what you say');
+  assert.equal(st.states.at(-1), 'thinking');
+  st.replies = [{ seq: 1, request_id: '9', text: 'A cat on a keyboard.' }];
+  t.mock.timers.tick(VOICE.fast + 1);
+  await flush();
+  assert.equal(st.spoken.at(-1).text, 'A cat on a keyboard.', 'and the answer is spoken');
+  voice.stop();
+});
+
+test('the clip refuses a picture too big to send, and says when the voice session is closed', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice } = scenario();
+  await voice.sendPicture({ size: VOICE.pictureBytes + 1, type: 'image/png' });
+  assert.deepEqual(st.pictures, [], 'never sent');
+  assert.equal(st.captions.at(-1), 'mascot.voice.pictureTooBig');
+  st.pictureFails = 503;
+  await voice.sendPicture({ size: 10, type: 'image/png' });
+  assert.equal(st.captions.at(-1), 'mascot.voice.noChannel');
+  assert.equal(st.states.at(-1), null);
+  await voice.sendPicture(null);
+  assert.equal(st.pictures.length, 0, 'no picture chosen: nothing happens');
 });

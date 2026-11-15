@@ -21,7 +21,7 @@ import urllib.request
 from collections import OrderedDict, deque
 from pathlib import Path
 
-from cody import hooks, screen, timers, usage
+from cody import hooks, screen, timers, uploads, usage
 from cody.channel import channel_file
 
 MAX_TEXT = 500
@@ -35,6 +35,11 @@ QUICK_TEXT = {
     "pt-BR": {"print_done": "Print tirado. Toca em compartilhar para mandar.", "print_failed": "Não consegui tirar o print."},
 }
 MAX_QUICK_IMAGES = 5
+# what the voice session is told when a picture arrives from the phone (the clip): where it is, so Claude opens it
+PICTURE_TEXT = {
+    "en": "I'm sending you a picture from my phone, saved at {path}. Open it and take a look.",
+    "pt-BR": "Estou te mandando uma imagem do celular, salva em {path}. Abre e dá uma olhada.",
+}
 _quick_images: OrderedDict = OrderedDict()   # image id -> PNG of a quick screenshot, in memory only
 MAX_IMAGE_BYTES = 40 * 1024 * 1024
 TIMEOUT_S = 3
@@ -147,6 +152,22 @@ def replies(after: str, path: Path | None = None) -> dict:
     session = answer.get("session") if isinstance(answer.get("session"), str) else None
     found = answer.get("replies") or []
     return {"channel": True, "session": session, "replies": [r for r in found if isinstance(r, dict)]}
+
+
+def send_picture(data: bytes, path: Path | None = None, language: str = "en", where: Path | None = None) -> dict:
+    """POST /api/voice/picture (the picture's bytes) -> {"request_id", "file"}: the picture is kept in Cody's data
+    folder (uploads.py) and the voice session is told where, in a sentence like anything you say. Without the
+    channel nothing is kept."""
+    channel = _channel(path)
+    if channel is None:
+        raise VoiceError(503, "the voice channel is not open")
+    try:
+        kept = uploads.save(data, where)
+    except uploads.UploadError as error:
+        raise VoiceError(error.status, error.message) from error
+    text = PICTURE_TEXT.get(language, PICTURE_TEXT["en"]).format(path=kept)
+    answer = _ask(channel, "POST", "/message", {"text": text})
+    return {"request_id": str(answer.get("request_id", "")), "file": kept.name}
 
 
 def image(image_id: str, path: Path | None = None) -> bytes:

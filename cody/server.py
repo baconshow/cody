@@ -14,6 +14,7 @@ Routes:
   GET  /app/hello              this run's token and the language, for the Android app (cody/android.py)
   GET  /.well-known/assetlinks.json   the app's certificates, so Chrome shows the page as the app (no token)
   POST /api/voice              {"text"}: what you said, into the voice channel
+  POST /api/voice/picture      a picture's bytes (the clip): kept in Cody's data folder, its path told to the channel
   GET  /api/voice/replies?after=N
   GET  /api/voice/audio?seq=N  the reply in the ElevenLabs voice, when one is configured
   GET  /api/voice/alert?key=K  a timer ringing or a heads-up, in that voice (the text is made here, never sent in)
@@ -39,8 +40,8 @@ from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from cody import (android, cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, restart, settings, setup,
-                  timers, updates, voice)
+from cody import (android, cursor, doctor, hooks, launcher, network, notices, page, pointer, qr, restart, settings,
+                  setup, timers, updates, uploads, voice)
 from cody.activity import ActivityMonitor
 from cody.claude_process import ClaudeWatcher
 from cody.config import load_config
@@ -366,6 +367,9 @@ class Handler(BaseHTTPRequestHandler):
         if refusal:
             self._error(403, refusal)
             return
+        if path == "/api/voice/picture":
+            self._voice_picture()
+            return
         if path not in ("/api/voice", "/api/action") and path not in SETTINGS_POSTS:
             self._error(404, "not found")
             return
@@ -500,6 +504,29 @@ class Handler(BaseHTTPRequestHandler):
                 break
             time.sleep(WAIT_STEP_S)
         self._json(200, result)
+
+    def _voice_picture(self) -> None:
+        """The clip: the body is the picture itself (image/*), at most uploads.MAX_BYTES; the same token, origin and
+        rate limit as what you say."""
+        try:
+            length = int(self.headers.get("Content-Length", ""))
+        except ValueError:
+            self._error(411, "Content-Length required")
+            return
+        if length <= 0 or length > uploads.MAX_BYTES:
+            self._error(413, "picture too large")
+            return
+        if not (self.headers.get("Content-Type") or "").casefold().startswith("image/"):
+            self._error(415, "send the picture as image/*")
+            return
+        if not self.app.voice_limit.allow():
+            self._error(429, "too many voice messages this minute")
+            return
+        data = self.rfile.read(length)
+        try:
+            self._json(202, voice.send_picture(data, language=self.app.config["language"]))
+        except voice.VoiceError as error:
+            self._error(error.status, error.message)
 
     def _voice_failed(self, error: voice.VoiceError) -> None:
         if error.status == 502:                  # the terminal says why the voice changed: nobody reads the phone's log

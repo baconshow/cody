@@ -295,7 +295,9 @@ plans an admin has to enable them first.
    Claude Code asks you to confirm the development channel: choose **I am using this for local development**.
 2. On the mascot, **hold** it and speak, or say **"Cody"** (or "Claude") followed by your request.
 3. Claude does the work in that session and the mascot speaks a short answer. Links, commands and file paths are
-   never read aloud: they show up on screen to tap and copy. After the answer **the microphone stays open for a
+   never read aloud: they show up on screen to tap and copy. To show Claude a picture, tap the **clip** above the
+   wake word and pick one: it is kept in Cody's data folder on the computer (the latest 50) and the session is
+   told where, so Claude opens it. After the answer **the microphone stays open for a
    few seconds**: just go on talking, no "Cody" needed (and when Claude asks something back, simply answer). The
    light grows and shrinks while it does. It can be turned off in Settings, per screen.
 4. When Claude needs permission to run something, the mascot asks out loud and shows the command. Answer with

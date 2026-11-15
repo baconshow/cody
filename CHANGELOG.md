@@ -65,6 +65,15 @@
   cap with a winged badge and a polished peak, a toothy grin), **Pixel** (8-bit frames, a top hat: blocks on
   purpose) and **The Boss** (polished dark glasses, a red beret flopping to one side, a curled moustache). The
   Aviator and The Boss are made of real shapes, like the pumpkin. Data, like the others; free.
+- **The clip**: a pill above the wake word sends a picture from the phone (or the computer) to the voice session.
+  The picture is kept in Cody's data folder on the computer (PNG, JPEG, WebP or GIF, told by its bytes; 12 MB at
+  most; the latest 50 stay) and the session is told its path, like a sentence you said; the face thinks and the
+  answer is spoken.
+- **Real headphones**: a padded band over the back of the head (clear of the sprout), metal sliders, and two cups
+  with leather cushions over the ears. When an arm moves (typing, waving, knocking) its cup swings up off the ear
+  on its hinge, so nothing goes through anything, and settles back after. The glasses got a real hinge where the
+  temple meets the frame. The amber "attention" pill no longer shows on the mascot's page (it is in Settings >
+  Status); the pill shows "all good" or what is broken.
 - **Hats give way.** A skin's hat steps aside while a scene puts something on the head (the nightcap, the
   headphones) and comes back after, instead of the two going through each other.
 - **The pills over the mascot**, from the design: Settings at the top, the Status light with its words at the bottom

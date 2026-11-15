@@ -14,7 +14,12 @@ test('the essential scenes are there, all valid', () => {
   assert.deepEqual(scenes.map((s) => s.id).sort(),
     ['coding', 'coffee', 'debug', 'dizzy', 'headphones', 'knock', 'laugh', 'love', 'party', 'sleeping', 'stars', 'thinking', 'wink']);
   assert.equal(scenes.length, data.scenes.length);
-  for (const s of scenes) for (const p of s.parts) assert.ok(p.sign || p.boxes.every((b) => b.length === 6), s.id);
+  for (const s of scenes) {
+    for (const p of s.parts) {
+      assert.ok(p.sign || (p.boxes ?? []).every((b) => b.length === 6), s.id);
+      assert.ok(p.sign || p.boxes?.length || p.shapes?.length, `${s.id}: something to build`);
+    }
+  }
 });
 
 test('each trigger shows its scene', () => {

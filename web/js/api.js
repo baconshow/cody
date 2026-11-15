@@ -54,6 +54,21 @@ async function call(method, path, body, { timeout = 9000 } = {}) {
   return data;
 }
 
+// the clip: a picture's own bytes as the body (not JSON: a phone photo is megabytes), with the token
+async function sendPicture(file) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+  try {
+    const resp = await fetch('/api/voice/picture', {
+      method: 'POST', body: file, signal: controller.signal, credentials: 'same-origin', cache: 'no-store',
+      headers: { Accept: 'application/json', 'X-Cody-Token': TOKEN, 'Content-Type': file.type || 'image/jpeg' },
+    });
+    const data = await readBody(resp);
+    if (!resp.ok) throw Object.assign(new Error(data?.error || `HTTP ${resp.status}`), { status: resp.status });
+    return data;
+  } finally { clearTimeout(timer); }
+}
+
 // raw bytes (the reply audio): fetch with the token (an <audio> tag cannot send headers) and an ArrayBuffer
 async function bytes(path) {
   let resp;
@@ -72,6 +87,7 @@ export const api = {
   scenes: () => call('GET', '/api/scenes'),
   cursor: () => call('GET', '/api/cursor', undefined, { timeout: 3000 }),
   voice: (text) => call('POST', '/api/voice', { text }, { timeout: 6000 }),
+  picture: (file) => sendPicture(file),
   voiceReplies: (after) => call('GET', `/api/voice/replies?after=${encodeURIComponent(after)}`),
   voiceAudio: (seq) => bytes(`/api/voice/audio?seq=${encodeURIComponent(seq)}`),
   voiceImage: (id) => bytes(`/api/voice/image?id=${encodeURIComponent(id)}`),

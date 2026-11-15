@@ -654,3 +654,25 @@ computer the same content in a side panel of 480.
   still), with the teeth, the gaps and the tongue as pieces inside the face, seen only through the opening.
 - **The Status pill** said "all good" beside an amber light (a warning that is not urgent, such as the sound
   waiting for a first tap). It now says how many ask for a look, and Status looks again right after the first tap.
+
+## 2026-11-15 · Headphones that lift off the ears; the clip; "attention" only inside Status
+
+- **Headphones made of shapes**, like the skins: a band hugging the back of the head (behind the sprout, which
+  stands in front of where a band would cross), metal sliders and two cups whose leather cushions sit on the sides
+  of the head and close over the ears (Cody's ears are its arms). An ear inside a cup is hidden, so at rest nothing
+  shows through anything.
+- **A cup gets out of its arm's way.** The arms type, wave, knock and grab, and an ear leaving its cup went through
+  the shell. A worn part may now say `"lift": { "arm", "turn", "move" }` (`scenes3d.js`): while that arm is busy
+  (`armBusy`: typing, grabbing, knocking, or raised past a small raise, so listening and the gestures of talking
+  keep the ears in the cups) the part swings and moves that far about its pivot, following at its own speed, and
+  settles back after. The cups swing 78 degrees up and out on the hinge at the end of the band. Swinging the whole
+  headphones back was tried on paper and dropped: a band that hugs the head goes through the head when rotated.
+- **The glasses' hinge**: an end piece out of the frame's edge and a small barrel, where the temple starts; a tube
+  only touching a ring read as two things that do not belong together.
+- **The clip** (`POST /api/voice/picture`, `cody/uploads.py`): the body is the picture itself (not JSON: a phone
+  photo is megabytes), with the same token, origin check and rate limit as what you say. Only PNG, JPEG, WebP and
+  GIF, told by their first bytes; 12 MB at most; nothing is kept when the voice session is closed. The picture goes
+  to `uploads/` in Cody's data folder and the session gets a sentence with its path, so Claude Code reads it with
+  its own tools. The folder keeps the latest 50 pictures and removes only its own older ones.
+- **"Attention" stays inside Status.** The page's Status pill hides while the light is amber; it shows "all good"
+  (and steps back with the other pills) or what is broken.

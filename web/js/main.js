@@ -355,9 +355,13 @@ function wireVoice(f, cycle, request) {
   attachment.tabIndex = 0;
   const wake = make('button', 'wake');
   wake.type = 'button';
+  // the clip: a picture from this device goes to the voice session (voice.js sendPicture); the system's own picker
+  const clip = make('button', 'clip');
+  clip.type = 'button';
+  const picker = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true });
   const notice = make('p', 'voice-notice');
   notice.setAttribute('role', 'status');
-  document.body.append(caption, attachment, wake, notice);
+  document.body.append(caption, attachment, wake, clip, picker, notice);
   const shot = createShot();
   const light = { on: false, awake: false, trouble: null };
   const troubleText = (code) => {
@@ -408,6 +412,15 @@ function wireVoice(f, cycle, request) {
     if (e.target === attachment && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); useAttachment(attachment.textContent); }
   });
   wake.addEventListener('click', () => voice.listen(!voice.listening));
+  clip.dataset.tTitle = clip.dataset.tAria = 'mascot.voice.clip';      // i18n.js renames it when the language changes
+  clip.title = t('mascot.voice.clip');
+  clip.setAttribute('aria-label', clip.title);
+  clip.addEventListener('click', () => picker.click());
+  picker.addEventListener('change', () => {
+    const [file] = picker.files || [];
+    picker.value = '';                                   // the same picture can be sent again
+    if (file) voice.sendPicture(file);
+  });
   voice.listen(remembered(PREF_WAKE_WORD, true));
   const sync = () => (document.hidden ? voice.stop() : voice.start());
   document.addEventListener('visibilitychange', sync);

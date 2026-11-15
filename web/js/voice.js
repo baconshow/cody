@@ -10,7 +10,9 @@
 // a question Claude asked back can simply be answered. It only happens while the wake word is on.
 //
 //   createVoice({ api, win, target, onState, onCaption, onAttachment, onImage, onListening, onSide, t }) → { start(), stop(),
-//     volume(), listen(on), listening, announce({ text, alert }), chime() }
+//     volume(), listen(on), listening, announce({ text, alert }), chime(), sendPicture(file) }
+//   sendPicture   the clip: a picture from the phone goes to the computer and the voice session is told where it is;
+//                 then it is like anything you said (the face thinks, the reply is spoken)
 //     api           { voice(text), voiceReplies(after), voiceAudio(seq) } (api.js)
 //     target        the element that is held (the face's canvas)
 //     onState       (mood | null): 'listening', 'thinking', 'talking'; null hands the face back to the cycle
@@ -38,6 +40,7 @@ export { joinTranscript };
 export const VOICE = Object.freeze({
   hold: 350, wait: 180000, caption: 9000, fast: 1200, slow: 4000, lowVoice: 2200, didntCatch: 3000,
   followUp: 8000,                     // how long the microphone stays open after an answer, waiting for you to go on
+  pictureBytes: 12 * 1024 * 1024,     // the largest picture the clip sends (the server's own limit, cody/uploads.py)
 });
 
 export function createVoice({
@@ -159,6 +162,30 @@ export function createVoice({
     if (st.on) st.poll = setTimeout(poll, wait);
   }
 
+  // after something went to the voice session: think, and look for the reply sooner
+  function awaitReply() {
+    onState('thinking');
+    audio.play('thinking');
+    st.waitUntil = Date.now() + VOICE.wait;
+    clearTimeout(st.poll);
+    if (st.on) st.poll = setTimeout(poll, VOICE.fast);
+  }
+
+  async function sendPicture(file) {
+    if (!file) return;
+    if (file.size > VOICE.pictureBytes) { caption(t('mascot.voice.pictureTooBig')); audio.play('error'); return; }
+    caption(t('mascot.voice.pictureSending'), false);
+    try {
+      await api.picture(file);
+      caption(t('mascot.voice.you', { text: t('mascot.voice.picture') }), false);
+      awaitReply();
+    } catch (error) {
+      onState(null);
+      caption(error?.status === 503 ? t('mascot.voice.noChannel') : String(error?.message || error));
+      audio.play('error');
+    }
+  }
+
   async function send(speech) {
     const text = String(speech || '').trim();
     if (!text) {
@@ -178,12 +205,8 @@ export function createVoice({
           image: r.quick.image ? String(r.quick.image) : null }, true);
         return;
       }
-      onState('thinking');
-      audio.play('thinking');
       caption(t('mascot.voice.you', { text }), false);
-      st.waitUntil = Date.now() + VOICE.wait;
-      clearTimeout(st.poll);
-      if (st.on) st.poll = setTimeout(poll, VOICE.fast);
+      awaitReply();
     } catch (error) {
       onState(null);
       caption(error?.status === 503 ? t('mascot.voice.noChannel') : String(error?.message || error));
@@ -232,6 +255,7 @@ export function createVoice({
     get listening() { return wake.active; },
     announce: ({ text, alert }) => (text ? speak({ text: String(text), alert: String(alert || '') || null }) : st.queue),
     chime: () => audio.chime(),
+    sendPicture,
     playAudio(bytes) {
       st.queue = st.queue.then(async () => {
         wake.pause();
