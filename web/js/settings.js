@@ -29,6 +29,24 @@ export function providers(t) {
     soon: NOT_YET.has(id) }));
 }
 
+// a voice in the list, short: its name (before " - ", the way ElevenLabs names its own: "Jessica - Playful, Bright,
+// Warm") and its traits (the rest, then accent, gender and age), cut at a word so a long one never runs out of the
+// list: voiceLabel({ name, about }) → { name, traits }
+export const VOICE_TRAITS_MAX = 34;
+export function voiceLabel(voice, max = VOICE_TRAITS_MAX) {
+  const [name, ...rest] = String(voice?.name || '').split(' - ');
+  const traits = [rest.join(' - '), String(voice?.about || '').replace(/_/g, ' ')]
+    .map((s) => s.trim()).filter(Boolean).join(' · ');
+  return { name: name.trim(), traits: shorten(traits, max) };
+}
+
+function shorten(text, max) {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space > max / 2 ? cut.slice(0, space) : cut).replace(/[\s,·-]+$/, '')}…`;
+}
+
 // the test of a voice comes from the server as base64 text
 export function mp3Bytes(base64) {
   return Uint8Array.from(atob(String(base64 || '')), (ch) => ch.charCodeAt(0)).buffer;
@@ -158,11 +176,19 @@ export function createSettings({
       let listed;
       try { listed = await api.voices(); } catch (e) { listed = { ok: false, reason: String(e?.message || e) }; }
       if (!listed.ok || !listed.voices?.length) { byHand(listed.reason || t('mascot.voice.unavailable')); return; }
-      const select = el('select');
+      // the name over its traits in small type where the browser lets the list be styled (style.css: base-select);
+      // elsewhere one line, "name · traits", short enough to stay inside the list
+      const select = el('select', { className: 'voice-select' });
       if (!listed.voices.some((v) => v.id === chosen)) {       // none yet, or one that is not in the account's list
         select.append(el('option', { value: chosen, selected: true, textContent: t(chosen ? 'settings.voicePick.current' : 'settings.voicePick.choose') }));
       }
-      for (const v of listed.voices) select.append(el('option', { value: v.id, selected: v.id === chosen, textContent: v.about ? `${v.name} · ${v.about}` : v.name }));
+      for (const v of listed.voices) {
+        const label = voiceLabel(v);
+        select.append(el('option', { value: v.id, selected: v.id === chosen, title: [v.name, v.about].filter(Boolean).join(' · ') },
+          el('span', { className: 'voice-name', textContent: label.name }),
+          label.traits ? el('span', { className: 'voice-sep', textContent: ' · ' }) : null,
+          label.traits ? el('span', { className: 'voice-traits', textContent: label.traits }) : null));
+      }
       select.addEventListener('change', async () => {
         if (!select.value) return;
         await choose(select.value);

@@ -7,7 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPage } from './fake-dom.mjs';
 import { createSheet, wrapFocus } from '../../web/js/sheet.js';
-import { createSettings, mp3Bytes } from '../../web/js/settings.js';
+import { createSettings, mp3Bytes, voiceLabel, VOICE_TRAITS_MAX } from '../../web/js/settings.js';
 import { createStatus } from '../../web/js/status.js';
 import { createNetwork, NETWORK } from '../../web/js/network.js';
 import { en, pt } from '../../web/js/strings.js';
@@ -305,6 +305,17 @@ test('with a key saved, the account\'s voices are listed; picking one saves it a
   s.close();
   assert.equal(Buffer.from(mp3Bytes('bXAz')).toString(), 'mp3');
   assert.equal(mp3Bytes('').byteLength, 0);
+});
+
+test('a voice in the list is short: its name, then its traits cut at a word, never out of the list', () => {
+  assert.deepEqual(voiceLabel({ name: 'Adam', about: 'american, male' }), { name: 'Adam', traits: 'american, male' });
+  assert.deepEqual(voiceLabel({ name: 'Bella', about: '' }), { name: 'Bella', traits: '' });
+  assert.deepEqual(voiceLabel({ name: 'Cody - Leve, clara, simpática', about: 'brazilian, female, young' }),
+    { name: 'Cody', traits: 'Leve, clara, simpática…' });
+  const long = voiceLabel({ name: 'Flavio Francisco - Narrative - Brazilian Portuguese', about: 'brazilian, male, middle_aged' });
+  assert.equal(long.name, 'Flavio Francisco');
+  assert.ok(long.traits.length <= VOICE_TRAITS_MAX, long.traits);
+  assert.ok(long.traits.endsWith('…') && !long.traits.includes('_'), long.traits);
 });
 
 test('a voice that is not in the list stays chosen; without a key the list waits for one', async () => {
