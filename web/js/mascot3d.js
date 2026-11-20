@@ -13,8 +13,8 @@
 //                   the group keeps measuring from the floor under the mascot's middle, like everything else
 //     pose(q)   applies the animator's pose (animator.js): gaze, blink, breathing, hop, tilt, arms, sprout, blush,
 //               talk, the happy face (^ eyes), the touch recoil, turning sideways (the body by q.yaw, the legs
-//               walking after it by q.feet, so they never stay behind), thinking with one front leg up in the
-//               air (q.lift) and the prop in hand: the magnifier in front of the right eye, which grows huge
+//               walking after it by q.feet, so they never stay behind), thinking with one front foot tapping the
+//               floor (q.lift) and the prop in hand: the magnifier in front of the right eye, which grows huge
 //               behind the lens, or the keyboard, with the hands coming down on the keys; and grabbing (phone
 //               shaking): arms stretched to the screen edges, legs spread, eyes wide, mouth open and the body
 //               trembling
@@ -44,10 +44,11 @@ const RECOIL = Object.freeze({ move: 0.8, tip: 0.5, side: 0.45 });   // per unit
 // hand's lower edge rests on the keys instead of going through them (the keyboard's tilt is in keyboard3d.js);
 // each hand lifts (radians) in its turn, to KEYBOARD.rhythm
 const TYPING = Object.freeze({ forward: 1.3, lift: 0.14, inward: 0.25, stretch: 1.3, thin: 0.4 });
-// thinking: the front leg opposite the thought bubble (which floats at the mascot's left, +x) comes up, pulled up
-// into the body (units) and swung a little forward (radians), like a paw held up, and taps in the air now and
-// then; a big swing looked like a leg splayed out from the front, the camera being so close
-const LIFT = Object.freeze({ leg: 0, up: 0.14, swing: 0.55, tap: 0.12, rhythm: 2.6 });
+// thinking: the front leg opposite the thought bubble (which floats at the mascot's left, +x) taps the floor, a
+// small lift straight up and down (units), quick taps (rhythm) in bursts (pause), like a foot tapping while it
+// thinks. It used to be held up and swung forward like a paw: seen this close it read as one leg kicking out on
+// its own, and the four legs no longer looked like one body
+const TAP = Object.freeze({ leg: 0, up: 0.06, rhythm: 9, pause: 1.3 });
 const GRAB = Object.freeze({ stretch: 1.9, spread: 0.4, eye: 0.28, shake: 0.05, rhythm: 27 }); // the shake startle
 // knocking on the screen (Claude needs you): the right arm comes up in front, stretched to reach the glass, and
 // raps twice a second or so (toc-toc, a pause); the body leans toward the viewer. forward: the arm's swing
@@ -370,20 +371,24 @@ export function hipRise(leg, feetYaw, lookY) {
 
 // the legs turn after the body (q.feet) and, while they do, step in diagonal pairs, like a little trot; each hip
 // follows the body's underside and the leg stretches or shrinks so the foot stays on the floor; thinking (q.lift),
-// one front leg is held up in the air
+// one front foot taps the floor, straight up and down (with reduced motion it stays down)
+export function tapHeight(time, lift, quiet) {
+  if (quiet || !(lift > 0)) return 0;
+  const tap = Math.max(0, Math.sin(time * TAP.rhythm));
+  const burst = Math.max(0, Math.sin(time * TAP.pause));
+  return Math.min(1, lift) * TAP.up * tap * burst;
+}
+
 function poseFeet(p, q) {
   const yaw = q.feet || 0;
   p.feet.rotation.y = yaw;
   const stepping = q.stepping || 0;
-  const lift = Math.max(0, q.lift || 0);
-  const tap = q.quiet ? 0 : Math.max(0, Math.sin(q.time * LIFT.rhythm)) * LIFT.tap;
+  const tapping = tapHeight(q.time, q.lift || 0, q.quiet);
   p.legs.forEach((leg, i) => {
     const up = Math.max(0, Math.sin(q.time * STEP.rhythm + (i % 2) * Math.PI));
     const hip = p.stand + hipRise(leg.position, yaw, q.lookY || 0);
-    const held = i === LIFT.leg ? lift : 0;
-    leg.position.y = hip + STEP.lift * stepping * up + held * LIFT.up;
+    leg.position.y = hip + STEP.lift * stepping * up + (i === TAP.leg ? tapping : 0);
     leg.scale.y = hip / (LEG.height * V);
-    leg.rotation.x = -held * (LIFT.swing + tap);
   });
 }
 

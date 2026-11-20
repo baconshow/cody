@@ -19,7 +19,7 @@
 //
 // The body turns (q.yaw, radians) with the gaze and, listening sideways, with q.turn. The feet (q.feet) stay planted
 // while only the head moves and walk around with a real turn: feetYaw(). While they walk, q.stepping (0 to 1) lifts
-// the legs in turn. Thinking, q.lift (0 to 1) brings one front leg up, and down again after.
+// the legs in turn. Thinking, q.lift (0 to 1) lets one front foot tap the floor (mascot3d.js), and stop after.
 //
 // The gaze runs from −1 to 1 on both axes, with y pointing down, as in the original.
 
@@ -36,7 +36,7 @@ export const SPRINGS = Object.freeze({
   grab: [160, 0.5],                        // the startle of a shaking phone: stretch, spread and tremble
   feet: [140, 0.9],                        // the legs walking around after the body, a little late
   knock: [70, 0.7],                        // the arm coming up to knock on the screen (and down again)
-  lift: [60, 0.75],                        // the front leg coming up to think, and down again
+  lift: [60, 0.75],                        // the front foot starting to tap while it thinks, and stopping
 });
 
 export const TIMINGS = Object.freeze({

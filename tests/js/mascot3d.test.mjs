@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as THREE from '../../web/vendor/three/build/three.module.js';
-import { createMascot } from '../../web/js/mascot3d.js';
+import { createMascot, tapHeight } from '../../web/js/mascot3d.js';
 import { createScenes3d } from '../../web/js/scenes3d.js';
 import { createAnimator } from '../../web/js/animator.js';
 import { validSkins, skinScene, skinNamed } from '../../web/js/skins.js';
@@ -163,4 +163,25 @@ test('the headphones: the cups sit just behind the ears, so an arm (the ear) nev
   assert.ok(top.max.z < 0, 'the band passes behind the sprout');
   const spark = meshes(right).find((m) => m.material.color.getHexString() === 'd97757');
   assert.ok(spark, 'the spark on the cup');
+});
+
+test('thinking, one front foot taps the floor straight up and down; it never swings out like a paw', () => {
+  const mascot = createMascot(THREE, Rounded);
+  const legs = [];                                          // the four pivots, each holding one leg
+  mascot.root.traverse((o) => {
+    if (o.children.length === 4 && o.children.every((c) => c.children.length === 1 && c.children[0].isMesh)) legs.push(...o.children);
+  });
+  assert.equal(legs.length, 4);
+  let highest = 0;
+  for (let i = 0; i < 400; i += 1) {
+    const time = i / 60;
+    highest = Math.max(highest, tapHeight(time, 1, false));
+    mascot.pose({ ...pose(0), time, lift: 1, quiet: false });
+    assert.ok(legs.every((leg) => leg.rotation.x === 0), 'every leg stays upright');
+  }
+  assert.ok(highest > 0.04 && highest <= 0.06 + 1e-9, `a small tap: ${highest}`);
+  assert.equal(tapHeight(1, 1, true), 0, 'reduce motion: all four stay on the floor');
+  assert.equal(tapHeight(1, 0, false), 0, 'not thinking: no tap');
+  const quiet = [0.2, 0.9, 1.7, 2.5].map((t) => tapHeight(t, 1, false));
+  assert.ok(quiet.some((h) => h === 0), 'in bursts, with pauses between them');
 });
