@@ -48,7 +48,7 @@
 - In the box at the bottom (what Claude asked to show), every http(s) address is a real link that opens in a new
   tab, even in the middle of a sentence; a tap elsewhere in the box still copies the whole text. The text is never
   read as HTML.
-- **Restart Cody** from Settings (About) and from the tray menu: the server stops and starts again with the same
+- **Restart Cody** from the bottom of Status and from the tray menu: the server stops and starts again with the same
   command line, the page reloads itself, and the voice session is left alone. No terminal needed after an update.
 - **Other eyes**: a scene can give Cody ♥ ♥, ● ×, > <, ! < or ★ ★ instead of its two bars (`"eyes"` in the scene
   data: half-voxel glyphs in 2D, smooth glossy shapes in 3D). Five scenes on request do only that: `love`,

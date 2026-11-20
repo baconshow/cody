@@ -162,9 +162,10 @@ body.with-gallery { overflow-y: auto; }
 .pip-host, .pip-host body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
 .pip-frame { display: block; width: 100%; height: 100%; border: 0; }
 
-/* the face inside the little window (?pip=1): only the face, its words and the microphone's light (with its words
-   only when it has trouble to tell) */
-.pip :is(.settings-open, .status-chip, .clip, .pip-open) { display: none; }
+/* the face inside the little window (?pip=1): only the face and the microphone's light (with its words only when it
+   has trouble to tell). No captions: in a window this small they cover the face, and a long sentence does not fit;
+   the voice says it. A link or a command still shows, to tap and copy */
+.pip :is(.settings-open, .status-chip, .clip, .pip-open, .caption, .voice-notice) { display: none; }
 .pip .wake:not([data-state="trouble"]) { width: 36px; padding: 0; gap: 0; justify-content: center; font-size: 0; }
 /* the Status pill on the page says only "all good" or what is broken: "attention" stays inside Settings > Status */
 .status-chip[data-state="warn"] { display: none; }
@@ -276,15 +277,16 @@ body.with-gallery { overflow-y: auto; }
   padding: env(safe-area-inset-top) max(8px, env(safe-area-inset-right)) 0 20px;
 }
 .sheet-head h2 { flex: 1; min-width: 0; margin: 0; font-size: 22px; font-weight: 400; line-height: 28px; }
-/* beside the title: how many checks ask for a look (Status) */
-.sheet-extra {
+/* Status's bottom row: how many checks ask for a look, and Restart Cody at the end (status.js) */
+.status-count {
   display: inline-flex; align-items: center; gap: 6px; flex: none; height: 28px; padding: 0 10px; border-radius: 8px;
   background: rgba(255, 176, 32, .14); color: #ffc457; font-size: 12px; font-weight: 500; white-space: nowrap;
 }
-.sheet-extra::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--status-warn); }
-.sheet-extra[data-state="fail"] { background: rgba(239, 83, 80, .16); color: #ff9c94; }
-.sheet-extra[data-state="fail"]::before { background: var(--status-fail); }
-.sheet-extra:empty { display: none; }
+.status-count::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--status-warn); }
+.status-count[data-state="fail"] { background: rgba(239, 83, 80, .16); color: #ff9c94; }
+.status-count[data-state="fail"]::before { background: var(--status-fail); }
+.status-count:empty { display: none; }
+.sheet .status-restart { margin-left: auto; }
 .sheet-close {
   position: relative; flex: none; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%;
   background: none; cursor: pointer;
@@ -348,6 +350,7 @@ body.with-gallery { overflow-y: auto; }
 }
 .sheet button.primary:hover, .sheet .settings-inline > button:hover { background: #ffa05c; }
 .sheet button.ghost { height: auto; padding: 6px 0; border: 0; border-radius: 6px; color: var(--panel-accent); }
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .sheet button.ghost:hover { background: none; color: #ffa86b; }
 .sheet button:disabled { opacity: .5; cursor: default; }
 .sheet button:focus-visible { outline: 2px solid var(--panel-ink); outline-offset: 2px; }

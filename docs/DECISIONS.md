@@ -718,3 +718,16 @@ computer the same content in a side panel of 480.
   trouble to tell); no Settings, Status, clip or welcome. Checked in headless Chrome: the window opens on a real
   gesture, the iframe loads under the new headers, the face draws, speech recognition is there, the tab's sound is
   unlocked while the frame's own is not, and closing gives the tab back.
+
+## 2026-11-20 (later) · The little window without captions; Restart and the count at the bottom of Status
+
+- Tried on the real computer and approved by the maintainer. Inside the little window the captions covered the
+  face, and a long sentence did not fit. They are gone there (and so are the voice notices): the voice says it, and
+  the microphone's light shows when it listens. A link or a command still shows, since it is there to tap and copy.
+- **Restart Cody moved from About to the bottom of Status**, as a button. About had it run into "Show the first
+  steps again", two accent words glued together. Status is where you look when something is wrong, and restarting
+  is the last thing to try, so it is the last thing there, on the right of the bottom row. About keeps the first
+  steps, now an outlined button of its own.
+- **"Attention: N" left the title bar** for the left of that bottom row. Beside the title it competed with it and
+  crowded the close button. The title bar's extra slot (`sheet.extra`) had nothing else and went away.
+

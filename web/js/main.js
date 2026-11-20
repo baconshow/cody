@@ -13,7 +13,7 @@
 //   ?prop=magnifier|keyboard   holding a prop (Claude searching or writing code) · ?grab=1 the startle
 //   ?curse=1   the swearing at the end of a shake, again and again
 //   ?sensor=1        shows what the accelerometer measures in a corner (to tune the shake on a phone)
-//   ?pip=1           the face inside its little window (pip.js): only the face, its words and the microphone's light
+//   ?pip=1           the face inside its little window (pip.js): only the face and the microphone's light, no captions
 //
 // Served at / (with the token) the face reads Claude's state and activity (signal.js), only while the page is
 // visible, and looks at the computer's mouse (cursor.js, like the Bluey app); holding the face talks to Claude
@@ -671,7 +671,7 @@ async function start() {
     createOverlays();                                      // the pills step back after a while without a touch
     let settings = null;                                   // made after Status, which tells it the light
     const status = createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request,
-      onLight: (light) => settings?.setLight(light) });
+      announce: (m) => voice.announce(m), onLight: (light) => settings?.setLight(light) });
     // the first tap unlocks the sound (voice.js): look again right after, so the light turns green without waiting
     window.addEventListener('pointerdown', () => setTimeout(() => status.refresh(), SOUND_LOOK_MS), { once: true });
     settings = createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m), light: () => status.light(),

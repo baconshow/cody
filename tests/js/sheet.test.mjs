@@ -179,19 +179,49 @@ test('Settings opens from the gear with its four groups; the hosted voice cannot
   assert.equal(panel.querySelector('.sheet-body').children.length, 0, 'nothing stays behind in the closed drawer');
 });
 
-test('Restart Cody, under About, asks the server to start again and says the page comes back by itself', async () => {
+test('Restart Cody is a button at the bottom of Status, asks the server to start again and says the page comes back', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
   const p = page();
-  const api = settingsApi();
-  const s = settings(p, api);
-  await s.open();
+  const api = statusApi();
+  const said = [];
+  createStatus({ api, t, lang: () => 'en', audio: { state: () => 'running', unlock: () => {} }, win: p.win,
+    announce: (m) => said.push(m.text) });
+  await p.settle();
+  p.document.body.querySelector('.status-chip').click();
+  await p.settle();
   const [panel] = open(p);
-  const button = withText(panel, 'button', 'Restart Cody');
-  assert.ok(button, 'the button is in the drawer');
+  const foot = panel.querySelector('.sheet-foot');
+  const button = withText(foot, 'button', 'Restart Cody');
+  assert.ok(button, 'in the bottom row, the last thing to try');
+  assert.equal(foot.children.at(-1), button);
   button.click();
   await p.settle();
-  assert.deepEqual(api.calls, [['action', 'restart']]);
-  assert.equal(s.said.at(-1), en['settings.restart.wait']);
+  assert.deepEqual(api.calls.filter((c) => c[0] === 'action'), [['action', 'restart']]);
+  assert.equal(said.at(-1), en['settings.restart.wait']);
   assert.equal(open(p).length, 0, 'the drawer closes: the page is about to reload');
+});
+
+test('from a phone Status has no Restart (the server only takes it from the computer itself)', async (ctx) => {
+  ctx.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
+  const p = page();
+  createStatus({ api: statusApi({ local: false }), t, lang: () => 'en', audio: { state: () => 'running', unlock: () => {} }, win: p.win });
+  await p.settle();
+  p.document.body.querySelector('.status-chip').click();
+  await p.settle();
+  const [panel] = open(p);
+  assert.ok(!withText(panel, 'button', 'Restart Cody'));
+});
+
+test('About shows the first steps again as a button of its own, and no Restart', async () => {
+  const p = page();
+  const s = settings(p, settingsApi());
+  await s.open('about');
+  const [panel] = open(p);
+  const again = withText(panel, 'button', en['settings.firstRun']);
+  assert.ok(again);
+  assert.equal(again.classList.contains('ghost'), false, 'an outlined button, not words in the accent');
+  assert.equal(again.parentNode.classList.contains('settings-actions'), true);
+  assert.ok(!withText(panel, 'button', 'Restart Cody'), 'that one is at the bottom of Status');
 });
 
 test('picking a voice saves it and only swaps what is under the choice: the radios are not rebuilt', async () => {
@@ -892,7 +922,8 @@ test('Status is the last entry of the same list: one drawer leaves as the other 
   assert.deepEqual(tabs(panel).map((b) => b.textContent), ['Voice', 'On your phone', 'General', 'Skins', 'About', 'Status'], 'the same list');
   assert.equal(withText(panel, 'button', 'Status').getAttribute('aria-current'), 'page');
   assert.ok(panel.querySelector('.sheet').classList.contains('sheet-still'), 'it takes the other one\u2019s place without sliding in');
-  assert.equal(panel.querySelector('.sheet-extra').textContent, 'attention: 1', 'beside the title: how many ask for a look');
+  assert.equal(panel.querySelector('.status-count').textContent, 'attention: 1', 'at the bottom: how many ask for a look');
+  assert.equal(panel.querySelector('.sheet-head').querySelector('.status-count'), null, 'not beside the title');
   assert.ok(all(panel, 'strong').some((e) => e.textContent === 'Voice session'), 'the checks are there');
 
   withText(panel, 'button', 'General').click();           // and back to a section of Settings
@@ -934,7 +965,7 @@ test('the pill opens the panel at Status; with nothing wrong no count shows', as
   await p.settle();
   const [panel] = open(p);
   assert.equal(panel.querySelector('h2').textContent, 'Status');
-  assert.equal(panel.querySelector('.sheet-extra').textContent, '');
+  assert.equal(panel.querySelector('.status-count').textContent, '');
   assert.equal(withText(panel, 'button', 'Status').dataset.state, 'ok');
   w.status.close();
 });

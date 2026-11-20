@@ -278,22 +278,13 @@ export function createSettings({
       return group(t('settings.group.skins'), el('div', { className: 'settings-card' }, ...cards),
         el('p', { className: 'settings-privacy', textContent: t('settings.skins.hint') }));
     },
-    about: (info) => {
-      const again = el('button', { type: 'button', className: 'ghost', textContent: t('settings.firstRun') });
+    // Restart Cody lives at the bottom of Status (status.js), where you look when something is wrong
+    about: () => {
+      const again = el('button', { type: 'button', textContent: t('settings.firstRun') });
       again.addEventListener('click', () => { sheet.close(); firstRun(true); });
-      const kids = [versionLine(), el('p', { className: 'settings-privacy', textContent: t('settings.privacy') }), again];
-      if (info?.local) {
-        // the server stops and starts again (restart.py); the page's next call meets the new token and reloads itself (stale-page.js)
-        const restart = el('button', { type: 'button', className: 'ghost', textContent: t('settings.restart'), title: t('settings.restart.hint') });
-        restart.addEventListener('click', async () => {
-          restart.disabled = true;
-          try { await api.action('restart'); } catch { /* the server may be gone before it answers: that is the restart */ }
-          announce({ text: t('settings.restart.wait') });
-          sheet.close();
-        });
-        kids.push(restart);
-      }
-      return group(t('settings.group.about'), ...kids);
+      return group(t('settings.group.about'), versionLine(),
+        el('p', { className: 'settings-privacy', textContent: t('settings.privacy') }),
+        el('div', { className: 'settings-actions' }, again));
     },
   };
 

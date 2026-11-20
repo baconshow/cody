@@ -5,7 +5,9 @@
 // is the drawer of sheet.js (#status, or a tap on the light): the mascot stays in view beside it. It is the last
 // entry of the list of sections it shares with Settings (panel.js), so the two read as one panel.
 //
-//   createStatus({ api, t, audio, request }) → { refresh(), open(), close(), light() }
+//   createStatus({ api, t, audio, request, announce }) → { refresh(), open(), close(), light() }
+//     The bottom row: how many checks ask for a look, and Restart Cody (from the computer itself), the last thing
+//     to try; announce({ text }) says the page comes back by itself
 //     light()   'ok' | 'warn' | 'fail': the worst of the checks (the dot on the list's Status entry)
 //     onLight   (light) told on every look at the checks, for whoever shows that dot elsewhere (Settings)
 //   worst(items), clientChecks(env, t), summary(items, t) are pure, for the tests.
@@ -81,7 +83,9 @@ function row(item, t, act, said) {
   return li;
 }
 
-export function createStatus({ api, t, lang = () => 'en', audio, request = () => {}, onLight = () => {}, win = window }) {
+export function createStatus({
+  api, t, lang = () => 'en', audio, request = () => {}, onLight = () => {}, announce = () => {}, win = window,
+}) {
   const chip = Object.assign(document.createElement('button'), { type: 'button', className: 'status-chip' });
   const sheet = createSheet({
     win, className: 'panel',
@@ -91,6 +95,7 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
   const list = Object.assign(document.createElement('ul'), { className: 'status-list' });
   const content = Object.assign(document.createElement('div'), { className: 'panel-content' });
   content.append(list);
+  const count = Object.assign(document.createElement('span'), { className: 'status-count' });
   document.body.append(chip);
   // said: an action's answer, by item · drawn: what the list shows now (the same again is not drawn again) ·
   // nav: what the list of sections was made for (the computer or the phone, in which language)
@@ -103,6 +108,22 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     if (key === st.nav) return;
     st.nav = key;
     sheet.body.replaceChildren(navList({ ids: sections({ local: st.local }), active: STATUS, t, light, win }), content);
+    sheet.foot.replaceChildren(count, ...(st.local ? [restartButton()] : []));
+  }
+
+  // the server stops and starts again (restart.py); the page's next call meets the new token and reloads itself
+  // (stale-page.js). Only from the computer itself: the server refuses it from a phone
+  function restartButton() {
+    const button = Object.assign(document.createElement('button'), {
+      type: 'button', className: 'status-restart', textContent: t('settings.restart'), title: t('settings.restart.hint'),
+    });
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try { await api.action('restart'); } catch { /* the server may be gone before it answers: that is the restart */ }
+      announce({ text: t('settings.restart.wait') });
+      sheet.close();
+    });
+    return button;
   }
 
   async function act(action, button, id) {
@@ -130,9 +151,9 @@ export function createStatus({ api, t, lang = () => 'en', audio, request = () =>
     onLight(light);
     if (!sheet.isOpen) return;
     frame();
-    const needy = st.items.filter((it) => it.state !== 'ok').length;      // how many ask for a look, beside the title
-    sheet.extra.textContent = needy ? t('status.count', { n: needy }) : '';
-    sheet.extra.dataset.state = light;
+    const needy = st.items.filter((it) => it.state !== 'ok').length;      // how many ask for a look, at the bottom
+    count.textContent = needy ? t('status.count', { n: needy }) : '';
+    count.dataset.state = light;
     const shown = st.items.map((it) => (st.local || !['voice', 'hooks'].includes(it.action) ? it : { ...it, action: null }));
     const drawn = JSON.stringify([shown, [...st.said]]);
     if (drawn === st.drawn) return;                    // nothing changed since the last look: leave the rows alone

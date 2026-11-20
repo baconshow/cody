@@ -11,7 +11,6 @@
 //     outside     false: a click outside the drawer does not close it
 //     onClose     () after it closed, however it closed (the owner tidies up: the #hash, a draft)
 //   sheet.body · sheet.foot · sheet.note   the elements to fill (content, buttons, what the last action did)
-//   sheet.extra   a small slot in the title bar, between the title and the close button (Status counts there)
 //   sheet.open() · sheet.close() · sheet.isOpen · sheet.setTitle(text, closeLabel)
 //   el(tag, props, ...kids) builds an element · wrapFocus(count, index, back) is pure, for the tests
 
@@ -42,8 +41,7 @@ export function createSheet({ className = '', outside = true, onClose = () => {}
   const foot = el('div', { className: 'sheet-foot' });
   const note = el('p', { className: 'sheet-note' });
   note.setAttribute('role', 'status');
-  const extra = el('span', { className: 'sheet-extra' });
-  const box = el('div', { className: 'sheet' }, el('header', { className: 'sheet-head' }, heading, extra, x), body, foot, note);
+  const box = el('div', { className: 'sheet' }, el('header', { className: 'sheet-head' }, heading, x), body, foot, note);
   box.tabIndex = -1;
   box.setAttribute('role', 'dialog');
   box.setAttribute('aria-modal', 'true');
@@ -52,7 +50,7 @@ export function createSheet({ className = '', outside = true, onClose = () => {}
   const st = { before: null, pressed: null };
 
   const sheet = {
-    body, foot, note, panel, extra, box,
+    body, foot, note, panel, box,
     get isOpen() { return !panel.hidden; },
     get returnsTo() { return st.before; },
     setTitle(text, closeLabel) {
