@@ -189,3 +189,48 @@ class OverlayLayoutTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SceneToolsTest(unittest.TestCase):
+    """The scene and custom_scene tools: a scene shown because you asked, and one of Claude's own, as data."""
+
+    def setUp(self):
+        from cody.custom import CustomScenes
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        base = Path(self.tmp.name)
+        self.custom = CustomScenes(base / "custom", clock=lambda: 1000.0)
+        self.abilities = Abilities("en", store=TimerStore(base / "t.json"), memory=Memory(base / "m.json"),
+                                   custom=self.custom, scene_ids=["headphones", "party"])
+
+    def test_the_tools_name_the_built_in_scenes(self):
+        scene = next(t for t in self.abilities.tools() if t["name"] == "scene")
+        self.assertIn("headphones, party", scene["description"])
+        self.assertTrue(self.abilities.handles("custom_scene"))
+
+    def test_show_and_clear(self):
+        out = self.abilities.call("scene", {"action": "show", "id": "headphones", "seconds": 20})
+        self.assertNotIn("isError", out)
+        self.assertIn("20 seconds", out["content"][0]["text"])
+        self.assertEqual(self.custom.wanted(), "headphones")
+        bad = self.abilities.call("scene", {"action": "show", "id": "moon"})
+        self.assertTrue(bad["isError"])
+        self.assertIn("headphones, party", bad["content"][0]["text"])
+        self.abilities.call("scene", {"action": "clear"})
+        self.assertIsNone(self.custom.wanted())
+
+    def test_create_shows_right_away_undo_removes_and_list_names(self):
+        self.assertTrue(self.abilities.call("custom_scene", {"action": "list"})["content"][0]["text"].startswith("No custom"))
+        rainbow = {"id": "rainbow", "parts": [{"boxes": [[0, 24, 0, 30, 1.5, 1.5]], "color": "#ff4d4d"}]}
+        out = self.abilities.call("custom_scene", {"action": "create", "scene": rainbow})
+        self.assertNotIn("isError", out)
+        self.assertEqual(self.custom.wanted(), "rainbow")
+        self.assertIn("rainbow", self.abilities.call("custom_scene", {"action": "list"})["content"][0]["text"])
+        self.assertEqual(self.abilities.call("scene", {"action": "show", "id": "rainbow"})["content"][0]["text"][:16], "Showing \"rainbow")
+        refused = self.abilities.call("custom_scene", {"action": "create", "scene": {"id": "x", "parts": [{"boxes": [[0, 0, 0, 1]]}]}})
+        self.assertTrue(refused["isError"])
+        self.assertIn("parts[0].boxes", refused["content"][0]["text"])
+        self.assertEqual(self.abilities.call("custom_scene", {"action": "undo"})["content"][0]["text"],
+                         "Removed the custom scene \"rainbow\".")
+        self.assertIsNone(self.custom.wanted())
+        self.assertTrue(self.abilities.call("custom_scene", {"action": "undo"})["isError"])

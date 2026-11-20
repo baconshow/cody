@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The address field: a 1 dp outline; 2 dp in the accent with the focus; 2 dp red when the address is refused (activated) -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_activated="true">
+        <shape android:shape="rectangle"><stroke android:width="2dp" android:color="@color/error" /><corners android:radius="16dp" /></shape>
+    </item>
+    <item android:state_focused="true">
+        <shape android:shape="rectangle"><stroke android:width="2dp" android:color="@color/cody" /><corners android:radius="16dp" /></shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle"><stroke android:width="1dp" android:color="@color/field_line" /><corners android:radius="16dp" /></shape>
+    </item>
+</selector>

@@ -1,16 +1,18 @@
 // cycle.js — the face's mood when the page has no ?mood=. In order:
 //   0. the voice conversation (voice.js): listening while you hold the face and talk, thinking until the reply,
 //      talking;
-//   1. a pat (a tap) and an agent that finished: happy for a moment;
+//   1. a pat (a tap) and an agent that finished: happy for a moment; only the second is a celebration (the party
+//      scene, with its confetti): a pat is the ^ eyes and a hop, nothing more;
 //   2. Claude's activity (signal.js, read by claudeMood): what it is doing right now;
 //   3. the idle cycle, driven only by the pointer: it moved, the face listens (and follows it with its eyes); it
 //      stopped, the face thinks for a bit, then gets sleepy and rests. The pointer coming back wakes it up happy.
 //
 //   createCycle({ fast, signal }) → { mood(now), prop(), moved(now), touched(now), setVoice(mood | null),
-//     cheer(now), alert(mood, seconds, now) }
+//     cheer(now), alert(mood, seconds, now, tag), knocking(now) }
 //     cheer    happy for a moment (a timer rang, a long task finished)
 //     alert    a mood for a few seconds, above Claude's activity (pointing: Claude needs you, or the mini Cody on the
-//              computer screen is pointing at something)
+//              computer screen is pointing at something); tag 'knock': Claude needs you, and the mascot knocks on
+//              the screen (knocking() says so while it lasts; the scenes see it as situation().knock)
 //     fast     the whole idle cycle in 1/6 of the time (?cycle=fast), to check it without waiting
 //     signal   { read() → reading | null } (signal.js); without it, or with read() null, only the pointer counts
 
@@ -23,7 +25,8 @@ const FAST = 1 / 6;
 
 export function createCycle({ fast = false, signal = null } = {}) {
   const k = fast ? FAST : 1;
-  const st = { activity: null, happyUntil: -Infinity, finished: null, voice: null, reading: null, alert: null };
+  // happyUntil: a celebration (the party scene) · pattedUntil: only the happy face (a pat, waking up)
+  const st = { activity: null, happyUntil: -Infinity, pattedUntil: -Infinity, finished: null, voice: null, reading: null, alert: null };
 
   function idle(now) {
     const still = now - st.activity;
@@ -44,27 +47,34 @@ export function createCycle({ fast = false, signal = null } = {}) {
     }
     if (st.voice) return st.voice;
     if (st.alert && now < st.alert.until) return st.alert.mood;
-    if (now < st.happyUntil) return 'happy';
+    if (now < Math.max(st.happyUntil, st.pattedUntil)) return 'happy';
     return (reading && claudeMood(reading)) || idle(now);
   }
 
   return {
     mood,
+    // what the scenes need (scenes.js): the mood, Claude's reading, how long nothing happened, a celebration on
+    situation(now) {
+      const mood = this.mood(now);
+      const idleSeconds = st.reading?.idleSeconds ?? (now - (st.activity ?? now));
+      return { mood, reading: st.reading, idleSeconds, happy: now < st.happyUntil, knock: this.knocking(now) };
+    },
     // the prop in hand (magnifier, keyboard) for what Claude is doing; during a voice conversation, hands free
     prop() { return st.voice || !st.reading ? null : claudeProp(st.reading); },
     // the voice conversation drives the face while it lasts; null hands it back to the cycle
     setVoice(mood) { st.voice = mood || null; },
     // the pointer came back: if the face was asleep, it wakes up happy
     moved(now) {
-      if (st.activity !== null && SLEEPING.has(mood(now))) st.happyUntil = now + CYCLE.celebrate;
+      if (st.activity !== null && SLEEPING.has(mood(now))) st.pattedUntil = now + CYCLE.celebrate;
       st.activity = now;
     },
-    // a tap or a click: a pat
+    // a tap or a click: a pat (the happy face, not a party)
     touched(now) {
-      st.happyUntil = now + CYCLE.celebrate;
+      st.pattedUntil = now + CYCLE.celebrate;
       st.activity = now;
     },
     cheer(now) { st.happyUntil = now + CYCLE.celebrate; },
-    alert(mood, seconds, now) { st.alert = { mood, until: now + seconds }; },
+    alert(mood, seconds, now, tag = null) { st.alert = { mood, until: now + seconds, tag }; },
+    knocking(now) { return !!st.alert && now < st.alert.until && st.alert.tag === 'knock'; },
   };
 }

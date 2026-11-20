@@ -1,0 +1,38 @@
+{
+  "description": "Cody's heads-up: tells the mascot when a turn starts, ends, or waits for you. Records only the time, the kind and the first characters of the session id.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || python \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || py -3 \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || \"${LOCALAPPDATA:-/nonexistent}/Programs/Cody/cody-cli.exe\" --hook 2>/dev/null || exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || python \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || py -3 \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || \"${LOCALAPPDATA:-/nonexistent}/Programs/Cody/cody-cli.exe\" --hook 2>/dev/null || exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || python \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || py -3 \"${CLAUDE_PLUGIN_ROOT}/cody.py\" --hook 2>/dev/null || \"${LOCALAPPDATA:-/nonexistent}/Programs/Cody/cody-cli.exe\" --hook 2>/dev/null || exit 0",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

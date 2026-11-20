@@ -11,7 +11,9 @@
 //   ?lang=en|pt-BR   the language of the texts (i18n.js)
 //   ?visual=2d       the flat 2D drawing, for comparison · ?side=1 listening sideways (the soft-speech pose)
 //   ?prop=magnifier|keyboard   holding a prop (Claude searching or writing code) · ?grab=1 the startle
+//   ?curse=1   the swearing at the end of a shake, again and again
 //   ?sensor=1        shows what the accelerometer measures in a corner (to tune the shake on a phone)
+//   ?pip=1           the face inside its little window (pip.js): only the face and the microphone's light, no captions
 //
 // Served at / (with the token) the face reads Claude's state and activity (signal.js), only while the page is
 // visible, and looks at the computer's mouse (cursor.js, like the Bluey app); holding the face talks to Claude
@@ -19,12 +21,15 @@
 // the Claude Code hooks tell the face when a long task finished or Claude needs you (alerts.js). Opened as
 // /web/index.html it fetches nothing.
 // On a phone the screen stays on (awake.js). With "reduce motion", the face is only redrawn when something changes.
+// On a computer (Chrome, Edge) a button opens Cody in a little window over the other apps (pip.js); this page then
+// steps aside (presence.js) until the little window closes.
 //
 // The face is the 3D mascot (scene3d.js, three.js through the page's importmap), alone and in the gallery (one
 // canvas per mood); if three.js does not load (offline), or with ?visual=2d, the 2D drawing stays (face2d.js).
 
-import { t, translate, locale } from './i18n.js';
+import { t, translate, locale, language, setLanguage } from './i18n.js';
 import { api } from './api.js';
+import { fillAttachment } from './links.js';
 import { createAnimator, TIMINGS } from './animator.js';
 import { createCycle } from './cycle.js';
 import { createSignal } from './signal.js';
@@ -34,6 +39,14 @@ import { createVoice } from './voice.js';
 import { createTimers } from './timers.js';
 import { createTimerPanel } from './timer-panel.js';
 import { createAlerts } from './alerts.js';
+import { createStatus } from './status.js';
+import { createOverlays } from './overlays.js';
+import { createSettings } from './settings.js';
+import { createNetwork } from './network.js';
+import { createPip, pipSupported, isPip, speakerFor } from './pip.js';
+import { createPresence } from './presence.js';
+import { validScenes, pickScene, pickOver, wantedScene, createSceneSounds } from './scenes.js';
+import { validSkins, skinScene, skinNamed, readSkin, saveSkin, CLASSIC } from './skins.js';
 import { createShake, shakeForce, SHAKE } from './shake.js';
 import { measures, drawFace, createGeometry } from './face2d.js';
 import { MOODS, validMood } from './moods.js';
@@ -47,6 +60,14 @@ const CURSOR_LOOK_Y = 0.8;            // the computer screen is wider than tall:
 const POINTING_S = 6;                 // the face points along while the mini Cody points on the computer screen
 const NEEDS_YOU_S = 8;                // and points at the computer when Claude is waiting for you
 
+// Cody's sounds for things that happen to the face (a shake, a scene coming in): set once the voice exists. A tap is
+// not one of them: tapping (and holding) the face is how you call Cody, so it answers with a hop, never with a sound
+const reactions = { play: () => {} };   // name → sound; an unknown or empty name plays nothing
+const sceneSound = createSceneSounds();
+const VOICE_NOTICE_MS = 9000;
+const SOUND_LOOK_MS = 400;            // after the first tap, when Status looks again (the sound is unlocked by then)
+const HEARD_MS = 420;                 // how long the light swells when the microphone hears something
+
 function readOptions(search) {
   const q = new URLSearchParams(search);
   const seed = Number.parseInt(q.get('seed'), 10);
@@ -59,12 +80,20 @@ function readOptions(search) {
     side: q.get('side') === '1',
     prop: ['magnifier', 'keyboard'].includes(q.get('prop')) ? q.get('prop') : null,
     grab: q.get('grab') === '1',
+    curse: q.get('curse') === '1',
+    knock: q.get('knock') === '1',                        // knocking on the screen, for a look
+    scene: q.get('scene'),
+    over: q.get('over'),                                   // ?over=headphones: worn over the scene, for a look
+    skin: q.get('skin'),                                   // ?skin=halloween: a skin from the shop, for a look
     sensor: q.get('sensor') === '1',
+    pip: isPip(search),                                    // the page inside the little window
     seed: Number.isFinite(seed) ? seed : Math.floor(Math.random() * 2 ** 31),
   };
 }
 
-function createFace(parent, { mood, seed, quiet, caption, scene3d, side = false, prop = null, grab = false }) {
+function createFace(parent, {
+  mood, seed, quiet, caption, scene3d, side = false, prop = null, grab = false, curse = false, knock = false,
+}) {
   const figure = document.createElement('figure');
   figure.className = 'face';
   const canvas = document.createElement('canvas');
@@ -82,8 +111,10 @@ function createFace(parent, { mood, seed, quiet, caption, scene3d, side = false,
   if (side) animator.setListening(true);
   if (prop) animator.setProp(prop);
   if (grab) animator.setGrab(true);
+  if (knock) animator.setKnock(true);
+  if (curse) setInterval(() => animator.curse(), 2500);    // developer option: swears again and again
   return {
-    canvas, ctx: scene ? null : canvas.getContext('2d', { alpha: false }), scene, animator, fixed: mood,
+    canvas, ctx: scene ? null : canvas.getContext('2d', { alpha: false }), scene, animator, fixed: mood, knock,
     size: null, dpr: 1, geo: createGeometry(), said: null,
   };
 }
@@ -91,7 +122,8 @@ function createFace(parent, { mood, seed, quiet, caption, scene3d, side = false,
 function mount(root, op, quiet, scene3d) {
   if (!op.gallery) {
     root.classList.add('full');
-    return [createFace(root, { mood: op.mood, seed: op.seed, quiet, scene3d, side: op.side, prop: op.prop, grab: op.grab })];
+    return [createFace(root, { mood: op.mood, seed: op.seed, quiet, scene3d, side: op.side, prop: op.prop, grab: op.grab,
+      curse: op.curse, knock: op.knock })];
   }
   document.body.classList.add('with-gallery');
   const title = document.createElement('h1');
@@ -129,9 +161,30 @@ function announceMood(f, mood) {
 }
 
 function paint(f, q) {
-  if (f.scene) f.scene.draw(q);
-  else drawFace(f.ctx, q, f.size, f.geo);
+  if (f.scene) {
+    if (f.scene.draw(q)) reactions.play(sceneSound(scenes.list.find((s) => s.id === q.scene) ?? null, q.time));
+  } else drawFace(f.ctx, q, f.size, f.geo);
   announceMood(f, q.mood);
+}
+
+// the scenes (scenes.js, web/scenes/scenes.json): loaded once; ?scene=<id> shows one all the time
+const scenes = { list: [], forced: null, forcedOver: null, builtin: [], customVersion: 0, reloading: false };
+// the skins (skins.js, web/skins/skins.json): the viewer's choice, ?skin=<id> for a look
+const skins = { list: validSkins(null), current: CLASSIC };
+
+async function loadSkins(forced) {
+  try {
+    const resp = await fetch('/web/skins/skins.json', { cache: 'no-cache' });
+    skins.list = validSkins(await resp.json());
+  } catch { skins.list = validSkins(null); }
+  skins.current = skinNamed(skins.list, forced || readSkin(window))?.id ?? CLASSIC;
+}
+
+function wearSkin(face, id, request = () => {}) {
+  skins.current = skinNamed(skins.list, id)?.id ?? CLASSIC;
+  face?.scene?.setSkin?.(skinNamed(skins.list, skins.current));
+  saveSkin(window, skins.current);
+  request();
 }
 
 function drawOne(f, now, cycle) {
@@ -139,16 +192,77 @@ function drawOne(f, now, cycle) {
   if (cycle && !f.fixed) {
     f.animator.setMood(cycle.mood(now));
     f.animator.setProp(cycle.prop());
+    f.animator.setKnock(cycle.knocking(now));
   }
-  paint(f, f.animator.step(now));
+  const q = f.animator.step(now);
+  if (f.scenes) {
+    const situation = cycle && !scenes.forced ? cycle.situation(now) : f.knock ? { knock: true } : null;
+    q.scene = scenes.forced || (situation ? pickScene(scenes.list, situation)?.id : null) || null;
+    q.over = scenes.forcedOver || (situation ? pickOver(scenes.list, situation)?.id : null) || null;   // worn over it (the headphones)
+    if (situation) {
+      ({ scene: q.scene, over: q.over } = wantedScene(scenes.list, situation, q.scene, q.over));   // asked for by voice
+      if (situation.reading?.custom !== undefined && situation.reading.custom !== scenes.customVersion) reloadScenes(f, situation.reading.custom);
+    }
+    q.eyes = sceneEyes(scenes.list, q.over, q.scene);        // the scene's eyes (eyeshapes.js); the one worn over wins
+    q.skin = skins.current === CLASSIC ? null : `skin:${skins.current}`;
+  }
+  paint(f, q);
 }
 
-// every frame while there is movement; when quiet, only when something asks for it
-function createLoop(faces, cycle, state) {
+function sceneEyes(list, ...ids) {
+  for (const id of ids) {
+    const found = id ? list.find((s) => s.id === id) : null;
+    if (found?.eyes) return found.eyes;
+  }
+  return null;
+}
+
+// the custom scenes Claude made by voice (cody/custom.py) come from the server, with a version the activity
+// reading carries: when it changes, the scenes are built again
+async function customScenes() {
+  if (!api.hasToken()) return { list: [], version: 0 };
+  try {
+    const r = await api.scenes();
+    return { list: validScenes(r), version: Number(r?.version) || 0 };
+  } catch { return { list: [], version: 0 }; }
+}
+
+async function reloadScenes(face, version) {
+  if (scenes.reloading) return;
+  scenes.reloading = true;
+  try {
+    const custom = await customScenes();
+    scenes.customVersion = version ?? custom.version;
+    scenes.list = [...scenes.builtin, ...custom.list];
+    if (face?.scene?.setScenes) face.scene.setScenes(scenes.list, skins.list.map(skinScene).filter(Boolean));
+  } finally { scenes.reloading = false; }
+}
+
+async function loadScenes(face, forced, over) {
+  try {
+    const resp = await fetch('/web/scenes/scenes.json', { cache: 'no-cache' });
+    scenes.builtin = validScenes(await resp.json());
+  } catch { scenes.builtin = []; }
+  const custom = await customScenes();
+  scenes.customVersion = custom.version;
+  scenes.list = [...scenes.builtin, ...custom.list];
+  scenes.forced = scenes.list.some((s) => s.id === forced) ? forced : null;
+  scenes.forcedOver = scenes.list.some((s) => s.id === over && s.over) ? over : null;
+  if (face?.scene?.setScenes && scenes.list.length) {
+    face.scene.setScenes(scenes.list, skins.list.map(skinScene).filter(Boolean));
+    face.scene.setSkin(skinNamed(skins.list, skins.current));
+  }
+  if (face) face.scenes = scenes.list.length > 0;      // the 2D drawing has no scene pieces, but gets the scene's eyes
+}
+
+// every frame while there is movement; when quiet, only when something asks for it; nothing while Cody is in its
+// little window (the page there draws it)
+function createLoop(faces, cycle, state, presence) {
   let pending = 0;
-  const request = () => { if (!pending) pending = requestAnimationFrame(frame); };
+  const request = () => { if (!pending && !presence.away) pending = requestAnimationFrame(frame); };
   function frame(ms) {
     pending = 0;
+    if (presence.away) return;
     for (const f of faces) drawOne(f, ms / 1000, cycle);
     if (!state.quiet) request();
   }
@@ -176,6 +290,9 @@ function touchSide(f, x) {
   return Math.max(-1, Math.min(1, (x - middle) / Math.max(1, box.width / 3)));
 }
 
+// the mascot itself (its canvas), not something drawn over it: the lights in the corners, a panel, a field
+const onFace = (target) => target instanceof Element && !!target.closest('.face');
+
 // local.at: when the pointer (or finger) on this page last moved; until TIMINGS.live later, it drives the gaze
 function wirePointer(faces, cycle, request, local) {
   const now = () => performance.now() / 1000;
@@ -193,28 +310,28 @@ function wirePointer(faces, cycle, request, local) {
   window.addEventListener('pointerdown', (e) => {
     local.at = now();
     aim(faces, e.clientX, e.clientY, now());
-    poke(e.clientX);
+    if (onFace(e.target)) poke(e.clientX);               // a button or a panel over the mascot is not a pat
   });
   window.addEventListener('pointerup', (e) => {
     if (e.pointerType !== 'touch') return;
     for (const f of faces) f.animator.releaseLook();     // finger off the screen: the gaze wanders again
     request();
   });
-  window.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') poke(); });
+  window.addEventListener('keydown', (e) => {
+    if ((e.key === ' ' || e.key === 'Enter') && e.target === document.body) poke();   // not while typing in a field
+  });
 }
 
-// Claude's activity, read only while the page is visible (a phone in a pocket does not keep asking)
-function startSignal() {
+// Claude's activity, read only while the page is the one on screen (a phone in a pocket does not keep asking)
+function startSignal(presence) {
   const signal = createSignal({ api });
-  const sync = () => (document.hidden ? signal.stop() : signal.start());
-  document.addEventListener('visibilitychange', sync);
-  sync();
+  presence.watch(() => (presence.hidden() ? signal.stop() : signal.start()));
   return signal;
 }
 
 // the computer's mouse (cursor.js): the face looks where it is on the screen, like the Bluey app; a finger on the
 // phone's screen takes over. When the mini Cody points at something there, the face looks and points too
-function wireCursor(faces, cycle, request, local) {
+function wireCursor(faces, cycle, request, local, presence) {
   const cursor = createCursor({
     api,
     onMove: ({ x, y, pointing }) => {
@@ -225,51 +342,106 @@ function wireCursor(faces, cycle, request, local) {
       request();
     },
   });
-  const sync = () => (document.hidden ? cursor.stop() : cursor.start());
-  document.addEventListener('visibilitychange', sync);
-  sync();
+  presence.watch(() => (presence.hidden() ? cursor.stop() : cursor.start()));
 }
 
 // voice commands (voice.js): hold the face or call "Cody". The caption at the top, the box with the link or
-// command at the bottom (a tap copies it and, for a link, opens it), the button that turns the wake word on and off,
-// and the mouth following the volume of the speech
-function wireVoice(f, cycle, request) {
+// command at the bottom (a tap copies it and, for a link, opens it), the pill in the bottom corner that turns the
+// wake word on and off and shows what the microphone is doing, a light and its words (red: off; green: listening
+// for "Cody", swelling a little with every sound it hears; green growing and shrinking: taking a command now,
+// after the word, after an answer or while the face is held; amber: it cannot hear, and the words say why), and
+// the mouth following the volume of the speech
+function wireVoice(f, cycle, request, presence) {
   const make = (tag, className) => Object.assign(document.createElement(tag), { className });
   const caption = make('p', 'caption');
   caption.setAttribute('aria-live', 'polite');
-  const attachment = make('button', 'attachment');
-  attachment.type = 'button';
+  const attachment = make('p', 'attachment');        // text with real links inside: not a button (a link in a button is not HTML)
+  attachment.tabIndex = 0;
   const wake = make('button', 'wake');
   wake.type = 'button';
-  document.body.append(caption, attachment, wake);
+  // the clip: a picture from this device goes to the voice session (voice.js sendPicture); the system's own picker
+  const clip = make('button', 'clip');
+  clip.type = 'button';
+  const picker = Object.assign(document.createElement('input'), { type: 'file', accept: 'image/*', hidden: true });
+  const notice = make('p', 'voice-notice');
+  notice.setAttribute('role', 'status');
+  document.body.append(caption, attachment, wake, clip, picker, notice);
   const shot = createShot();
+  const light = { on: false, awake: false, trouble: null };
+  const troubleText = (code) => {
+    const text = t(`mascot.voice.trouble.${code}`);
+    return text === `mascot.voice.trouble.${code}` ? t('mascot.voice.trouble.other', { error: code }) : text;
+  };
+  const paintLight = () => {
+    const state = light.awake ? 'awake' : !light.on ? 'off' : light.trouble ? 'trouble' : 'on';
+    wake.dataset.state = state;
+    wake.setAttribute('aria-pressed', String(light.on));
+    wake.textContent = {
+      awake: t('mascot.voice.listening'), off: t('mascot.voice.wakeWordOff'), on: t('mascot.voice.wakeWord'),
+      trouble: t('mascot.voice.trouble', { reason: troubleText(light.trouble) }),
+    }[state];
+  };
   const voice = createVoice({
-    api, target: f.canvas, t,
+    api, target: f.canvas, t, speaker: speakerFor(window),   // in the little window, the sound plays from the big page
+    followUp: () => remembered(PREF_FOLLOW_UP, true),
+    onAwake: (on) => { light.awake = on; paintLight(); },
+    onTrouble: (error) => { light.trouble = error; paintLight(); },
+    onHeard: () => {
+      wake.classList.add('heard');
+      clearTimeout(wake.heard);
+      wake.heard = setTimeout(() => wake.classList.remove('heard'), HEARD_MS);
+    },
     onImage: (id) => shot.show(id),
     onState: (mood) => { cycle.setVoice(mood); request(); },
     onCaption: (text) => { if (text) caption.textContent = text; caption.classList.toggle('visible', !!text); },
-    onAttachment: (text) => { if (text) attachment.textContent = text; attachment.classList.toggle('visible', !!text); },
+    onAttachment: (text) => { if (text) fillAttachment(attachment, text); attachment.classList.toggle('visible', !!text); },
     onSide: (on) => { f.animator.setListening(on); request(); },
+    onNotice: (text) => {
+      notice.textContent = text;
+      notice.classList.add('visible');
+      clearTimeout(notice.timer);
+      notice.timer = setTimeout(() => notice.classList.remove('visible'), VOICE_NOTICE_MS);
+    },
     onListening: (on) => {
-      wake.setAttribute('aria-pressed', String(on));
-      wake.textContent = t(on ? 'mascot.voice.wakeWord' : 'mascot.voice.wakeWordOff');
+      light.on = on;
+      if (!on) light.trouble = null;
+      paintLight();
       remember(PREF_WAKE_WORD, on);
     },
   });
   f.animator.hearVoice(() => voice.volume());
-  attachment.addEventListener('click', () => useAttachment(attachment.textContent));
+  // a tap on a link opens it (the browser's own link); anywhere else in the box copies the whole text
+  attachment.addEventListener('click', (e) => { if (!e.target.closest('a')) useAttachment(attachment.textContent); });
+  attachment.addEventListener('keydown', (e) => {
+    if (e.target === attachment && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); useAttachment(attachment.textContent); }
+  });
   wake.addEventListener('click', () => voice.listen(!voice.listening));
+  clip.dataset.tTitle = clip.dataset.tAria = 'mascot.voice.clip';      // i18n.js renames it when the language changes
+  clip.title = t('mascot.voice.clip');
+  clip.setAttribute('aria-label', clip.title);
+  clip.addEventListener('click', () => picker.click());
+  picker.addEventListener('change', () => {
+    const [file] = picker.files || [];
+    picker.value = '';                                   // the same picture can be sent again
+    if (file) voice.sendPicture(file);
+  });
   voice.listen(remembered(PREF_WAKE_WORD, true));
-  const sync = () => (document.hidden ? voice.stop() : voice.start());
-  document.addEventListener('visibilitychange', sync);
-  sync();
+  // back from the little window (pip.js): what was said there is not said again here
+  let handedOver = false;
+  presence.watch(() => {
+    if (presence.away) handedOver = true;
+    if (presence.hidden()) { voice.stop(); return; }
+    voice.start({ fresh: handedOver });
+    handedOver = false;
+  });
   return voice;
 }
 
 // timers set by voice (timers.js): the panel in the corner; when one ends the face hops, the phone buzzes, the
 // mascot says what it was for and chimes until a tap on the panel (or a minute). They keep counting while the page
-// is hidden, so a reminder still rings when the screen comes back
-function wireTimers(voice, cycle, request) {
+// is hidden, so a reminder still rings when the screen comes back; while Cody is in its little window, the page
+// there rings them, not this one
+function wireTimers(voice, cycle, request, presence) {
   const timers = createTimers({
     api,
     onChange: (rows) => panel.render(rows),
@@ -277,31 +449,64 @@ function wireTimers(voice, cycle, request) {
       cycle.cheer(performance.now() / 1000);
       request();
       navigator.vibrate?.([200, 100, 200]);
-      voice.chime();
+      voice.play('alarm');
       voice.announce({ text: timer.say, alert: `timer:${timer.id}` });
     },
     onChime: () => voice.chime(),
   });
   const panel = createTimerPanel({ t, locale, onDismiss: () => timers.dismiss() });
-  timers.start();
+  presence.watch(() => (presence.away ? timers.stop() : timers.start()));
 }
 
 // heads-up from the Claude Code hooks (alerts.js): a long task done, a hop and "done!"; Claude waiting for
-// permission, the face points at the computer and calls you
-function wireAlerts(voice, cycle, request) {
+// permission, or an important Windows notification (opt-in), the mascot knocks on the screen (toc-toc) and says it
+function wireAlerts(voice, cycle, request, presence) {
   const alerts = createAlerts({
     api,
     onAlert: (e) => {
       const now = performance.now() / 1000;
       if (e.kind === 'done') cycle.cheer(now);
-      else cycle.alert('pointing', NEEDS_YOU_S, now);
+      else cycle.alert('pointing', NEEDS_YOU_S, now, 'knock');   // knocks on the screen (the arm and the knock scene)
       request();
-      voice.announce({ text: e.say, alert: e.kind });
+      voice.play(e.kind === 'done' ? 'done' : 'knock');
+      // a notice is spoken by its seq: the hosted voice gets the app's name from the server, never the title
+      voice.announce({ text: e.say, alert: e.kind === 'notice' ? `notice:${e.seq}` : e.kind });
     },
   });
-  const sync = () => (document.hidden ? alerts.stop() : alerts.start());
-  document.addEventListener('visibilitychange', sync);
-  sync();
+  presence.watch(() => (presence.hidden() ? alerts.stop() : alerts.start()));
+}
+
+// the little window (pip.js): a round button above the clip opens Cody over the other apps. While it is open this
+// page steps aside, with a note in the middle and a button that brings Cody back
+function wirePip(presence, request) {
+  const make = (tag, className, key) => {
+    const e = Object.assign(document.createElement(tag), { className });
+    if (key) { e.dataset.t = key; e.textContent = t(key); }
+    return e;
+  };
+  const button = make('button', 'pip-open');
+  button.type = 'button';
+  button.dataset.tTitle = button.dataset.tAria = 'mascot.pip.open';    // i18n.js renames it when the language changes
+  button.title = t('mascot.pip.open');
+  button.setAttribute('aria-label', button.title);
+  const away = make('div', 'pip-away');
+  const back = make('button', 'pip-away-back', 'mascot.pip.back');
+  back.type = 'button';
+  away.append(make('p', 'pip-away-note', 'mascot.pip.away'), back);
+  document.body.append(button, away);
+  const pip = createPip({
+    win: window,
+    title: t('mascot.title'),
+    onChange: (open) => {
+      document.body.classList.toggle('pip-away-on', open);
+      presence.setAway(open);
+      if (!open) request();
+    },
+  });
+  button.addEventListener('click', () => {
+    pip.open().catch((error) => console.warn('[cody] the little window did not open', error?.message));
+  });
+  back.addEventListener('click', () => pip.close());
 }
 
 // a screenshot Claude took because it was asked ("take a screenshot and send it to my WhatsApp"): the picture over the
@@ -365,6 +570,7 @@ function useAttachment(text) {
 
 // the viewer's preferences (localStorage may be missing: private tab, blocked storage)
 const PREF_WAKE_WORD = 'cody:wakeWord';
+const PREF_FOLLOW_UP = 'cody:followUp';   // the microphone stays open after an answer (voice.js)
 function remembered(key, fallback) {
   try {
     const v = localStorage.getItem(key);
@@ -380,7 +586,12 @@ function remember(key, on) {
 function wireShake(faces, request, showSensor) {
   const panel = showSensor ? createSensorPanel() : null;
   const shake = createShake({
-    onChange: (grabbing) => { for (const f of faces) f.animator.setGrab(grabbing); request(); panel?.grabbed(grabbing); },
+    onChange: (grabbing) => {
+      for (const f of faces) f.animator.setGrab(grabbing);
+      if (grabbing) reactions.play('startle');
+      request();
+      panel?.grabbed(grabbing);
+    },
   });
   const Motion = window.DeviceMotionEvent;
   panel?.status(Motion ? 'sensor: waiting for the first event' : 'sensor: this browser has none');
@@ -422,7 +633,7 @@ function createSensorPanel() {
   };
 }
 
-// the 3D mascot; without three.js (offline, esm.sh down), the 2D drawing
+// the 3D mascot; without three.js (no WebGL, or the module failed to load), the 2D drawing
 async function load3d() {
   try {
     return (await import('./scene3d.js')).createScene3d;
@@ -437,13 +648,15 @@ async function start() {
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const state = { quiet: op.quiet || motion.matches };
   document.title = t('mascot.title');
+  if (op.pip) document.body.classList.add('pip');
+  const presence = createPresence(document);
   const scene3d = op.visual === '2d' ? null : await load3d();
   const faces = mount(document.getElementById('mascot'), op, state.quiet, scene3d);
   translate(document);
   const fixed = op.mood || op.gallery;
-  const cycle = fixed ? null : createCycle({ fast: op.fast, signal: startSignal() });
+  const cycle = fixed ? null : createCycle({ fast: op.fast, signal: startSignal(presence) });
   if (!op.gallery) keepAwake();
-  const loop = createLoop(faces, cycle, state);
+  const loop = createLoop(faces, cycle, state, presence);
   const observer = new ResizeObserver(() => { faces.forEach(measureFace); loop.request(); });
   faces.forEach((f) => observer.observe(f.canvas));
   motion.addEventListener('change', () => {
@@ -454,13 +667,28 @@ async function start() {
   if (cycle) setInterval(() => { if (state.quiet) loop.request(); }, QUIET_CLOCK_MS);
   const local = { at: -Infinity };
   wirePointer(faces, cycle, loop.request, local);
-  if (!op.gallery) wireCursor(faces, cycle, loop.request, local);
+  if (!op.gallery) wireCursor(faces, cycle, loop.request, local, presence);
   if (!op.gallery) wireShake(faces, loop.request, op.sensor);
   if (cycle && api.hasToken()) {
-    const voice = wireVoice(faces[0], cycle, loop.request);
-    wireTimers(voice, cycle, loop.request);
-    wireAlerts(voice, cycle, loop.request);
+    const voice = wireVoice(faces[0], cycle, loop.request, presence);
+    reactions.play = (name) => voice.play(name);
+    wireTimers(voice, cycle, loop.request, presence);
+    wireAlerts(voice, cycle, loop.request, presence);
+    if (!op.pip && pipSupported(window)) wirePip(presence, loop.request);
+    createOverlays();                                      // the pills step back after a while without a touch
+    let settings = null;                                   // made after Status, which tells it the light
+    const status = createStatus({ api, t, lang: language, audio: voice.sound, request: loop.request,
+      announce: (m) => voice.announce(m), onLight: (light) => settings?.setLight(light) });
+    // the first tap unlocks the sound (voice.js): look again right after, so the light turns green without waiting
+    window.addEventListener('pointerdown', () => setTimeout(() => status.refresh(), SOUND_LOOK_MS), { once: true });
+    settings = createSettings({ api, t, setLanguage, language, announce: (m) => voice.announce(m), light: () => status.light(),
+      play: (bytes) => voice.playAudio(bytes),
+      prefs: { followUp: { get: () => remembered(PREF_FOLLOW_UP, true), set: (on) => remember(PREF_FOLLOW_UP, on) } },
+      skins: { list: () => skins.list, current: () => skins.current, wear: (id) => wearSkin(faces[0], id, loop.request) } });
+    if (!op.pip) settings.firstRun();                    // the welcome belongs to the big page, not the little window
+    createNetwork({ api, t });
   }
+  if (!op.gallery) { await loadSkins(op.skin); await loadScenes(faces[0], op.scene, op.over); }
   faces.forEach(measureFace);
   loop.request();
 }

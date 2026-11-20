@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- CodyHead: the mascot's head drawn by the app (app:eyes, and whether it blinks) -->
+    <declare-styleable name="CodyHead">
+        <attr name="eyes" format="enum">
+            <enum name="open" value="0" />
+            <enum name="happy" value="1" />
+            <enum name="asleep" value="2" />
+        </attr>
+        <attr name="blink" format="boolean" />
+    </declare-styleable>
+</resources>

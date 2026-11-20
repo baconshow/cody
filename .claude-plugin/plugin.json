@@ -1,0 +1,19 @@
+{
+  "name": "cody",
+  "version": "1.2.0",
+  "description": "Cody, an unofficial desk mascot for Claude Code: heads-up hooks and the /cody:setup, /cody:status and /cody:voice commands.",
+  "author": {
+    "name": "Cody contributors",
+    "url": "https://github.com/baconshow/cody"
+  },
+  "homepage": "https://github.com/baconshow/cody",
+  "repository": "https://github.com/baconshow/cody",
+  "license": "MIT",
+  "keywords": [
+    "mascot",
+    "voice",
+    "hooks",
+    "desk pet"
+  ],
+  "icon": "web/icon-512.png"
+}

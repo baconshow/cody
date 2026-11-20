@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The light behind Cody: the accent at 20 %, fading out -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <gradient android:type="radial" android:gradientRadius="50%p" android:startColor="@color/cody_glow" android:endColor="#00ff8a3d" />
+</shape>

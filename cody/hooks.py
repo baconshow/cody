@@ -7,7 +7,7 @@ Three hooks run `python cody.py --hook` (set them up with `python cody.py --inst
     Notification       permission_prompt and the like: "needs you"
 Each run appends one line to events.jsonl in the data folder (cody/store.py): the time, the kind and the first
 characters of the session id. Never the prompt, the reply or the command. The server reads the file (HookFeed) for
-the phone. Hooks run inside the voice session too (CODY_VOICE=1, set by scripts/voice.ps1 and voice.sh): those are
+the phone. Hooks run inside the voice session too (CODY_VOICE=1, set by `cody.py --voice`): those are
 skipped, since there the mascot already does the talking.
 """
 from __future__ import annotations
@@ -31,9 +31,10 @@ VOICE_ENV = "CODY_VOICE"
 SESSION_CHARS = 12
 MAX_EVENTS = 50
 MARKER = "--hook"
-OURS = re.compile(r'cody\.py"?\s+--hook\b')        # how our own hook commands are recognized in settings.json
+OURS = re.compile(r'(?:cody\.py|cody-cli(?:\.exe)?)"?\s+--hook\b')   # how our own hooks are recognized in settings.json
 EVENTS = ("UserPromptSubmit", "Stop", "Notification")
 TIMEOUT_S = 10
+DUPLICATE_S = 3               # the same "needs you" twice within this is one event (hooks installed twice)
 
 PHRASES = {
     "en": {"done": "Done! Claude finished.", "needs_you": "Claude needs you at the computer."},
@@ -106,6 +107,7 @@ class HookFeed:
         except OSError:
             self._offset = 0
         self._starts: dict[str, float] = {}
+        self._recent: dict[str, float] = {}           # the last "needs you" per session
         self._events: deque = deque(maxlen=MAX_EVENTS)
         self._seq = 0
         self._lock = threading.Lock()
@@ -146,9 +148,25 @@ class HookFeed:
             seconds = round(when - start)
         elif kind != "needs_you":
             return
+        elif self._recent.get(session, -DUPLICATE_S) > when - DUPLICATE_S:
+            return                                    # two copies of the hooks (plugin and settings): one call
+        else:
+            self._recent[session] = when
         self._seq += 1
         self._events.append({"seq": self._seq, "kind": kind, "seconds": seconds,
                              "say": phrase(kind, self._language)})
+
+    def add(self, kind: str, say: str, **extra) -> dict:
+        """An event from elsewhere on this computer (a Windows notification, cody/notices.py), in the same list."""
+        with self._lock:
+            self._seq += 1
+            event = {"seq": self._seq, "kind": kind, "seconds": None, "say": say, **extra}
+            self._events.append(event)
+            return event
+
+    def event(self, seq: int) -> dict | None:
+        with self._lock:
+            return next((e for e in self._events if e["seq"] == seq), None)
 
     def read(self, after: int) -> dict:
         """GET /api/events?after=N -> {"cursor", "events"}."""
@@ -163,6 +181,8 @@ class HookFeed:
 def hook_command(python: str | None = None, script: Path | None = None) -> str:
     """The hook's command line. `|| exit 0` (valid in bash, cmd and PowerShell): if Python cannot even start the
     script (the folder moved), it must not exit with 2, which Claude Code reads as "block this prompt"."""
+    if getattr(sys, "frozen", False) and not python:       # the installed app: its console build runs the hook
+        return f'"{Path(sys.executable).with_name("cody-cli.exe").as_posix()}" {MARKER} || exit 0'
     python = Path(python or sys.executable).as_posix()
     script = (script or Path(__file__).resolve().parent.parent / "cody.py").as_posix()
     return f'"{python}" "{script}" {MARKER} || exit 0'
@@ -201,13 +221,25 @@ def without_hooks(settings: dict) -> dict:
     return result
 
 
+PLUGIN = re.compile(r"^cody@")                      # the Cody plugin, from whichever marketplace
+
+
+def plugin_enabled(path: Path | None = None) -> bool:
+    """True when the Cody plugin is enabled in Claude Code's user settings: it brings its own copy of the hooks."""
+    settings = read_json(path or settings_file())
+    enabled = settings.get("enabledPlugins") if isinstance(settings, dict) else None
+    return isinstance(enabled, dict) and any(PLUGIN.match(str(k)) and v is True for k, v in enabled.items())
+
+
 def install(remove: bool = False, path: Path | None = None, command: str | None = None) -> str:
     """Adds Cody's hooks to Claude Code's user settings (or removes them), after a backup next to the file. Returns
-    what happened, for the terminal."""
+    what happened, for the terminal. With the Cody plugin enabled, adding is skipped: the plugin has the hooks."""
     path = (path or settings_file()).resolve()             # a symlinked settings file is updated where it lives
     settings = read_json(path) if path.exists() else {}
     if not isinstance(settings, dict) or not isinstance(settings.get("hooks", {}), dict):
         return f"{path} is not valid JSON: nothing changed. Fix it, or add the hooks by hand (see the README)."
+    if not remove and plugin_enabled(path):
+        return "The Cody plugin is enabled and already brings the hooks: nothing to add."
     updated = without_hooks(settings) if remove else with_hooks(settings, command or hook_command())
     if updated == settings:
         return "Nothing to change."

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon: back to the pairing screen (address, the watch switch) -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_notify"
+        android:shortcutShortLabel="@string/shortcut_settings">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.baconshow.cody"
+            android:targetClass="io.github.baconshow.cody.PairActivity">
+            <extra android:name="settings" android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>

@@ -15,18 +15,23 @@
 //     search       looked something up (Grep, Glob, WebSearch, WebFetch) in the last 6 s: the magnifier
 //     idleSeconds  seconds since the last tool event or user input
 //     finished     how many agents have finished (a counter: the reader compares it with the previous value)
+//     music        something is playing on the computer (the server's `music` flag, cody/media.py): the headphones
+//     typing       you are typing in a Claude window (the server's `typing` flag, cody/typist.py): the keyboard
+//     wanted       a scene asked for by voice ("put your headphones on"), or null (cody/custom.py)
+//     custom       the custom scenes' version: the page reloads its scenes when it changes
 // Without a token (the page opened as /web/index.html), read() returns null and the face stays in the idle cycle.
 
 import { createLife } from './life.js';
 
 export const PERIOD = Object.freeze({ activity: 3000, state: 15000, max: 60000 });   // ms; doubles on error
 const AWAY_WINDOW = 5000;                                // ms: a call that leaves the machine counts as "away" this long
-const SEARCH_WINDOW = 6000;                              // ms: the magnifier stays in hand this long after the last search
+const SEARCH_WINDOW = 6000;
+const FAILED_WINDOW = 8000;                             // ms: the debug scene stays this long after a failure                              // ms: the magnifier stays in hand this long after the last search
 const SEARCH = new Set(['Grep', 'Glob', 'WebSearch', 'WebFetch']);
 
 export function createSignal({ api, clock = () => performance.now() }) {
   const life = createLife(clock());
-  const st = { cursor: 0, first: true, lastSignal: '', agents: null, external: 0, awaySince: -Infinity, searchSince: -Infinity, read: false };
+  const st = { cursor: 0, first: true, lastSignal: '', agents: null, external: 0, awaySince: -Infinity, searchSince: -Infinity, failedSince: -Infinity, read: false, music: false, typing: false, wanted: null, custom: 0 };
   const timers = new Map();                              // route → the setTimeout of its next read
   const out = {};
   const reading = {};
@@ -53,11 +58,16 @@ export function createSignal({ api, clock = () => performance.now() }) {
     // the first read brings recent history: it sets the cursor, it is not news
     if (!st.first) {
       for (const e of events) {
+        if (e.tool === '!failed') { st.failedSince = now; continue; }
         life.register(e.tool, e.code === true, now);
         if (SEARCH.has(e.tool)) st.searchSince = now;
       }
     }
     if (Number.isFinite(Number(r?.cursor))) st.cursor = Number(r.cursor);
+    st.music = r?.music === true;
+    st.typing = r?.typing === true;
+    st.wanted = typeof r?.wanted === 'string' ? r.wanted : null;
+    st.custom = Number.isFinite(Number(r?.custom)) ? Number(r.custom) : 0;
     const sessions = Array.isArray(r?.sessions) ? r.sessions : [];
     compareAgents(sessions);
     signalFromSessions(sessions, now);
@@ -100,8 +110,13 @@ export function createSignal({ api, clock = () => performance.now() }) {
     reading.code = out.code;
     reading.away = now - st.awaySince <= AWAY_WINDOW;
     reading.search = now - st.searchSince <= SEARCH_WINDOW;
+    reading.failed = now - st.failedSince <= FAILED_WINDOW;
     reading.idleSeconds = out.idleSeconds;
     reading.finished = out.finished;
+    reading.music = st.music;
+    reading.typing = st.typing;
+    reading.wanted = st.wanted;
+    reading.custom = st.custom;
     return reading;
   }
 

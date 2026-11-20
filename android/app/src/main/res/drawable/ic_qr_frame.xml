@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The QR frame of the pairing card: four accent corners around a faint pattern -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="120dp" android:height="120dp" android:viewportWidth="120" android:viewportHeight="120">
+    <path android:strokeColor="@color/cody" android:strokeWidth="3" android:strokeLineCap="round" android:pathData="M1.5,28 V13.5 A12,12 0 0 1 13.5,1.5 H28 M92,1.5 H106.5 A12,12 0 0 1 118.5,13.5 V28 M118.5,92 V106.5 A12,12 0 0 1 106.5,118.5 H92 M28,118.5 H13.5 A12,12 0 0 1 1.5,106.5 V92" />
+    <path android:fillColor="@color/ink" android:fillAlpha="0.5" android:pathData="M30,30 h9.6 v9.6 h-9.6 z M42.6,30 h9.6 v9.6 h-9.6 z M67.8,30 h9.6 v9.6 h-9.6 z M80.4,30 h9.6 v9.6 h-9.6 z M30,42.6 h9.6 v9.6 h-9.6 z M55.2,42.6 h9.6 v9.6 h-9.6 z M80.4,42.6 h9.6 v9.6 h-9.6 z M42.6,55.2 h9.6 v9.6 h-9.6 z M55.2,55.2 h9.6 v9.6 h-9.6 z M67.8,55.2 h9.6 v9.6 h-9.6 z M30,67.8 h9.6 v9.6 h-9.6 z M55.2,67.8 h9.6 v9.6 h-9.6 z M80.4,67.8 h9.6 v9.6 h-9.6 z M30,80.4 h9.6 v9.6 h-9.6 z M42.6,80.4 h9.6 v9.6 h-9.6 z M67.8,80.4 h9.6 v9.6 h-9.6 z M80.4,80.4 h9.6 v9.6 h-9.6 z" />
+</vector>

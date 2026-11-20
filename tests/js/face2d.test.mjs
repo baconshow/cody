@@ -109,3 +109,14 @@ test('the z letters: resting, z z Z every 1.5 s; sleepy, only the small ones eve
   assert.equal(sizeAt(0.5), 1);
   assert.equal(sizeAt(1), 0);
 });
+
+test('a scene\'s eyes replace the bars: hearts are stamped in black, without the glint', () => {
+  const ctx = fakeCanvas();
+  const meas = measures(844, 390);
+  const q = { ...poseAt('listening', 3), eyes: ['heart', 'heart'] };
+  drawFace(ctx, q, meas);
+  const plain = draw('listening', 844, 390).painted;
+  const eyeRects = (list) => list.filter((r) => r.color === COLOR.eye).length;
+  assert.ok(eyeRects(ctx.painted) > eyeRects(plain), 'a heart is many rows of black, a bar is one');
+  assert.equal(ctx.painted.filter((r) => r.color === COLOR.glint).length, 0, 'no glint on a heart');
+});

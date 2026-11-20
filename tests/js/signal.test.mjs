@@ -11,7 +11,7 @@ import { claudeMood, claudeProp, SLEEP } from '../../web/js/claude-mood.js';
 // the fake API: each activity read returns the next batch; the clock is moved by hand. A batch item is a tool
 // name, or { tool, code } for an event the server flags as a code edit
 function scenario({ token = true } = {}) {
-  const st = { now: 0, seq: 0, batches: [], sessions: [], open: true };
+  const st = { now: 0, seq: 0, batches: [], sessions: [], open: true, music: undefined, typing: undefined, wanted: undefined, custom: undefined };
   const api = {
     hasToken: () => token,
     state: async () => ({ claude_open: st.open }),
@@ -19,7 +19,7 @@ function scenario({ token = true } = {}) {
       const events = (st.batches.shift() ?? []).map((e) => (
         typeof e === 'string' ? { seq: ++st.seq, tool: e, code: false } : { seq: ++st.seq, ...e }
       ));
-      return { cursor: st.seq || cursor, events, sessions: st.sessions };
+      return { cursor: st.seq || cursor, events, sessions: st.sessions, music: st.music, typing: st.typing, wanted: st.wanted, custom: st.custom };
     },
   };
   const signal = createSignal({ api, clock: () => st.now });
@@ -111,6 +111,8 @@ test('the default rule: sleeps with Claude closed, sleepy at 2 min, zzZ at 10, a
   assert.equal(mood({ working: true, code: true }), 'listening', 'writing code: focused on the keyboard');
   assert.equal(claudeProp({ ...base, working: true, code: true }), 'keyboard');
   assert.equal(claudeProp({ ...base, code: true, search: true }), 'magnifier', 'searching comes first');
+  assert.equal(claudeProp({ ...base, search: true, typing: true }), 'keyboard', 'you typing comes before everything');
+  assert.equal(claudeProp({ ...base, claudeOpen: false, typing: true }), null, 'no Claude, no keyboard');
   assert.equal(mood({ working: true, away: true }), 'pointing');
 });
 
@@ -144,4 +146,31 @@ test('the server\'s code flag: an edit on a code file brings the keyboard for 5 
   assert.equal(claudeProp(signal.read()), 'keyboard');
   st.now = 6500;
   assert.equal(signal.read().code, false);
+});
+
+test('music: the server says whether something is playing, and the reading carries it (the headphones)', async () => {
+  const { st, signal } = scenario();
+  await signal.readNow();
+  assert.equal(signal.read().music, false, 'an older server without the flag: no music');
+  st.music = true;
+  await signal.readNow();
+  assert.equal(signal.read().music, true);
+  st.music = 'yes';
+  await signal.readNow();
+  assert.equal(signal.read().music, false, 'only a true counts');
+});
+
+test('the scene asked for by voice and the version of the custom scenes ride on the activity reading', async () => {
+  const { st, signal } = scenario();
+  await signal.readNow();
+  assert.equal(signal.read().wanted, null);
+  assert.equal(signal.read().custom, 0);
+  st.wanted = 'headphones';
+  st.custom = 17;
+  await signal.readNow();
+  assert.equal(signal.read().wanted, 'headphones');
+  assert.equal(signal.read().custom, 17);
+  st.wanted = 5;
+  await signal.readNow();
+  assert.equal(signal.read().wanted, null, 'only a name counts');
 });

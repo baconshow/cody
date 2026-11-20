@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The switch of the design (Material 3, 52 x 32): off, a 2 dp outline; on, the accent -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <shape android:shape="rectangle"><solid android:color="@color/cody" /><corners android:radius="16dp" /><size android:width="52dp" android:height="32dp" /></shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle"><stroke android:width="2dp" android:color="@color/muted" /><corners android:radius="16dp" /><size android:width="52dp" android:height="32dp" /></shape>
+    </item>
+</selector>

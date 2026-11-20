@@ -12,3 +12,12 @@ __pycache__/
 node_modules/
 .DS_Store
 Thumbs.db
+
+# coverage runs (CI and local)
+.coverage
+htmlcov/
+
+# Windows app build (packaging/)
+build/
+dist/
+packaging/cody.ico

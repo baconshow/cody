@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cody · a desk pet for Claude Code</title>
+  <meta name="description" content="Cody brings Claude Code to life: a desk pet that reacts to what Claude does, takes orders by voice and tells your phone when Claude needs you. Free, MIT, private.">
+  <style>
+    :root { color-scheme: dark; --ink: #f7f4ee; --ink-2: #9c96a8; --bg: #000; --accent: #ef6a22; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 18px/1.5 system-ui, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1 { font-size: 44px; margin: 0 0 4px; } h2 { margin-top: 40px; }
+    .lede { color: var(--ink-2); font-size: 20px; }
+    img { width: 100%; height: auto; border-radius: 12px; margin: 24px 0; }
+    .buttons a { display: inline-block; margin: 6px 8px 6px 0; padding: 10px 16px; border-radius: 10px;
+      background: var(--ink); color: #000; text-decoration: none; font-weight: 600; }
+    .buttons a.alt { background: transparent; color: var(--ink); border: 1px solid #333; }
+    code { background: #15131a; padding: 2px 6px; border-radius: 6px; }
+    small { color: var(--ink-2); }
+    ul { padding-left: 20px; } li { margin: 8px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Cody</h1>
+  <p class="lede">Bring your Claude Code to life: a desk pet that reacts to what Claude does, takes orders by voice
+    and tells your phone when Claude needs you.</p>
+  <img src="cody-scenes.gif" alt="Cody at work: a monitor full of code, a thinking bubble, a bug with a DEBUG MODE sign, confetti, coffee and a nightcap" width="480" height="288">
+  <div class="buttons">
+    <a href="https://github.com/baconshow/cody/releases/latest">Download for Windows</a>
+    <a class="alt" href="https://github.com/baconshow/cody#claude-code-plugin">Claude Code plugin</a>
+    <a class="alt" href="https://github.com/baconshow/cody">Source on GitHub</a>
+  </div>
+  <h2>The pitch</h2>
+  <p><small>The one part of this page written like a brochure, for a thing that is free and MIT. All of it is real.</small></p>
+  <ul>
+    <li><strong>Bring your Claude Code to life.</strong> A desk pet that reacts, live, to every search, edit, command,
+      failed test and permission prompt.</li>
+    <li><strong>Command Claude Code by voice.</strong> Say "Cody" from the couch: your words land in a real Claude Code
+      session on your computer, and it answers out loud. Approve commands with a spoken yes or no.</li>
+    <li><strong>Change your own code without the keyboard.</strong> "Cody, add a dark mode toggle to the settings page."
+      Claude edits your project, locally, asking first. Quick questions about the code work the same way.</li>
+    <li><strong>Everything you plugged into Claude Code, by voice.</strong> Any MCP server you connected answers through
+      Cody, with the same permission prompts.</li>
+    <li><strong>Pass a word to your other Claude sessions.</strong> "Cody, tell my other session to run the tests."
+      The voice session can message any other Claude session open on your computer, Claude Desktop included.</li>
+    <li><strong>Keep an eye on every session.</strong> A long task done or Claude waiting for you: your phone buzzes with
+      Cody's face, app closed or not. A widget keeps the last heads-up.</li>
+    <li><strong>Know where you stand with your plan.</strong> "Cody, how much usage do I have left?": the session and
+      the week, said and shown on screen, with when each resets.</li>
+    <li><strong>A desk buddy on top.</strong> Timers, reminders, a memory of how you like things, screenshots straight to
+      WhatsApp, a mini Cody that points at the button you asked about, scenes and skins.</li>
+    <li><strong>Installs in three steps.</strong> Download, open Cody, scan the QR code with your phone. The first run sets
+      up the private network and the voice session for you.</li>
+  </ul>
+  <h2>What it does</h2>
+  <p>Types along while Claude edits code, thinks while commands run, finds a bug when a test fails, throws confetti
+    when a long task is done, and dozes off when Claude is closed. Hold it (or say "Cody") and ask anything: your words
+    go into your own Claude Code session, and Cody answers out loud.</p>
+  <h2>Private by default</h2>
+  <p>Cody runs on your computer and uses your own Claude Code. Nothing is sent to its author. Your phone reaches it
+    through your own Tailscale network, never the public internet.</p>
+  <p><small>Unofficial fan project, MIT license. Not affiliated with, endorsed by or sponsored by Anthropic. Claude and
+    Claude Code are trademarks of Anthropic, PBC.</small></p>
+</main>
+</body>
+</html>

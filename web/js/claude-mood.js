@@ -14,6 +14,7 @@ export const SLEEP = Object.freeze({ sleepy: 120, sleep: 600 });   // seconds wi
 // the prop it picks up for what Claude is doing: searching, the magnifier at its eye; writing code, the keyboard
 export function claudeProp(reading) {
   if (!reading?.claudeOpen || !reading.online) return null;
+  if (reading.typing) return 'keyboard';                 // you are typing in a Claude window: Cody types along
   if (reading.search) return 'magnifier';
   return reading.code ? 'keyboard' : null;
 }

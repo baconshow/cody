@@ -34,7 +34,7 @@ GWL_EXSTYLE = -20
 WS_EX_LAYERED, WS_EX_TRANSPARENT, WS_EX_TOOLWINDOW, WS_EX_NOACTIVATE = 0x80000, 0x20, 0x80, 0x08000000
 SW_SHOWNOACTIVATE = 4
 
-from cody.sprite import COLOR, SPRITE, SPRITE_BOX, TIP, ease, layout, local  # noqa: E402
+from cody.sprite import COLOR, SPRITE, SPRITE_BOX, ease, layout, local  # noqa: E402
 
 
 class Overlay:
