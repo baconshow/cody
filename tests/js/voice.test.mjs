@@ -15,7 +15,7 @@ setLanguage('en', { save: false });
 
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
 
-function scenario({ failWithStatus = null } = {}) {
+function scenario({ failWithStatus = null, speaker = null } = {}) {
   const st = { states: [], captions: [], sent: [], spoken: [], replies: [], recognition: null, pictures: [] };
   class Recognizer {
     constructor() { st.recognition = this; }
@@ -45,7 +45,7 @@ function scenario({ failWithStatus = null } = {}) {
   st.attachments = [];
   st.sides = [];
   const voice = createVoice({
-    api, win, target, t: (key, v) => (v?.text ? `${key}:${v.text}` : key),
+    api, win, ...(speaker ? { speaker } : {}), target, t: (key, v) => (v?.text ? `${key}:${v.text}` : key),
     onState: (m) => st.states.push(m), onCaption: (text) => st.captions.push(text), onAttachment: (x) => st.attachments.push(x), onSide: (x) => st.sides.push(x),
     onImage: (id) => st.images.push(id),
     onAwake: (on) => st.awake.push(on), followUp: () => st.followUp !== false,
@@ -79,6 +79,23 @@ test('holding listens, releasing sends, the reply is spoken and the face comes b
   st.spoken.at(-1).onend();
   await flush();
   assert.equal(st.states.at(-1), null);
+  voice.stop();
+});
+
+test('in the little window the reply is spoken from the big page (the one that was tapped), not from the frame', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const spoken = [];
+  class Utterance { constructor(text) { this.text = text; } }
+  const speaker = { SpeechSynthesisUtterance: Utterance,
+    speechSynthesis: { getVoices: () => [{ lang: 'en-US' }], cancel() {}, speak: (u) => { spoken.push(u); } } };
+  const { st, voice } = scenario({ speaker });
+  voice.start();
+  await flush();
+  st.replies = [{ seq: 1, request_id: '1', text: 'Here.' }];
+  t.mock.timers.tick(VOICE.slow + 1);
+  await flush();
+  assert.deepEqual(spoken.map((u) => u.text), ['Here.']);
+  assert.deepEqual(st.spoken, [], 'nothing through the frame\'s own voice');
   voice.stop();
 });
 

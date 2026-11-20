@@ -76,3 +76,6 @@ Things only the maintainer can do. Newest last.
       use the same drawer as Settings.
 - [x] **What a new install sounds like without an ElevenLabs key**: Cody's sounds (decided 2026-11-06); the
       device's voice is there to pick in Settings.
+- [ ] **Try the little window** (restart Cody first: the page's headers changed). In Chrome, the round button above
+      the clip opens Cody over your other apps; `docs/MANUAL-TESTS.md` section 9. Tell me if the size is right and
+      if the first answer is heard without tapping the little window.

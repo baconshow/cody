@@ -11,6 +11,7 @@
 //
 //   createVoice({ api, win, target, onState, onCaption, onAttachment, onImage, onListening, onSide, t }) → { start(), stop(),
 //     volume(), listen(on), listening, announce({ text, alert }), chime(), sendPicture(file) }
+//   speaker       where the sound plays (voice-audio.js): the big page's window when this is the little one (pip.js)
 //   sendPicture   the clip: a picture from the phone goes to the computer and the voice session is told where it is;
 //                 then it is like anything you said (the face thinks, the reply is spoken)
 //     api           { voice(text), voiceReplies(after), voiceAudio(seq) } (api.js)
@@ -44,12 +45,12 @@ export const VOICE = Object.freeze({
 });
 
 export function createVoice({
-  api, win = window, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {},
+  api, win = window, speaker = win, target, onState, onCaption, onAttachment = () => {}, onImage = () => {}, onListening = () => {},
   onSide = () => {}, onNotice = () => {}, onAwake = () => {}, onHeard = () => {}, onTrouble = () => {}, followUp = () => true, t,
 }) {
   const Recognizer = win.SpeechRecognition || win.webkitSpeechRecognition;
   const said = new Set();                             // each fallback is told once per visit, not on every reply
-  const audio = createVoiceAudio({ api, win, onFallback: ({ from, to, reason }) => {
+  const audio = createVoiceAudio({ api, win, speaker, onFallback: ({ from, to, reason }) => {
     const key = `${from}>${to}:${reason}`;
     if (said.has(key)) return;
     said.add(key);

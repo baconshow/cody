@@ -127,29 +127,56 @@ body.with-gallery { overflow-y: auto; }
 .wake[data-state="trouble"] { color: #ffc457; }
 .wake[data-state="trouble"]::before { background: var(--status-warn); box-shadow: 0 0 9px 3px rgba(255, 176, 32, .5); }
 
-/* the clip: a pill with a paperclip, above the wake word; sends a picture from this device to the voice session */
-.clip {
+/* the clip: a pill with a paperclip, above the wake word; sends a picture from this device to the voice session.
+   Above it, on a computer, the little window (pip.js): Cody over the other apps */
+.clip, .pip-open {
   position: fixed; z-index: 20; right: max(20px, env(safe-area-inset-right)); bottom: calc(max(20px, env(safe-area-inset-bottom)) + 48px);
   width: 36px; height: 36px; padding: 0; border: 1px solid rgba(255, 255, 255, .1); border-radius: 18px;
   background: rgba(255, 255, 255, .08); cursor: pointer; transition: opacity .3s ease, background-color .3s ease;
 }
-.clip::before {
+.pip-open { bottom: calc(max(20px, env(safe-area-inset-bottom)) + 96px); }
+.clip::before, .pip-open::before {
   content: ''; position: absolute; inset: 8px; background: var(--panel-ink);
   -webkit-mask: url('/web/icons/clip.svg') center / contain no-repeat; mask: url('/web/icons/clip.svg') center / contain no-repeat;
 }
-.clip:hover { background: rgba(255, 255, 255, .13); }
-.clip:focus-visible { outline: 2px solid var(--panel-ink); outline-offset: 2px; opacity: 1; }
+.pip-open::before { -webkit-mask-image: url('/web/icons/pip.svg'); mask-image: url('/web/icons/pip.svg'); }
+.clip:hover, .pip-open:hover { background: rgba(255, 255, 255, .13); }
+.clip:focus-visible, .pip-open:focus-visible { outline: 2px solid var(--panel-ink); outline-offset: 2px; opacity: 1; }
+
+/* while Cody is in its little window, this page steps aside: a note in the middle and the way back */
+.pip-away { display: none; }
+.pip-away-on .pip-away {
+  position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; padding: 24px; background: rgba(0, 0, 0, .8); color: var(--panel-ink); text-align: center;
+}
+.pip-away-note { max-width: 320px; margin: 0; font: 500 15px/1.4 var(--panel-font); }
+.pip-away-back {
+  height: 36px; padding: 0 16px; border: 1px solid rgba(255, 255, 255, .1); border-radius: 18px;
+  background: rgba(255, 255, 255, .08); color: var(--panel-ink); font: 500 13px var(--panel-font); cursor: pointer;
+}
+.pip-away-back:hover { background: rgba(255, 255, 255, .13); }
+.pip-away-back:focus-visible { outline: 2px solid var(--panel-ink); outline-offset: 2px; }
+.pip-away-on :is(.settings-open, .wake, .clip, .pip-open, .status-chip, .caption, .attachment, .timers, .voice-notice) { display: none; }
+
+/* the little window's own page (pip.js): the face fills it */
+.pip-host, .pip-host body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #000; }
+.pip-frame { display: block; width: 100%; height: 100%; border: 0; }
+
+/* the face inside the little window (?pip=1): only the face, its words and the microphone's light (with its words
+   only when it has trouble to tell) */
+.pip :is(.settings-open, .status-chip, .clip, .pip-open) { display: none; }
+.pip .wake:not([data-state="trouble"]) { width: 36px; padding: 0; gap: 0; justify-content: center; font-size: 0; }
 /* the Status pill on the page says only "all good" or what is broken: "attention" stays inside Settings > Status */
 .status-chip[data-state="warn"] { display: none; }
 
 /* stepped back: Settings and a Status with nothing to say fade away; the wake word keeps only its light (the
    microphone at work is always seen), unless it has trouble to tell */
-.overlays-rest .settings-open, .overlays-rest .status-chip[data-state="ok"], .overlays-rest .clip { opacity: 0; pointer-events: none; }
+.overlays-rest .settings-open, .overlays-rest .status-chip[data-state="ok"], .overlays-rest .clip, .overlays-rest .pip-open { opacity: 0; pointer-events: none; }
 .overlays-rest .wake:not([data-state="trouble"]) { border-color: transparent; background: transparent; color: transparent; }
 .settings-open:focus-visible, .status-chip:focus-visible { opacity: 1; }
 
 @media (prefers-reduced-motion: reduce) {
-  .attachment, .settings-open, .wake, .wake::before, .status-chip, .clip { transition: none; }
+  .attachment, .settings-open, .wake, .wake::before, .status-chip, .clip, .pip-open { transition: none; }
   /* no movement: taking a command is a bigger light with a ring */
   .wake[data-state="awake"]::before { animation: none; transform: scale(1.6); box-shadow: 0 0 0 5px rgba(76, 207, 114, .5); }
 }

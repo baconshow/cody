@@ -689,3 +689,32 @@ computer the same content in a side panel of 480.
   then simplified to 90 points), pressed out as a plate; the shapes' point limit went from 48 to 96 for it.
 - The coffee mug, the last blocky thing beside the face, is a lathe with a lip and coffee inside and a ring for a
   handle; the steam stays as it was.
+
+## 2026-11-20 · Cody in a little window over the other apps
+
+- Asked by voice: Cody in a floating window with no browser bar, on top of the other apps, to keep you company
+  while you use the rest of the computer. Chrome and Edge on a computer have the Document Picture-in-Picture API
+  (`documentPictureInPicture.requestWindow()`), which opens a small always-on-top window holding any page content,
+  not just a video. Elsewhere (Firefox, Safari, phones) the API is missing and the button is not drawn.
+- **The little window loads the face again, in an iframe (`?pip=1`), instead of borrowing this page's elements.**
+  Moving the canvas and the pills into the new window is what the API's examples do, but here it would have left
+  the work in the tab: the drawing loop runs on the tab's `requestAnimationFrame`, which stops when the tab is
+  hidden or covered; the timers are slowed to a crawl there; and the voice, Claude's activity, the mouse and the
+  alerts stop on purpose while the tab is hidden (a phone in a pocket should not keep listening). That is the very
+  complaint behind the request: Cody only answered with its tab in front. A page inside the little window is on
+  screen whenever the little window is, so all of that keeps running, and nothing in the face had to learn about
+  two documents.
+- **The tab steps aside while the little window is open** (`presence.js`): it stops listening for the wake word,
+  reading the activity and the mouse, polling the alerts and the timers, and drawing, so Cody never answers or
+  rings twice. A note in the middle says where Cody went, with a button to bring it back; closing the little window
+  (its x or "back to tab") gives everything back to the tab.
+- **Sound plays from the tab.** The browser lets a page play sound only after someone tapped it, and nobody has
+  tapped the page inside the little window yet: its audio started locked. The tab was tapped (its button opened
+  the little window), so the face inside uses the tab's `AudioContext` and `speechSynthesis` (`speakerFor`); a
+  context belongs to the page whose constructor made it, and a tab keeps playing sound when hidden.
+- **The page's security headers allow framing by itself only**: `frame-src 'self'` (the little window inherits the
+  page's CSP) and `frame-ancestors 'self'` instead of `'none'`. Another site still cannot frame the face.
+- Inside the little window: only the face, its words and the microphone's light (with words only when there is
+  trouble to tell); no Settings, Status, clip or welcome. Checked in headless Chrome: the window opens on a real
+  gesture, the iframe loads under the new headers, the face draws, speech recognition is there, the tab's sound is
+  unlocked while the frame's own is not, and closing gives the tab back.

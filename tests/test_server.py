@@ -52,7 +52,8 @@ class ServerTest(unittest.TestCase):
         csp = response.getheader("Content-Security-Policy")
         for script_hash in page.script_hashes(body):
             self.assertIn(script_hash, csp)
-        self.assertIn("frame-ancestors 'none'", csp)
+        self.assertIn("frame-ancestors 'self'", csp)      # the little window frames the page; no other site
+        self.assertIn("frame-src 'self'", csp)
 
     def test_page_loads_nothing_from_outside(self):
         # no CDN at run time: three.js and the font ship in web/, so the page works offline

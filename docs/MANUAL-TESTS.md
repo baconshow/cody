@@ -103,3 +103,12 @@ computer" notification stays in the shade. Stop the Cody server: the quiet one s
 again."; start it again: back to "Waiting on your computer" within two minutes, and the next heads-up arrives.
 Add the widget (long-press the home screen, or the first run's button): Cody's face for the last heads-up and the
 words; a tap opens the mascot. Reboot the phone: the quiet notification comes back by itself.
+
+## 9. The little window (computer)
+
+In Chrome or Edge on the computer, open Cody and tap the round button above the clip: a small window with Cody,
+no address bar, floats over everything. The tab shows "Cody is in its little window" with a button. Switch to
+another app (and minimize Chrome): Cody keeps moving, say "Cody" and ask something; the answer is spoken. Set a
+timer by voice: it rings from the little window. Close the little window: the tab takes over again (the wake word
+light comes back there). Open it again and use "back to tab" in its title bar: same. In Firefox there is no
+button.

@@ -4,8 +4,11 @@
 // next one speaks and onFallback({ from, to, reason }) lets the page say so. WebAudio output goes through an analyser,
 // so the face's mouth follows the volume.
 //
-//   createVoiceAudio({ api, win, onFallback }) → { unlock(), state(), speak(reply) → Promise, play(name), chime(),
-//                                                  silence(), volume() → 0..1 | null, playBytes(mp3) → Promise }
+//   createVoiceAudio({ api, win, speaker, onFallback }) → { unlock(), state(), speak(reply) → Promise, play(name),
+//                                                  chime(), silence(), volume() → 0..1 | null, playBytes(mp3) → Promise }
+//     speaker  the window whose page the sound belongs to (its AudioContext and speechSynthesis): this one, except in
+//              the little window (pip.js), whose page nobody has tapped yet; there it is the big page, unlocked by
+//              the tap that opened the little window
 //     playBytes  an mp3 the page already has (the voice test in Settings), through the same output as a reply
 //     unlock   on a tap: the browser only plays sound after a gesture (call it on every pointerdown)
 //     speak    reply { seq, text } or an alert { alert, text } (a timer ringing, a heads-up: /api/voice/alert):
@@ -21,8 +24,8 @@ const CHIME = Object.freeze({ notes: [880, 1175], length: 0.14, gap: 0.06, volum
 
 const PROVIDER_TTL_MS = 60000;
 
-export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
-  const Context = win.AudioContext || win.webkitAudioContext;
+export function createVoiceAudio({ api, win = window, speaker = win, onFallback = () => {} }) {
+  const Context = speaker.AudioContext || speaker.webkitAudioContext;
   const st = { ctx: null, analyser: null, data: null, source: null, talking: false, provider: null, asked: 0 };
 
   function output() {
@@ -71,10 +74,10 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
   }
 
   function speakOnDevice(text) {
-    const synth = win.speechSynthesis;
-    if (!synth || !win.SpeechSynthesisUtterance) return Promise.resolve(false);
+    const synth = speaker.speechSynthesis;
+    if (!synth || !speaker.SpeechSynthesisUtterance) return Promise.resolve(false);
     return new Promise((done) => {
-      const utterance = new win.SpeechSynthesisUtterance(text);
+      const utterance = new speaker.SpeechSynthesisUtterance(text);
       const lang = locale();
       const prefix = lang.slice(0, 2).toLowerCase();
       utterance.lang = lang;
@@ -158,7 +161,7 @@ export function createVoiceAudio({ api, win = window, onFallback = () => {} }) {
       sounds.stop();
       try { st.source?.stop(); } catch { /* already stopped */ }
       st.source = null;
-      win.speechSynthesis?.cancel();
+      speaker.speechSynthesis?.cancel();
     },
   };
 }

@@ -28,10 +28,11 @@ CSP = (
     "img-src 'self' blob:",       # the screenshot, shown from the bytes fetched with the token
     "connect-src 'self'",
     "manifest-src 'self'",
+    "frame-src 'self'",           # the little window (web/js/pip.js) shows this same page in an iframe
     "object-src 'none'",
     "base-uri 'none'",
     "form-action 'none'",
-    "frame-ancestors 'none'",
+    "frame-ancestors 'self'",     # framed only by itself (the little window), never by another site
 )
 
 

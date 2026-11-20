@@ -65,6 +65,10 @@
   cap with a winged badge and a polished peak, a toothy grin), **Pixel** (8-bit frames, a top hat: blocks on
   purpose) and **The Boss** (polished dark glasses, a red beret flopping to one side, a curled moustache). The
   Aviator and The Boss are made of real shapes, like the pumpkin. Data, like the others; free.
+- **Cody in a little window** (Chrome and Edge on a computer): a round button above the clip opens the mascot in a
+  window of its own that floats over your other apps, without the browser's bar, so Cody keeps you company (and
+  keeps listening, answering and ringing timers) while you work elsewhere. The tab steps aside meanwhile, with a
+  button to bring Cody back; closing the little window does the same.
 - **The clip**: a pill above the wake word sends a picture from the phone (or the computer) to the voice session.
   The picture is kept in Cody's data folder on the computer (PNG, JPEG, WebP or GIF, told by its bytes; 12 MB at
   most; the latest 50 stay) and the session is told its path, like a sentence you said; the face thinks and the
