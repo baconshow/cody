@@ -738,3 +738,16 @@ computer the same content in a side panel of 480.
   reply that came meanwhile, since nobody heard it. Timers read the dismissed list from the browser's storage again
   on `start()`, so one the little window rang and stopped does not ring in the tab too. The alerts already started
   over that way.
+
+## 2026-11-20 (night) · A home page that shows Cody first
+
+- The README opened with three paragraphs of text and a small GIF from an older build. Picked from three
+  directions (a shop window, the demo first, the character introducing itself): the shop window. The banner, one
+  line, badges and quick links; the Short's "Cody at work" GIF (the terminal reacting, a voice command turning into
+  a diff, Cody asking before it runs a command) beside the three things that matter; a grid of six pictures of the
+  real page (`docs/media/home/`, made from the page with reduced motion so each scene is whole); then install in
+  three steps. The long manual stays below, open, so every link into it keeps working.
+- **For kids: apps by talking.** The maintainer made Cody so his kids could build things by talking. It is told
+  as toys, games and experiments, not apps for production, with the guardrails Claude Code already has (the
+  session's folder, Cody asking before a command, the permission settings) and the account in the adult's hands.
+  No names in the repository.

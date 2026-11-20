@@ -1,22 +1,93 @@
-# Cody
+<p align="center">
+  <img src="docs/media/play/feature-graphic.png" alt="Cody, a desk pet for Claude Code: an orange box with a sprout on its head, smiling" width="760">
+</p>
 
-A little desk pet for [Claude Code](https://code.claude.com). It lives on your phone (or in a browser tab), watches
-what Claude is doing on your computer and reacts: it grabs a magnifier when Claude searches, types on a tiny
-keyboard when Claude writes code, thinks while commands run, hops when a subagent finishes, gets sleepy when nothing
-happens and falls asleep (zzZ) when Claude is closed.
+<h3 align="center">Your Claude Code, alive on your desk. Talk to it, and it codes.</h3>
 
-You can also **talk to it**. Hold Cody (or say "Cody") and ask anything: your words go into a real Claude
-Code session on your computer, and the mascot answers out loud in one or two short sentences. Honestly, it answers
-far better than Alexa, because it *is* Claude Code: your files, your tools, your context.
+<p align="center">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-ff8a3d"></a>
+  <a href="#windows-app"><img alt="Runs on Windows, macOS and Linux" src="https://img.shields.io/badge/runs%20on-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-2b2b2b"></a>
+  <a href="#put-it-on-your-phone"><img alt="On your phone: Android app or any browser" src="https://img.shields.io/badge/phone-Android%20%C2%B7%20any%20browser-2b2b2b"></a>
+  <a href="#claude-code-plugin"><img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757"></a>
+</p>
 
-It also does the desk-buddy things: **timers and reminders** that ring on the phone, a **memory** of your name and
-how you like things, a **mini Cody that flies across your computer screen** to point at the button you asked about,
-and a **heads-up** when one of your Claude Code sessions finishes a long task or is waiting for your permission.
+<p align="center">
+  <a href="#install-in-three-steps">Install</a> ·
+  <a href="#what-it-does">What it does</a> ·
+  <a href="#for-kids-apps-by-talking">For kids</a> ·
+  <a href="#talk-to-it-voice">Voice</a> ·
+  <a href="#skins">Skins</a> ·
+  <a href="#privacy-and-security">Privacy</a>
+</p>
 
-![Cody at work: a monitor full of code, a thinking bubble, a bug with a DEBUG MODE sign, confetti, coffee and a nightcap](docs/media/cody-scenes.gif)
+<table>
+<tr>
+<td width="40%"><img src="docs/media/cody-at-work.gif" alt="Cody reacting to Claude Code: a magnifier while it searches, confetti when the tests pass, a voice command turning into a diff, and Cody asking before it runs a command" width="100%"></td>
+<td>
+
+**A little orange desk pet that lives next to your Claude Code.** It watches what Claude does on your computer
+and reacts, live: a magnifier when Claude searches, a tiny keyboard when it writes code, a bug and a DEBUG MODE
+sign when a test fails, confetti when the work is done, zzZ when Claude is closed.
+
+**Say "Cody" and ask.** Your words go into a real Claude Code session on your computer, with your files and your
+tools, and Cody answers out loud. Before Claude runs anything, Cody asks; you say *yes* or *no*.
+
+**On your phone, on your desk, or floating over your other apps.** Free and MIT, on your own Claude subscription,
+through your own private network. Nothing is sent to the author.
+
+</td>
+</tr>
+</table>
 
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are
 > trademarks of Anthropic, PBC. Cody is fan art. Not related to Sourcegraph's Cody either.
+
+## What it does
+
+<table>
+<tr>
+<td align="center" width="33%"><img src="docs/media/home/code.jpg" alt="Cody typing on a tiny keyboard in front of a monitor full of code" width="100%"><br><b>Reacts to every step</b><br><sub>types along while Claude writes code</sub></td>
+<td align="center" width="33%"><img src="docs/media/home/thinking.jpg" alt="Cody with a thought bubble over its head" width="100%"><br><b>Thinks while commands run</b><br><sub>a thought bubble, a foot tapping</sub></td>
+<td align="center" width="33%"><img src="docs/media/home/voice.jpg" alt="Cody turned sideways, listening, with its answer written above it" width="100%"><br><b>Talks back</b><br><sub>a real Claude Code session, out loud</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/media/home/skins.jpg" alt="Three skins: a pumpkin with a witch hat, an aviator with round glasses, the boss with sunglasses and a moustache" width="100%"><br><b>Skins</b><br><sub>a pumpkin, an aviator, the boss</sub></td>
+<td align="center"><img src="docs/media/home/headphones.jpg" alt="Cody wearing headphones" width="100%"><br><b>Headphones on</b><br><sub>when your music plays</sub></td>
+<td align="center"><img src="docs/media/home/little-window.jpg" alt="Cody in a small window floating over a code editor" width="100%"><br><b>A little window</b><br><sub>floating over your other apps</sub></td>
+</tr>
+</table>
+
+## For kids: apps by talking
+
+I made Cody so my kids could build things with Claude Code without typing a line: they talk to the mascot, and
+what they asked for shows up on the screen. Not apps for production. Toys, games and experiments, and the real
+skill underneath them: saying exactly what you want, then changing it until it is right.
+
+What a kid can make by talking, each one a sentence away, then *"bigger"*, *"slower"*, *"add a sound"*:
+
+- *"Make a game where a cat catches falling fish, and the score goes up."*
+- *"A dinosaur quiz with three questions and confetti at the end."*
+- *"A birthday card for grandma that plays a song when you click it."*
+- *"A page where I draw with the mouse and pick the colors."*
+- *"A two-minute timer for brushing my teeth, and Cody cheers at the end."*
+- *"A story where I choose what happens next."*
+
+**With you beside them.** The Claude account is yours, and the guardrails are the ones Claude Code already has:
+
+- The voice session works in the folder you start it in. Give them a folder of their own.
+- Before Claude runs a command, Cody says so out loud and shows it, and waits for a *yes* or a *no*.
+- Claude Code's permission settings decide what never runs, whatever anyone says to the mascot.
+- Everything they make is a plain file in that folder: open it together, keep the good ones.
+
+## Install in three steps
+
+1. **Download `CodySetup.exe`** from [Releases](https://github.com/baconshow/cody/releases) and open it (Windows;
+   on macOS and Linux, [from source](#quick-start-from-source-any-system), or the [Claude Code plugin](#claude-code-plugin)).
+2. **Open Cody.** The first run sets up the voice session and the private network for you.
+3. **Scan the QR code** with your phone, or just keep Cody in a browser tab on the computer.
+
+The honest version, SmartScreen warning and all, is under [Windows app](#windows-app) and
+[Put it on your phone](#put-it-on-your-phone).
 
 ## The pitch
 
@@ -54,10 +125,6 @@ screen), scenes and skins, and a swear word when you shake it.
 **Yours, on your network.** It runs on your computer, on your Claude subscription (no API key, no extra bill), and
 reaches your phone through your own Tailscale network. Nothing is sent to the author; nothing goes anywhere you
 did not choose.
-
-**Installs in three steps.** Download `CodySetup.exe`, open Cody, scan the QR code with your phone. The first run
-sets up the private network and the voice session for you. (The honest version, SmartScreen warning and all, is
-under [Windows app](#windows-app) and [Put it on your phone](#put-it-on-your-phone).)
 
 ## What it costs
 
