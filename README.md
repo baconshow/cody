@@ -5,6 +5,11 @@
 <h3 align="center">Your Claude Code, alive on your desk. Talk to it, and it codes.</h3>
 
 <p align="center">
+  <a href="https://github.com/baconshow/cody/releases/latest/download/CodySetup.exe"><img alt="Download the Windows installer (CodySetup.exe)" src="https://img.shields.io/badge/Download-Windows%20installer-ff8a3d?style=for-the-badge&logo=windows11&logoColor=white"></a>
+  <a href="https://baconshow.github.io/cody/"><img alt="Download page" src="https://img.shields.io/badge/Download%20page-baconshow.github.io%2Fcody-2b2b2b?style=for-the-badge"></a>
+</p>
+
+<p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-ff8a3d"></a>
   <a href="#windows-app"><img alt="Runs on Windows, macOS and Linux" src="https://img.shields.io/badge/runs%20on-Windows%20%C2%B7%20macOS%20%C2%B7%20Linux-2b2b2b"></a>
   <a href="#put-it-on-your-phone"><img alt="On your phone: Android app or any browser" src="https://img.shields.io/badge/phone-Android%20%C2%B7%20any%20browser-2b2b2b"></a>
@@ -17,27 +22,20 @@
   <a href="#for-kids-apps-by-talking">For kids</a> ·
   <a href="#talk-to-it-voice">Voice</a> ·
   <a href="#skins">Skins</a> ·
-  <a href="#privacy-and-security">Privacy</a>
+  <a href="docs/MANUAL.md">Full manual</a>
 </p>
 
 <table>
 <tr>
-<td width="40%"><img src="docs/media/cody-at-work.gif" alt="Cody reacting to Claude Code: a magnifier while it searches, confetti when the tests pass, a voice command turning into a diff, and Cody asking before it runs a command" width="100%"></td>
-<td>
-
-**A little orange desk pet that lives next to your Claude Code.** It watches what Claude does on your computer
-and reacts, live: a magnifier when Claude searches, a tiny keyboard when it writes code, a bug and a DEBUG MODE
-sign when a test fails, confetti when the work is done, zzZ when Claude is closed.
-
-**Say "Cody" and ask.** Your words go into a real Claude Code session on your computer, with your files and your
-tools, and Cody answers out loud. Before Claude runs anything, Cody asks; you say *yes* or *no*.
-
-**On your phone, on your desk, or floating over your other apps.** Free and MIT, on your own Claude subscription,
-through your own private network. Nothing is sent to the author.
-
-</td>
+<td width="50%"><img src="docs/media/cody-at-work.gif" alt="Cody reacting to Claude Code: a magnifier while it searches, confetti when the tests pass, a voice command turning into a diff, and Cody asking before it runs a command" width="100%"></td>
+<td width="50%"><img src="docs/media/cody-start-server.gif" alt="&quot;Cody, start the server.&quot; Claude finds the project, reads its port and starts it; Cody says the server is up on port 8787" width="100%"></td>
 </tr>
 </table>
+
+**A little orange desk pet for Claude Code.** It reacts, live, to what Claude does on your computer. Say *"Cody"*
+and it listens: your words go into a real Claude Code session, with your files and your tools, and Cody answers
+out loud. It asks before it runs anything. Free and MIT, on your own Claude subscription; nothing is sent to the
+author.
 
 > **Unofficial fan project.** Not affiliated with, endorsed by or sponsored by Anthropic. Claude and Claude Code are
 > trademarks of Anthropic, PBC. Cody is fan art. Not related to Sourcegraph's Cody either.
@@ -60,145 +58,68 @@ through your own private network. Nothing is sent to the author.
 ## For kids: apps by talking
 
 I made Cody so my kids could build things with Claude Code without typing a line: they talk to the mascot, and
-what they asked for shows up on the screen. Not apps for production. Toys, games and experiments, and the real
-skill underneath them: saying exactly what you want, then changing it until it is right.
-
-What a kid can make by talking, each one a sentence away, then *"bigger"*, *"slower"*, *"add a sound"*:
+what they asked for shows up on the screen. Toys, games and experiments, not apps for production, and the real
+skill underneath: saying exactly what you want, then changing it until it is right.
 
 - *"Make a game where a cat catches falling fish, and the score goes up."*
 - *"A dinosaur quiz with three questions and confetti at the end."*
 - *"A birthday card for grandma that plays a song when you click it."*
-- *"A page where I draw with the mouse and pick the colors."*
 - *"A two-minute timer for brushing my teeth, and Cody cheers at the end."*
-- *"A story where I choose what happens next."*
 
-**With you beside them.** The Claude account is yours, and the guardrails are the ones Claude Code already has:
-
-- The voice session works in the folder you start it in. Give them a folder of their own.
-- Before Claude runs a command, Cody says so out loud and shows it, and waits for a *yes* or a *no*.
-- Claude Code's permission settings decide what never runs, whatever anyone says to the mascot.
-- Everything they make is a plain file in that folder: open it together, keep the good ones.
+Then *"bigger"*, *"slower"*, *"add a sound"*. **With you beside them:** the Claude account is yours, the voice
+session works in the folder you start it in (give them one of their own), Cody asks out loud before Claude runs a
+command, and Claude Code's permission settings decide what never runs.
 
 ## Install in three steps
 
-1. **Download `CodySetup.exe`** from [Releases](https://github.com/baconshow/cody/releases) and open it (Windows;
-   on macOS and Linux, [from source](#quick-start-from-source-any-system), or the [Claude Code plugin](#claude-code-plugin)).
+1. **[Download `CodySetup.exe`](https://github.com/baconshow/cody/releases/latest/download/CodySetup.exe)** and open
+   it (Windows). On macOS and Linux, [from source](#quick-start-from-source-any-system).
 2. **Open Cody.** The first run sets up the voice session and the private network for you.
-3. **Scan the QR code** with your phone, or just keep Cody in a browser tab on the computer.
+3. **Scan the QR code** with your phone, or keep Cody in a browser tab on the computer.
 
-The honest version, SmartScreen warning and all, is under [Windows app](#windows-app) and
-[Put it on your phone](#put-it-on-your-phone).
+## The short manual
 
-## The pitch
+Everything below in full, with every option, is in the **[manual](docs/MANUAL.md)**.
 
-> The one section of this README written like a brochure, for a thing that is free and MIT. Every line below is
-> something Cody does today; the rest of the page says how, and what it costs (nothing extra).
+### Talk to it (voice)
 
-**Bring your Claude Code to life.** A desk pet that reacts, live, to every search, edit, command, failed test,
-finished subagent and permission prompt. Glance at it instead of at the terminal.
+Hold Cody, or say *"Cody"*, and ask. Claude does the work in the voice session on your computer and Cody answers in
+a sentence or two; links and commands show on screen to tap and copy. Approve what Claude wants to run with a
+spoken *yes* or *no*. After an answer the microphone stays open for a few seconds, so you just go on talking. Also:
+timers and reminders, a memory of how you like things, a mini Cody that flies to the button you asked about, and a
+clip to send Claude a picture from your phone. [More](docs/MANUAL.md#talk-to-it-voice)
 
-**Command Claude Code by voice.** Say *"Cody"* from the couch. Your words land in a real Claude Code session on your
-computer, with your files, your tools and your context, and the mascot answers out loud in two sentences. Approve
-what it wants to run with a spoken *yes* or *no*.
+### Heads-up from your other sessions
 
-**Change your own code without touching the keyboard.** *"Cody, add a dark mode toggle to the settings page."*
-Claude edits the project the voice session was started in, on your computer, asking before it runs anything. Quick
-questions work the same way: *"what does the auth middleware do?"*, *"are the tests green?"*
+A long task finishes, or Claude waits for your permission in any Claude Code session: Cody hops, knocks on the
+screen and says so, and your phone buzzes, even with the app closed. Opt-in: your plan's usage left, said out
+loud; Cody typing along when you type to Claude; your important Windows notifications read aloud.
+[More](docs/MANUAL.md#heads-up-from-your-other-claude-code-sessions)
 
-**Everything you already plugged into Claude Code, by voice.** A calendar, Airtable, your smart home: any MCP server
-you connected answers through Cody, with the same permission prompts.
+### Put it on your phone
 
-**Pass a word to your other Claude sessions.** *"Cody, tell my other session to run the tests when it is done."*
-The voice session is an ordinary Claude Code session, so it can message any other Claude session open on your
-computer, the Claude Desktop conversations included, and that session picks it up as if you had typed it there.
+Settings > **Create your private network**, one press: Cody sets up [Tailscale](https://tailscale.com) (serve, never
+Funnel) and shows a QR code. Only your own devices see it. On Android there is also an app, with notifications
+and a home screen widget. [More](docs/MANUAL.md#put-it-on-your-phone)
 
-**Keep an eye on every session.** A long task finishes, Claude waits for your permission: your phone buzzes with
-Cody's face and the words, screen off or not, app closed or not. A home screen widget keeps the last heads-up.
+### Windows app
 
-**Know where you stand with your plan.** *"Cody, how much usage do I have left?"*: the session and the week, said out
-loud and shown on screen, with when each one resets. Read from Claude Code's own status line, no API call.
+`CodySetup.exe` installs for your user only, no Python needed, and lives next to the clock: Open Cody, Status,
+Start voice session, Settings, Start with Windows. Windows SmartScreen warns the first time (the installer is not
+signed yet): **More info**, then **Run anyway**. [More](docs/MANUAL.md#windows-app)
 
-**A desk buddy on top.** Timers and reminders that ring on the phone, a memory of your name and how you like things,
-*"take a screenshot and send it to my WhatsApp"*, *"where is the export button?"* (a mini Cody flies to it on your
-screen), scenes and skins, and a swear word when you shake it.
-
-**Yours, on your network.** It runs on your computer, on your Claude subscription (no API key, no extra bill), and
-reaches your phone through your own Tailscale network. Nothing is sent to the author; nothing goes anywhere you
-did not choose.
-
-## What it costs
-
-**Nothing extra, out of the box.**
-
-| Piece | Cost |
-|---|---|
-| Cody | Free, MIT license |
-| Claude | **No API key and no API billing.** Voice commands run inside your normal Claude Code session, so they count against your Claude subscription (Pro or Max) like any message you type |
-| Phone access | [Tailscale](https://tailscale.com/pricing) Personal plan: free (up to 6 users, unlimited devices) |
-| Mascot voice | Cody's own sounds (no words: chirps while the text shows), or your phone's built-in voice if you pick it in Settings: free and unlimited |
-| Nicer voice (optional) | [ElevenLabs](https://elevenlabs.io/pricing): free tier of 10,000 credits a month, paid plans from $6 a month |
-
-### Optional ElevenLabs voice: a cost simulation
-
-The mascot is told to answer in at most two short sentences, so a reply is about **100 characters**. With the
-default model, Flash v2.5, ElevenLabs charges between 0.5 and 1 credit per character through the API. Plans and
-prices from the ElevenLabs pricing page, checked October 2026:
-
-| Plan | Price | Credits a month | Spoken replies a month | About per day | Cost per reply |
-|---|---|---|---|---|---|
-| Free | $0 | 10,000 | 100 to 200 | 3 to 6 | $0 |
-| Starter | $6/month | 30,000 | 300 to 600 | 10 to 20 | 1 to 2 cents |
-| Creator | $22/month | 121,000 | 1,210 to 2,420 | 40 to 80 | about 1 to 2 cents |
-
-The free tier covers casual use. If you talk to it a lot, Starter costs about a cent or two per answer. Unused
-credits roll over for up to two months. Only what the mascot says out loud is sent to ElevenLabs (Claude's short
-replies and its "can I run a command?" questions), never your question or your files. Without a voice configured,
-nothing goes to ElevenLabs at all. Synthesis is capped at 20 replies a minute, so a leak can't drain your credits.
-
-## Windows app
-
-Download **CodySetup.exe** from the [latest release](https://github.com/baconshow/cody/releases/latest) and run it.
-No Python needed, no admin rights: it installs for your user only.
-
-- Cody lives in the notification area (next to the clock). Its menu: **Open Cody**, **Status**, **Start voice
-  session**, **Settings**, **Start with Windows** and **Quit**.
-- Opening Cody starts everything: the mascot server, the mascot in your browser and the voice session (a terminal
-  window with Claude Code; confirm the development channel there once, see [Talk to it](#talk-to-it-voice)). You
-  never start two terminals by hand. Started with Windows, it stays quiet in the tray until you open it.
-- **Windows SmartScreen will warn you** the first time ("Windows protected your PC"), because the installer is not
-  signed with a paid code-signing certificate yet. Click **More info**, then **Run anyway**. The installer is built
-  by GitHub Actions from this repository ([`packaging/`](packaging), workflow `Windows app`); you can check the
-  build log of any release.
-- Uninstalling (Settings, Apps) also takes Cody's hooks out of Claude Code's settings. Your timers and memory stay
-  in `%LOCALAPPDATA%\cody` until you delete that folder.
-
-## Claude Code plugin
-
-Cody is also a Claude Code plugin, from the marketplace in this repository. In Claude Code:
+### Claude Code plugin
 
 ```
 /plugin marketplace add baconshow/cody
 /plugin install cody@cody
 ```
 
-(Claude Code 2.1.275 or later can do it in one step: `/plugin install cody --marketplace baconshow/cody`.)
+Brings the heads-up hooks and `/cody:setup`, `/cody:status` and `/cody:voice`. [More](docs/MANUAL.md#claude-code-plugin)
 
-The plugin brings Cody's heads-up hooks and three commands:
+### Quick start (from source, any system)
 
-| Command | What it does |
-|---|---|
-| `/cody:setup` | Checks everything, starts the mascot server if it is off and walks you through what is missing |
-| `/cody:status` | What is on and off: server, voice session, hooks, Tailscale, phone, voice |
-| `/cody:voice` | Opens the voice session in a new terminal window |
-
-Nothing to edit by hand. With the plugin on, `--install-hooks` does nothing (the plugin already has the hooks), so
-they never run twice. The plugin does not load the voice channel into every session: a plugin's MCP server would
-start in all of them, and the channel only belongs in the voice session, which `/cody:voice` opens. The hooks and
-commands need Python 3 (`python3`, `python` or `py`), or the Windows app.
-
-## Quick start (from source, any system)
-
-You need **Python 3.10+** and **Claude Code**. Nothing to `pip install`: the server uses only the standard library.
+Python 3.10+ and Claude Code; nothing to `pip install`.
 
 ```bash
 git clone https://github.com/baconshow/cody
@@ -206,388 +127,25 @@ cd cody
 python cody.py --open
 ```
 
-That opens the mascot at `http://127.0.0.1:7420`. Use Claude Code as usual and watch it react.
+[More](docs/MANUAL.md#quick-start-from-source-any-system)
 
-**It sets itself up.** The first time, Cody asks two questions in the terminal (Enter means yes):
+### Skins
 
-- *Open Cody on your phone through Tailscale?* If Tailscale runs on the computer, Cody shares itself in your private
-  tailnet (`tailscale serve`, never Funnel), on a free HTTPS port so anything you already serve stays as it is, and
-  prints the address to open on the phone. Only your own Tailscale login gets in.
-- *Tell you on the phone when Claude finishes a long task or needs you?* Adds three Claude Code hooks (see
-  [Heads-up](#heads-up-from-your-other-claude-code-sessions)).
+A pumpkin, an aviator, the boss and more, free, in Settings > Skins. Scenes and skins are data, not code (JSON in
+`web/scenes/` and `web/skins/`), and Claude can make a new scene for Cody by voice. [More](docs/MANUAL.md#skins)
 
-A "no" is remembered. `python cody.py --setup` asks again; `--no-setup` skips all of it. The language follows the
-computer's (Portuguese or English) unless you set it.
+### What it costs
 
-Nothing else to configure. To change something, copy `config.example.json` to `config.json` and edit it (the
-Windows app keeps its `config.json` in `%LOCALAPPDATA%\cody`):
+Nothing extra: no API key and no API bill (it runs on your Claude Pro or Max plan), Tailscale's free plan, and
+Cody's own voice or your phone's. A nicer ElevenLabs voice is optional. [More](docs/MANUAL.md#what-it-costs)
 
-| Key | Default | What it does |
-|---|---|---|
-| `port` | `7420` | Local port |
-| `language` | the computer's | `"en"` or `"pt-BR"`: spoken replies, wake word and screen text |
-| `extra_hosts` | found by itself | More host names allowed besides localhost (Tailscale addresses that forward to Cody are found at start) |
-| `allowed_logins` | your own login | The Tailscale logins that may use it from the phone |
-| `android_fingerprints` | none | SHA-256 certificate fingerprints of your own build of the Android app, for `/.well-known/assetlinks.json` |
-| `voice` | `null` | Optional ElevenLabs voice: `{"voice_id": "...", "model": "eleven_flash_v2_5"}` |
-| `voice_folder` | current folder | Folder the voice session works in (the Windows app's default is your home folder) |
+### Privacy and security
 
-## Scenes
-
-What Cody does around itself follows what Claude really does: a monitor full of code while Claude edits files, a
-speech bubble with "..." while a command runs, a black bug and a `> DEBUG MODE` sign when a command or a test fails,
-confetti when a long task finishes, a coffee mug after a quiet while, a nightcap when it sleeps, and headphones
-while music plays on the computer (Windows: Cody asks the system whether any player is playing, Spotify, a browser
-tab, anything; it never learns what. Off in Settings). The headphones go over whatever else is going on. Scenes are
-data, in `web/scenes/scenes.json`: voxel boxes, a trigger, simple clips, a sound and a priority (the highest one
-whose trigger is on wins; one marked `"over"` is worn on top), so new scenes and skins are a JSON edit. Try one with
-`?scene=debug` (or `coding`, `thinking`, `coffee`, `party`, `sleeping`), and `?over=headphones` with any of them.
-With "reduce motion" on, scenes appear without moving. Only the failure itself is read from the transcripts, never
-its output.
-
-## Skins
-
-Settings has a **Skin shop**: the classic Cody, **Jack-o'-Cody**, the Halloween one (a real pumpkin: a ribbed
-body, a ridged stem with a tendril, a grin carved through the front with candlelight inside, the ^ eyes and a
-leather witch hat with a bent tip, a satin band and a gold buckle), and three looks with glasses: the **Aviator** (round gold
-wire glasses with lenses, a pilot's cap with its badge and a toothy grin), **Pixel** (8-bit frames and a top hat,
-blocks on purpose) and **The Boss** (polished dark glasses, a red beret and a curled moustache). A hat steps aside
-while a scene puts something on the head (the nightcap, the headphones) and comes back after. Every skin is free while Cody is Cody; a paid one comes only
-with a character of its own. A skin is data, in `web/skins/skins.json`: new colors for the figure's plastic,
-pieces it wears (voxel boxes like a scene's worn parts, a color, maybe a glow; or, for what boxes cannot say,
-**shapes**: a `tube` along a spine, a `lathe` profile turned around, a `plate` with rounded edges, each in a
-finish: plastic, matte, leather, satin, metal) and its looks (the smile, its own mouth, a ribbed `gourd` body
-instead of the box, its own stem instead of the leaves, a mouth carved through the front, shorter legs). The
-shapes and their numbers are described at the top of `web/js/forms.js`. The choice is per screen (the phone and the computer each pick theirs); `?skin=halloween` shows one.
-
-## Is everything on?
-
-The pill in the corner of the mascot says it at a glance (a green light and "all good"; red and what to fix, for
-example "voice session closed"). Tap it for **Status**: server, voice session, voice channel, hooks, Tailscale,
-phone, microphone, sound and voice, each with one plain sentence, what to do and, where Cody can do it, a line to
-press. Status is the last entry of the same panel as Settings, so one tap goes from a problem to its setting.
-Buttons that change the computer (open the voice session, add the hooks) only work on the computer itself, not
-from the phone. Errors show their real reason, for example `ElevenLabs: payment pending`.
-
-The same checks in the terminal: `python cody.py --doctor` (or `/cody:status` in Claude Code). If two voice
-sessions are open, Cody says so: only the newest one hears you.
-
-## Settings and the first run
-
-The first time you open Cody on the computer, it walks you through three steps, out loud: language and voice, the
-phone (a QR code to scan), and the voice session, ending in "say hi". **Settings** (the pill in the top corner of
-the mascot page, the tray menu, or the page's `#settings`) opens beside the mascot and has the rest, one section
-at a time from a list (Voice, On your phone, General, Skins, About, and Status at the end): voice (ElevenLabs with
-your own key and a **Test** button, the device's voice or Cody's sounds; Cody's hosted voice is listed as coming
-soon), the phone (the codes to scan and the private address with a Copy button), language, the hooks, starting
-with Windows and privacy. On a phone lying down the panel is the whole screen: a back arrow, the list on the left,
-the section on the right. Three pills sit over the mascot: **Settings** at the top, the **Status** light with its
-words at the bottom left and the **wake word** at the bottom right; after four seconds without a touch they step
-back (only the wake word's light stays, and a Status that needs you), and a tap brings them back. The wake word
-pill shows whether Cody is listening for its name (green) or not (red); a tap switches it. Its light shows
-what the microphone is doing: it swells a little with every sound it hears, **grows and shrinks while Cody is
-taking a command** (after its name, after an answer, or while you hold it), and turns amber, with the reason in
-words, when it cannot hear (no microphone, speech recognition offline).
-
-- The key is typed in Settings, saved in Cody's data folder on this computer only (readable only by you), and never
-  shown again: the page only learns that a key is there.
-- Settings change only on the computer itself; from the phone you can switch the language of that phone's screen.
-- The QR codes are drawn on your computer (`cody/qr.py`): no web service ever sees your address.
-
-## Put it on your phone
-
-**The easy way:** Settings > **Create your private network**, one press. Cody does it without a terminal and goes
-on by itself: it installs Tailscale if it is missing (`winget` on Windows, the official download page elsewhere),
-opens the sign-in page (Google, Microsoft, GitHub or Apple), opens the Tailscale admin page if MagicDNS or HTTPS
-certificates are off, looks again every few seconds while you finish in the browser, shares itself with
-`tailscale serve`, and shows two QR codes: the Tailscale app for your phone, and Cody's private address. Only your
-own devices can see Cody. Your phone needs the Tailscale app too, signed in to the same account.
-
-**By hand:**
-
-The server only listens on `127.0.0.1`. To reach it from your phone, Cody uses Tailscale **serve**, which keeps it
-inside your private tailnet. Never use `tailscale funnel`: that would put your mascot (and its voice channel into
-Claude) on the public internet. Cody refuses Funnel requests and never trusts a Funnel address.
-
-1. Install [Tailscale](https://tailscale.com/download) on your computer and your phone, and sign in to the same
-   account on both.
-2. In the Tailscale admin console, under **DNS**, enable **MagicDNS** and **HTTPS certificates**.
-3. Start Cody and answer yes to the phone question. It prints the address, for example
-   `https://my-pc.tail1234.ts.net`. (By hand: `tailscale serve --bg 7420`, then restart Cody from Status (the bottom
-   row) > **Restart Cody**: it finds the address.)
-4. Open the address on your phone and use **Add to Home screen**. It runs full screen, landscape, and keeps the
-   screen awake.
-
-Only your own Tailscale login gets in, even if other people or shared devices are in your tailnet. To let someone
-else in, list their logins in `allowed_logins`. A tagged Tailscale machine has no login of its own: then Cody warns
-you and trusts every device in your tailnet until you set `allowed_logins`.
-
-Shake the phone and the mascot holds on to the edges of the screen for dear life.
-
-### The Android app
-
-The same mascot as an app (`android/`, on Google Play once published; until then, the APK from the `Android app`
-workflow). It opens the page your computer serves in Chrome as a *Trusted Web Activity*: full screen, landscape,
-with the microphone and speech of a Chrome tab, no address bar. The first run walks you through it: what you
-need (Cody on the computer, Tailscale on the phone), pairing by the second QR code in Settings > On your phone
-(a `cody://pair` link your camera understands) or the typed address, the heads-up switch and the widget. Then two
-things a web page cannot do:
-
-- **Tell me when Claude needs me** (a switch on the first run, off by default): a
-  quiet notification keeps the app waiting on your computer (`/api/events`, held open up to 25 s at a time), and a
-  long task done, Claude waiting for your permission, or an important notification you chose to hear become
-  Android notifications with sound, screen off or not. Nothing leaves your tailnet; the app knows only the address
-  you gave it.
-- **A home screen widget**: Cody's face for the last heads-up (waiting for you, done, a notification, or all
-  quiet) and the words, with how long ago. Tap it to open the mascot.
-
-Chrome shows the page as the app only when the computer vouches for it: `/.well-known/assetlinks.json` lists the
-app's certificates (the published one, plus `android_fingerprints` in `config.json` for a build of your own:
-`keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` prints the
-SHA-256). Without a match it opens as a Custom Tab, the same page with a thin bar on top. Long-press the app's icon
-for *Settings* (the first run again, from the address on). Building it yourself: `cd android && ./gradlew
-assembleDebug` with JDK 17 and the Android SDK (platform 36); the unit tests run with `./gradlew testDebugUnitTest`.
-
-## Talk to it (voice)
-
-Voice uses Claude Code [channels](https://code.claude.com/docs/en/channels), a research preview. Channels work when
-you sign in to Claude Code with your claude.ai account (Pro or Max) or a Console API key. On Team and Enterprise
-plans an admin has to enable them first.
-
-1. Start the voice session in the folder you want Claude to work in. In the Windows app: the tray menu's **Start
-   voice session** (it opens in your home folder, or in `voice_folder` from `config.json`). From source:
-   ```bash
-   python cody.py --voice            # any system; or .\scripts\voice.ps1 / ./scripts/voice.sh
-   ```
-   Claude Code asks you to confirm the development channel: choose **I am using this for local development**.
-2. On the mascot, **hold** it and speak, or say **"Cody"** (or "Claude") followed by your request.
-3. Claude does the work in that session and the mascot speaks a short answer. Links, commands and file paths are
-   never read aloud: they show up on screen to tap and copy. To show Claude a picture, tap the **clip** above the
-   wake word and pick one: it is kept in Cody's data folder on the computer (the latest 50) and the session is
-   told where, so Claude opens it. On a computer (Chrome or Edge), the round button above the clip opens Cody in a
-   **little window** that floats over your other apps, without the browser's bar: Cody keeps listening and
-   answering from there while you work in something else. After the answer **the microphone stays open for a
-   few seconds**: just go on talking, no "Cody" needed (and when Claude asks something back, simply answer). The
-   light grows and shrinks while it does. It can be turned off in Settings, per screen.
-4. When Claude needs permission to run something, the mascot asks out loud and shows the command. Answer with
-   just **yes** or **no** within a minute; a sentence like "ok, stop" counts as neither. Commands too long to show
-   in full must be approved in the terminal. The terminal prompt stays open too; whichever answers first wins.
-5. Ask for a screenshot: *"take a screenshot and send it to my WhatsApp"*. Claude takes it on the computer (you
-   approve the tool like any other), and the picture pops up on the phone with **Share** and **Save**. Tap Share and
-   pick WhatsApp, or any other app. Claude only gets an id, never the picture, and nothing is uploaded anywhere
-   except where you share it. Screenshots happen only when you ask: there is no periodic capture.
-6. In a hurry: *"Cody, take a screenshot"* (or *"Cody, printa"*), nothing else in the sentence. Cody takes it on
-   the spot, with a shutter click, and the picture pops up with Share: no round trip through Claude, no voice
-   session needed. The saying is the asking: the picture goes to the page you asked from, nowhere else.
-
-The voice session lets Cody's harmless tools run without asking (reply, timers, memory, pointing). The two that
-capture your screen, `screenshot` and `look`, always ask first, by voice too (the quick "take a screenshot" is
-the exception: there, your words are the permission).
-
-**Scenes on request, and scenes of Cody's own.** *"Cody, put your headphones on"*, *"show the party for a
-minute"*, *"heart eyes!"*: Claude calls the `scene` tool and the page shows it for a while (30 seconds unless you
-say), over whatever else is going on. Five scenes only change the eyes: `love` (♥ ♥), `laugh` (> <), `wink` (! <),
-`dizzy` (● ×) and `stars` (★ ★); the party has starstruck eyes and the bug scene dizzy ones on their own. *"Cody,
-make yourself a rainbow"*: Claude writes a scene of its own with
-`custom_scene`, as data only (the same voxel boxes, colors, clips and `eyes` as `web/scenes/scenes.json`, never code),
-which Cody checks field by field, refuses with the reasons if anything is off, and keeps in `custom/` in its data
-folder, loaded with the built-in scenes; it shows right away. *"Cody, undo"* removes the newest one. Twelve at
-most. Nothing of this ever touches the files of your project.
-
-**Your other MCP servers work by voice too.** The voice session is a normal Claude Code session with Cody's channel
-added, so whatever you already connected to Claude Code (Airtable, a calendar, your smart home) is there: *"Cody,
-what is on my roadmap this week?"*. Cody pre-approves only its own harmless tools; a tool from another server asks
-permission like always, and you answer **yes** or **no** out loud.
-
-**Your other Claude sessions, too.** *"Cody, tell my other session to run the tests when it is done."* Claude
-Code can message the other Claude sessions open on the same computer (the ones in the Claude Desktop app
-included), and the voice session is no exception: the words arrive in that conversation as a message, and the
-Claude there decides what to do with them. Nothing of this leaves your computer; Cody only carries your voice to
-the session that does the sending.
-
-### Timers and reminders
-
-*"Cody, set a timer for ten minutes for the pizza"*, *"a 25 minute focus timer"*, *"remind me at 3:30 to call
-Ana"*, *"cancel the pizza timer"*, *"what timers are running?"*
-
-The countdown shows in the corner of the phone. When it ends, Cody hops, the phone buzzes and chimes, and the mascot
-says what it was for, until you tap the timer (or a minute goes by). Reminders more than an hour away show the time
-of day instead of a countdown. Timers live on your computer (`timers.json` in Cody's data folder, see below), so they
-keep running after you close the voice session or reload the phone. The phone has to be on to ring, like any desk
-clock.
-
-### Memory
-
-*"My name is Ana"*, *"remember that I like short answers"*, *"forget my address"*
-
-Claude saves short facts with Cody's `remember` tool and gets them back at the start of every voice session, so Cody
-doesn't forget your name. They stay in `memory.json` in Cody's data folder, on your computer only: no account, no
-cloud, no sync. Delete the file to make Cody forget everything. At most 40 facts.
-
-### Cody on your computer screen (Windows)
-
-*"Cody, where is the export button?"*
-
-Claude takes a look at your screen (the `look` tool, which asks your permission), finds the spot, and a mini Cody
-flies there and points at it with a little speech bubble: *"Right here! Click Export"*. Meanwhile the mascot on the
-phone turns and points the same way. The mini Cody is a see-through window you can click through; it never takes
-the focus and leaves after eight seconds.
-
-Unlike `screenshot`, **`look` does send the picture to Claude**, scaled down, as part of the conversation: that is
-how Claude finds the button. It only happens when you ask about something on the screen. To forbid it, deny
-`mcp__cody__look` in Claude Code's permissions. Pointing is Windows only for now (macOS and Linux: PRs welcome).
-
-Speech recognition uses your browser's Web Speech API. Chrome on Android and on the desktop works best. In Chrome,
-the audio is transcribed by Google's speech service.
-
-## Heads-up from your other Claude Code sessions
-
-Cody can tell you when Claude finishes a long task in any session (*"Done! Claude finished."*) or is waiting for
-your permission: Cody knocks on the screen, toc-toc, and says *"Claude needs you at the computer."*, so you can
-leave the desk while it works. It uses Claude Code [hooks](https://code.claude.com/docs/en/hooks). Add them with:
-
-```bash
-python cody.py --install-hooks
-```
-
-That adds three small hooks (`UserPromptSubmit`, `Stop` and `Notification`) to your Claude Code user settings,
-`~/.claude/settings.json`, keeping a backup at `settings.json.cody-backup` and everything else you have there. New
-sessions pick them up. `python cody.py --uninstall-hooks` removes them.
-
-Each hook writes one line to `events.jsonl` in Cody's data folder: the time, the kind of event and the first
-characters of the session id. Never your prompt, Claude's reply or a command. A turn shorter than 20 seconds ends
-without a word (the face already showed the work), and the voice session is skipped, since there Cody already does
-the talking.
-
-Prefer to add them by hand? Each one is a command hook running `"<python>" "<path to>/cody.py" --hook`.
-
-### "Cody, how much usage do I have left?" (opt-in)
-
-Turn on **Usage limits** in Settings and Cody becomes Claude Code's status line: on every refresh, Claude Code
-hands the status line your plan's session (five-hour) and week usage, and Cody keeps those two numbers (nothing
-else of what the status line gets) in `usage.json` in its data folder. The status line you had still shows:
-Cody runs it right after, with the same input, and puts it back when you turn the switch off. Then ask, by
-voice, *"Cody, how much usage do I have left?"* (*"Cody, quanto resta de uso?"*): it says and shows the session
-and the week, with when each resets. No API call, no token read, nothing leaves the computer. Subscription
-plans only: an API account gets no usage numbers from Claude Code.
-
-### Typing along (opt-in)
-
-Turn on **Type along when I type to Claude** in Settings and Cody's keyboard comes out while you type in a
-window with "Claude" in its title (the Claude app, or Claude Code in a terminal). What Cody checks, a few
-times a second: whether input arrived on the computer and the pointer did not move (so it was the keyboard),
-and whether the front window is a Claude one. There is no keyboard hook: Cody never learns which keys, and
-nothing is recorded. Off by default.
-
-### Your Windows notifications, read aloud (opt-in)
-
-Turn on **Read my important Windows notifications** in Settings (Windows asks you to allow it, under Privacy >
-Notifications) and Cody knocks on the screen and says the app and the title of the important ones: messages,
-mail, calendar and calls (WhatsApp, Telegram, Teams, Slack, Outlook, Mail, Calendar, Phone Link and the like, or
-your own list in `notification_apps` in config.json), or any toast with an urgent word in the title. Cody reads
-the title only, never the body; the same one is said once, and at most one every 15 seconds. The title never
-leaves the computer: with the device's voice or Cody's sounds it is spoken locally, and with ElevenLabs only the
-app's name is sent (*"Something new on Outlook."*), the title stays in the caption. Off by default.
-
-### Four ways to sound
-
-Settings > Voice picks the first one to try; when it fails, the next one speaks and the screen says so (for example
-"ElevenLabs didn't work (payment pending): This device's voice instead"):
-
-1. **ElevenLabs**, with your own key (below);
-2. **Cody's hosted voice**, opt-in, not offered yet;
-3. **this device's voice** (the browser's speech; robotic on most computers);
-4. **Cody's sounds**: no words, little chirps in the rhythm of the text while it shows on screen. They always work,
-   and they are what a new install uses until you pick something else.
-
-Cody's sounds also mark what happens: thinking, done, an error, calling you, a timer ringing, a startle. A tap on
-Cody is silent: tapping and holding it is how you talk to it, so it answers with a hop, not with a noise.
-They are made from scratch by `tools/make_sounds.py` (only the Python standard library, no samples), live in
-`web/sounds`, and are MIT like the rest. The mouth follows their volume.
-
-### A nicer voice with ElevenLabs
-
-1. Create an [ElevenLabs](https://elevenlabs.io) account (the free tier is enough to start).
-2. Create an API key and paste it in **Settings > Voice** (or on the first step of the first run). It is saved on
-   this computer only, in Cody's data folder. The `ELEVENLABS_API_KEY` environment variable and a `.elevenlabs-key`
-   file in your home folder still work too.
-3. With the key saved, Settings lists the voices of your ElevenLabs account. Pick one: Cody says hi with it right
-   away, and it is saved. To use a voice from the ElevenLabs voice library, add it to your voices there first. If
-   your key is not allowed to list voices (a key restricted to text to speech), Settings asks for a voice ID
-   instead. By hand, the same thing in `config.json`:
-   ```json
-   { "voice": { "voice_id": "YOUR_VOICE_ID", "model": "eleven_flash_v2_5" } }
-   ```
-
-Listing the voices costs no credits; hearing one costs one short sentence (about 30 characters).
-
-Never commit your key. `config.json` and `.elevenlabs-key` are already in `.gitignore`.
-
-With a voice configured, timers and heads-up are spoken in it too. Their words are always made on the computer
-from a fixed list (and the timer's label), never sent in by the phone.
-
-## How it works
-
-```
-Claude Code ──writes──> ~/.claude/projects/**/*.jsonl ──read every 2 s──> cody.py ──> mascot (browser/phone)
-                                                                                 │
-phone mic ──Web Speech──> POST /api/voice ──> voice channel (MCP) ──> your Claude Code session
-                                                                                 │
-mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool) <───────┘
-```
-
-- **Activity**: the server reads the tail of Claude Code's own transcripts. Only the tool name (and whether it
-  edited a source file) reaches the page: never commands, file paths or conversation text.
-- **Voice channel**: `cody/channel.py` is a tiny MCP server that Claude Code starts. It pushes what you said into
-  the session and keeps Claude's short reply for the mascot. Its other tools (`cody/abilities.py`) set timers,
-  save facts, look at the screen and send the mini Cody (`cody/overlay.py`, plain tkinter) to point.
-- **Data folder**: `%LOCALAPPDATA%\cody` on Windows, `~/.local/state/cody` elsewhere. Small JSON files shared by
-  the server, the channel and the hooks: timers, memory, hook events. Readable only by you.
-- **Mascot**: three.js (bundled in `web/vendor/three`, MIT), with a pixel-art 2D fallback. The face motion (springs, blinks, glances)
-  is ported from the face animator of the public-domain Bluey app.
-- **Cursor follow**: on Windows the mascot looks at your mouse pointer. Other systems: PRs welcome.
-
-## Privacy and security
-
-- No telemetry. Cody never sends anything to its author (the full list of what goes where is in
-  [PRIVACY.md](PRIVACY.md)). The update check is off by default; on, it asks GitHub once a day for the latest
-  version number. Timers, memory and hook events stay in the data folder on
-  your computer. What does leave it, as part of using Claude and the voice you chose: the saved facts reach Claude
-  with the first thing you say in each voice session, and with an ElevenLabs voice the timer labels are spoken by
-  ElevenLabs when they ring.
-- Screenshots are taken only on request, kept in memory (the latest three) and never written to disk on Windows
-  (macOS and Linux use a temp file that is deleted right away). The `screenshot` picture goes to your phone only;
-  the `look` picture goes to Claude, so it travels like anything else in your Claude Code conversation. Both ask
-  first. If your screen may show things that must not leave the computer, deny `mcp__cody__screenshot` and
-  `mcp__cody__look` in Claude Code's permissions.
-- The server binds to `127.0.0.1`. Every request needs an allowed `Host` header, every `/api` route needs a random
-  token that changes on each start, and cross-site requests are refused. Requests through Tailscale Funnel are
-  always refused; set `allowed_logins` to keep the rest of your tailnet out.
-- Trust model: anyone who can load the page can talk to your Claude session. That means programs on this computer
-  and, without `allowed_logins`, every device in your tailnet. Voice messages are capped at
-  20 a minute.
-- The voice channel listens on `127.0.0.1` only and needs a secret that lives in a file readable only by you.
-- Outside connections: your browser's speech service, and ElevenLabs only if you configure a voice. three.js and the
-  font (Varela Round, SIL Open Font License) ship with Cody, so the page loads no CDN and works without internet.
-
-## Tests
-
-```bash
-python -m unittest discover tests
-node --test "tests/js/*.test.mjs"
-cd android && ./gradlew testDebugUnitTest
-```
-
-## URL options
-
-Handy for tinkering: `?lang=pt-BR`, `?visual=2d`, `?gallery=1` (all moods side by side), `?mood=sleepy`,
-`?prop=keyboard`, `?grab=1` (the shake startle), `?curse=1` (the swearing after it),
-`?sensor=1` (shows the accelerometer readings).
+No telemetry; nothing is ever sent to the author ([PRIVACY.md](PRIVACY.md)). The server listens on your computer
+only, every request needs a token that changes on each start, and only your own Tailscale login gets in from the
+phone. [More](docs/MANUAL.md#privacy-and-security)
 
 ## More
 
-[CHANGELOG](CHANGELOG.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md) · [Manual tests](docs/MANUAL-TESTS.md)
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+[Full manual](docs/MANUAL.md) · [CHANGELOG](CHANGELOG.md) · [Privacy](PRIVACY.md) · [Security](SECURITY.md) ·
+[Contributing](CONTRIBUTING.md) · [Manual tests](docs/MANUAL-TESTS.md) · MIT [license](LICENSE)

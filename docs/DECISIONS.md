@@ -751,3 +751,8 @@ computer the same content in a side panel of 480.
   as toys, games and experiments, not apps for production, with the guardrails Claude Code already has (the
   session's folder, Cody asking before a command, the permission settings) and the account in the adult's hands.
   No names in the repository.
+- Later the same night, the maintainer asked for less text and the installer link up front. The README is now the
+  short version: two GIFs from the Short side by side (Cody at work, and "Cody, start the server"), a Download
+  button for `CodySetup.exe` (`releases/latest/download`, live once the release has it) and one for the download
+  page (`site/`, on GitHub Pages after the merge), the grid, the kids, install in three steps and a few lines per
+  topic. The full text moved, unchanged, to `docs/MANUAL.md`, and each short section links to its part there.
