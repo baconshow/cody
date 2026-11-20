@@ -122,6 +122,38 @@ test('closed channel: asks to start the voice session on the computer', async (t
   assert.equal(st.states.at(-1), null);
 });
 
+test('back from the little window, what was said there is not said again here', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice } = scenario();
+  voice.start();
+  await flush();                                            // the first look marks the place
+  voice.stop();                                             // the little window opened and took over
+  st.replies = [{ seq: 1, request_id: '1', text: 'said in the little window' }, { seq: 2, request_id: '2', text: 'that too' }];
+  voice.start({ fresh: true });
+  await flush();
+  t.mock.timers.tick(VOICE.slow + 1);
+  await flush();
+  assert.deepEqual(st.spoken, [], 'nothing repeated when the tab takes over');
+  st.replies.push({ seq: 3, request_id: '3', text: 'new, here' });
+  t.mock.timers.tick(VOICE.slow + 1);
+  await flush();
+  assert.deepEqual(st.spoken.map((u) => u.text), ['new, here'], 'what comes after is spoken as always');
+  voice.stop();
+});
+
+test('hidden and back (not the little window), a reply that came meanwhile is still spoken', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  const { st, voice } = scenario();
+  voice.start();
+  await flush();
+  voice.stop();
+  st.replies = [{ seq: 1, request_id: '1', text: 'the answer you asked for' }];
+  voice.start();
+  await flush();
+  assert.deepEqual(st.spoken.map((u) => u.text), ['the answer you asked for']);
+  voice.stop();
+});
+
 test('the first poll does not speak old replies', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
   const { st, voice } = scenario();

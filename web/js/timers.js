@@ -2,7 +2,8 @@
 // call Ana"). The voice channel writes them on the computer (cody/timers.py); this reads /api/timers every few
 // seconds, counts down here (corrected by the computer's clock) and rings when one ends: once per timer, then a
 // chime every few seconds until it is dismissed or a minute goes by. Dismissed timers are remembered in the browser,
-// so a reload does not ring them again.
+// so a reload does not ring them again, and start() reads them again: one the little window (pip.js) already rang
+// and stopped does not ring once more when the tab takes over.
 //
 //   createTimers({ api, storage, clock, onChange, onRing, onChime }) → { start(), stop(), dismiss(), readNow() }
 //     onChange  (rows) on every tick, for the panel (timerRows)
@@ -110,6 +111,7 @@ export function createTimers({ api, storage = safeStorage(), clock = () => Date.
     readNow,
     start() {
       if (st.on || !api.hasToken()) return;
+      for (const id of loadDismissed(storage)) dismissed.add(id);   // stopped meanwhile by the other page (same storage)
       st.on = true;
       poll();
       st.tick = setInterval(update, TIMERS.tick);

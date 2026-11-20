@@ -426,7 +426,14 @@ function wireVoice(f, cycle, request, presence) {
     if (file) voice.sendPicture(file);
   });
   voice.listen(remembered(PREF_WAKE_WORD, true));
-  presence.watch(() => (presence.hidden() ? voice.stop() : voice.start()));
+  // back from the little window (pip.js): what was said there is not said again here
+  let handedOver = false;
+  presence.watch(() => {
+    if (presence.away) handedOver = true;
+    if (presence.hidden()) { voice.stop(); return; }
+    voice.start({ fresh: handedOver });
+    handedOver = false;
+  });
   return voice;
 }
 

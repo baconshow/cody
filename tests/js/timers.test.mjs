@@ -66,6 +66,23 @@ test('an ended timer rings once, chimes, and a tap stops it for good', async () 
   assert.deepEqual(again.st.rung, [], 'dismissed on this phone: a reload does not ring it again');
 });
 
+test('a timer the little window already rang and stopped does not ring again when the tab takes over', async () => {
+  const storage = memoryStorage();
+  const timers = [{ id: 'p1', label: 'tea', kind: 'timer', ends_at: 1005 }];
+  const tab = scenario({ timers, storage });
+  await tab.clock.readNow();                                // set before the little window opened: counting down
+  const little = scenario({ timers, storage });
+  little.st.now = 1006 * S;
+  await little.clock.readNow();
+  assert.deepEqual(little.st.rung, ['p1'], 'it rings in the little window');
+  little.clock.dismiss();
+  tab.st.now = 1007 * S;
+  tab.clock.start();                                        // the little window closed: the tab takes over
+  await new Promise((done) => setImmediate(done));
+  tab.clock.stop();
+  assert.deepEqual(tab.st.rung, [], 'stopped there: not rung again here');
+});
+
 test('left alone, it stops ringing after a minute', async () => {
   const { st, clock } = scenario({ timers: [{ id: 'p1', label: 'tea', kind: 'timer', ends_at: 999 }] });
   await clock.readNow();

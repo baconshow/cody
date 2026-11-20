@@ -731,3 +731,10 @@ computer the same content in a side panel of 480.
 - **"Attention: N" left the title bar** for the left of that bottom row. Beside the title it competed with it and
   crowded the close button. The title bar's extra slot (`sheet.extra`) had nothing else and went away.
 
+- **Nothing is said twice when the tab takes over again.** Each page keeps in memory how far it has read the
+  replies, so the tab, stopped while the little window talked, came back and spoke everything said there (six
+  sentences in a row, in the maintainer's test). Back from the little window the tab now only marks where the
+  replies are, like on its first look (`voice.start({ fresh: true })`); back from being hidden it still speaks a
+  reply that came meanwhile, since nobody heard it. Timers read the dismissed list from the browser's storage again
+  on `start()`, so one the little window rang and stopped does not ring in the tab too. The alerts already started
+  over that way.

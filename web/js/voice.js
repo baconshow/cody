@@ -9,8 +9,11 @@
 // (VOICE.followUp): what you say then goes as the next command, with no "Cody" needed, so a conversation flows and
 // a question Claude asked back can simply be answered. It only happens while the wake word is on.
 //
-//   createVoice({ api, win, target, onState, onCaption, onAttachment, onImage, onListening, onSide, t }) → { start(), stop(),
-//     volume(), listen(on), listening, announce({ text, alert }), chime(), sendPicture(file) }
+//   createVoice({ api, win, target, onState, onCaption, onAttachment, onImage, onListening, onSide, t }) → { start({ fresh }),
+//     stop(), volume(), listen(on), listening, announce({ text, alert }), chime(), sendPicture(file) }
+//   start         fresh: true when what came while this page was stopped was already said somewhere else (the little
+//                 window, pip.js): the next look only marks where the replies are, like the first one. Without it a
+//                 reply that came while the page was hidden is still spoken when it is back
 //   speaker       where the sound plays (voice-audio.js): the big page's window when this is the little one (pip.js)
 //   sendPicture   the clip: a picture from the phone goes to the computer and the voice session is told where it is;
 //                 then it is like anything you said (the face thinks, the reply is spoken)
@@ -272,8 +275,9 @@ export function createVoice({
       else { wake.stop(); onAwake(false); }
       onListening(wake.active);
     },
-    start() {
+    start({ fresh = false } = {}) {
       if (st.on) return;
+      if (fresh) st.after = null;                      // said in the little window already: never again here
       st.on = true;
       poll();
       wake.resume();                                     // back to listening for the wake word, if it was on
