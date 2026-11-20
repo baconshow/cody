@@ -106,26 +106,27 @@ body.with-gallery { overflow-y: auto; }
 
 /* the wake word: a light and what it means. Red: off. Green: listening for "Cody", swelling a little with every
    sound it hears. Green growing and shrinking: taking a command now (after the word, after an answer, or while
-   the face is held). Amber: it cannot hear, and the words say why. A tap switches listening on and off */
+   the face is held). Amber: it cannot hear, and the words say why. A tap switches listening on and off. Quiet on
+   purpose: a small dot with a soft glow, a gentle breath when taking a command (it sits beside the face all day) */
 .wake {
   right: max(20px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom));
   padding-left: 12px; color: var(--panel-ink-2);
 }
 .wake::before {
-  content: ''; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--status-fail);
+  content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--status-fail);
   transition: transform .12s ease-out, background-color .2s ease;
 }
 /* on, it also glows: the state is not told by the color alone */
-.wake[aria-pressed="true"]::before { background: var(--status-ok); box-shadow: 0 0 9px 3px rgba(76, 207, 114, .55); }
-.wake.heard::before { transform: scale(1.4); }
+.wake[aria-pressed="true"]::before { background: var(--status-ok); box-shadow: 0 0 5px 1px rgba(76, 207, 114, .45); }
+.wake.heard::before { transform: scale(1.2); }
 .wake[data-state="awake"] { color: var(--panel-ink); }
-.wake[data-state="awake"]::before { background: var(--status-ok); animation: wake-listening 1.1s ease-in-out infinite; }
+.wake[data-state="awake"]::before { background: var(--status-ok); animation: wake-listening 1.4s ease-in-out infinite; }
 @keyframes wake-listening {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 9px 3px rgba(76, 207, 114, .55); }
-  50% { transform: scale(1.9); box-shadow: 0 0 20px 9px rgba(76, 207, 114, .7); }
+  0%, 100% { transform: scale(1); box-shadow: 0 0 5px 1px rgba(76, 207, 114, .45); }
+  50% { transform: scale(1.35); box-shadow: 0 0 8px 3px rgba(76, 207, 114, .55); }
 }
 .wake[data-state="trouble"] { color: #ffc457; }
-.wake[data-state="trouble"]::before { background: var(--status-warn); box-shadow: 0 0 9px 3px rgba(255, 176, 32, .5); }
+.wake[data-state="trouble"]::before { background: var(--status-warn); box-shadow: 0 0 5px 1px rgba(255, 176, 32, .45); }
 
 /* the clip: a pill with a paperclip, above the wake word; sends a picture from this device to the voice session.
    Above it, on a computer, the little window (pip.js): Cody over the other apps */
@@ -179,7 +180,7 @@ body.with-gallery { overflow-y: auto; }
 @media (prefers-reduced-motion: reduce) {
   .attachment, .settings-open, .wake, .wake::before, .status-chip, .clip, .pip-open { transition: none; }
   /* no movement: taking a command is a bigger light with a ring */
-  .wake[data-state="awake"]::before { animation: none; transform: scale(1.6); box-shadow: 0 0 0 5px rgba(76, 207, 114, .5); }
+  .wake[data-state="awake"]::before { animation: none; transform: scale(1.3); box-shadow: 0 0 0 3px rgba(76, 207, 114, .4); }
 }
 
 /* a screenshot Claude took on request: the picture over the face, with Share, Save and Close below it */
