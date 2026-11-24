@@ -173,13 +173,17 @@ test('thinking, one front foot taps the floor straight up and down; it never swi
   });
   assert.equal(legs.length, 4);
   let highest = 0;
+  let raised = 0;                                           // the tapping leg above the other front one
   for (let i = 0; i < 400; i += 1) {
     const time = i / 60;
     highest = Math.max(highest, tapHeight(time, 1, false));
     mascot.pose({ ...pose(0), time, lift: 1, quiet: false });
     assert.ok(legs.every((leg) => leg.rotation.x === 0), 'every leg stays upright');
+    raised = Math.max(raised, legs[0].position.y - legs[3].position.y);
+    assert.ok(Math.abs(legs[1].position.y - legs[2].position.y) < 1e-9, 'the other legs stay where they are');
   }
   assert.ok(highest > 0.04 && highest <= 0.06 + 1e-9, `a small tap: ${highest}`);
+  assert.ok(Math.abs(raised - highest) < 1e-9, `the figure's own foot does the tap: ${raised}`);
   assert.equal(tapHeight(1, 1, true), 0, 'reduce motion: all four stay on the floor');
   assert.equal(tapHeight(1, 0, false), 0, 'not thinking: no tap');
   const quiet = [0.2, 0.9, 1.7, 2.5].map((t) => tapHeight(t, 1, false));
