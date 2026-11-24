@@ -237,7 +237,7 @@ def install(remove: bool = False, path: Path | None = None, command: str | None 
     path = (path or settings_file()).resolve()             # a symlinked settings file is updated where it lives
     settings = read_json(path) if path.exists() else {}
     if not isinstance(settings, dict) or not isinstance(settings.get("hooks", {}), dict):
-        return f"{path} is not valid JSON: nothing changed. Fix it, or add the hooks by hand (see the README)."
+        return f"{path} is not valid JSON: nothing changed. Fix it, or add the hooks by hand (see \"Heads-up\" in docs/MANUAL.md)."
     if not remove and plugin_enabled(path):
         return "The Cody plugin is enabled and already brings the hooks: nothing to add."
     updated = without_hooks(settings) if remove else with_hooks(settings, command or hook_command())

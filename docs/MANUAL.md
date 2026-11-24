@@ -1,32 +1,47 @@
 # Cody: the full manual
 
-The [README](../README.md) has the short version. This is everything, with every option.
+The [README](../README.md) has the short version. This is the long one.
+
+A little desk pet for [Claude Code](https://code.claude.com). It lives on your phone (or in a browser tab), watches
+what Claude is doing on your computer and reacts: it grabs a magnifier when Claude searches, types on a tiny
+keyboard when Claude writes code, thinks while commands run, hops when a subagent finishes, gets sleepy when nothing
+happens and falls asleep (zzZ) when Claude is closed.
+
+You can also **talk to it**. Hold Cody (or say "Cody") and ask anything: your words go into a real Claude
+Code session on your computer, and the mascot answers out loud in one or two short sentences. Honestly, it answers
+far better than Alexa, because it *is* Claude Code: your files, your tools, your context.
+
+It also does the desk-buddy things: **timers and reminders** that ring on the phone, a **memory** of your name and
+how you like things, a **mini Cody that flies across your computer screen** to point at the button you asked about,
+and a **heads-up** when one of your Claude Code sessions finishes a long task or is waiting for your permission.
 
 ## Everything it does
 
-> The one section of this README written like a brochure, for a thing that is free and MIT. Every line below is
-> something Cody does today; the rest of the page says how, and what it costs (nothing extra).
+> The one section of this manual written like a brochure, for a thing that is free and MIT. The rest of the manual
+> says how each line works, what has to be turned on, and what it costs (nothing extra).
 
 **Bring your Claude Code to life.** A desk pet that reacts, live, to every search, edit, command, failed test,
 finished subagent and permission prompt. Glance at it instead of at the terminal.
 
 **Command Claude Code by voice.** Say *"Cody"* from the couch. Your words land in a real Claude Code session on your
-computer, with your files, your tools and your context, and the mascot answers out loud in two sentences. Approve
-what it wants to run with a spoken *yes* or *no*.
+computer, with your files, your tools and your context, and the mascot answers out loud in two sentences. When it
+asks to run something, answer with a spoken *yes* or *no*.
 
 **Change your own code without touching the keyboard.** *"Cody, add a dark mode toggle to the settings page."*
-Claude edits the project the voice session was started in, on your computer, asking before it runs anything. Quick
-questions work the same way: *"what does the auth middleware do?"*, *"are the tests green?"*
+Claude edits the project the voice session was started in, on your computer, asking when your Claude Code permission
+settings say so. Quick questions work the same way: *"what does the auth middleware do?"*, *"are the tests green?"*
 
-**Everything you already plugged into Claude Code, by voice.** A calendar, Airtable, your smart home: any MCP server
-you connected answers through Cody, with the same permission prompts.
+**Everything you already plugged into Claude Code, by voice.** A calendar, Airtable, your smart home: the MCP servers
+the voice session loads answer through Cody, under the same permission settings.
 
-**Pass a word to your other Claude sessions.** *"Cody, tell my other session to run the tests when it is done."*
-The voice session is an ordinary Claude Code session, so it can message any other Claude session open on your
-computer, the Claude Desktop conversations included, and that session picks it up as if you had typed it there.
+**Message your other Claude conversations.** *"Cody, tell the payments session to run the tests."* Claude can message
+another Claude Code session running on the computer, a local one in the Claude Desktop app's Code tab included. It
+arrives marked as coming from another session, and the receiver's own permissions decide.
+([How it works](#your-other-claude-sessions))
 
-**Keep an eye on every session.** A long task finishes, Claude waits for your permission: your phone buzzes with
-Cody's face and the words, screen off or not, app closed or not. A home screen widget keeps the last heads-up.
+**Keep an eye on every session.** A long task finishes, Claude waits for your permission: Cody says so and, with the
+Android app and its switch on, your phone buzzes with Cody's face and the words, app closed or not. A home screen widget
+keeps the last heads-up.
 
 **Know where you stand with your plan.** *"Cody, how much usage do I have left?"*: the session and the week, said out
 loud and shown on screen, with when each one resets. Read from Claude Code's own status line, no API call.
@@ -35,9 +50,54 @@ loud and shown on screen, with when each one resets. Read from Claude Code's own
 *"take a screenshot and send it to my WhatsApp"*, *"where is the export button?"* (a mini Cody flies to it on your
 screen), scenes and skins, and a swear word when you shake it.
 
+**Installs in three steps.** Download `CodySetup.exe`, open Cody, scan the QR code with your phone. The first run
+walks you through the private network and the voice session. (The honest version, SmartScreen warning and all, is
+under [Windows app](#windows-app) and [Put it on your phone](#put-it-on-your-phone).) You need Claude Code installed
+and signed in.
+
 **Yours, on your network.** It runs on your computer, on your Claude subscription (no API key, no extra bill), and
-reaches your phone through your own Tailscale network. Nothing is sent to the author; nothing goes anywhere you
-did not choose.
+reaches your phone through your own Tailscale network. Nothing is sent to the author; where the rest goes is in
+[PRIVACY.md](../PRIVACY.md).
+
+## With your kids: apps by talking
+
+What you can make with a kid, each one a sentence away, then *"bigger"*, *"slower"*, *"add a sound"*. Toys, games and
+experiments, not apps for production, and the real skill underneath them: saying exactly what you want, then changing it
+until it is right.
+
+- *"Make a game where a cat catches falling fish, and the score goes up."*
+- *"A dinosaur quiz with three questions and confetti at the end."*
+- *"A birthday card for grandma that plays a song when you click it."*
+- *"A page where I draw with the mouse and pick the colors."*
+- *"A two-minute timer for brushing my teeth, and Cody cheers at the end."*
+- *"A story where I choose what happens next."*
+
+**They invent it, you do the talking.** Claude's consumer accounts are for one person, 18 or over
+([terms](https://www.anthropic.com/legal/consumer-terms)), and an account that looks used by a minor can be disabled
+until its owner proves their age. What the microphone hears goes to the browser's speech service (Google, in Chrome) and
+what is asked goes to Anthropic: keep children's names and details out of it.
+
+Cody adds no protection of its own. The limits are Claude Code's, yours to set before you start, and none of them is a
+wall:
+
+- **Make Claude ask.** Recent Claude Code starts in *auto* mode, where most things run without a question and there is
+  nothing for Cody to pass on. Each time the voice session opens, before anyone talks, press Shift+Tab in its window
+  (Alt+M on some Windows setups) until it says *manual mode on*: Claude then asks before most edits and commands you have
+  not already allowed. To start that way, set `permissions.defaultMode` to `"default"` in Claude Code's settings. Do not
+  press Shift+Tab while a question is open: there it allows the rest of the session's edits.
+- **Know how the question arrives.** Cody passes it on while its page is on screen, in words only if you picked a voice
+  (at first it chirps). Anything over 500 characters, most new files included, is answered in the session's window:
+  choose plain *Yes* there, the other yeses stop the asking. After a question the microphone opens by itself, even with
+  the wake word off, and *ok* or *sure* is a yes. Cody does not know whose voice it hears.
+- **Use a separate folder.** Claude starts in the folder named after `--voice`, or else in `voice_folder` from `config.json`
+  (forward slashes: `"C:/Games"`; then restart Cody). If that is unset, wrong or missing: the terminal's folder or, from
+  the app or Cody's page, your home folder. Claude reads what is in the folder without asking, even in manual
+  mode, and in auto mode edits it too. It is where Claude starts, not a fence: it can read, write and run things
+  elsewhere. Claude Code's own sandbox is off by default and does not run on native Windows.
+- **Mind what never asks, in any mode:** a message to your other Claude sessions (deny `SendMessage` and `ListAgents` in
+  Claude Code's permissions), and *"Cody, take a screenshot"*, which Cody takes by itself and no rule stops.
+- **Write down what should not run.** Deny rules in Claude Code's permissions apply to the voice session too, but only a
+  rule that names a whole tool is firm: a command or a path can be reached another way.
 
 ## What it costs
 
@@ -282,20 +342,26 @@ plans an admin has to enable them first.
    answering from there while you work in something else. After the answer **the microphone stays open for a
    few seconds**: just go on talking, no "Cody" needed (and when Claude asks something back, simply answer). The
    light grows and shrinks while it does. It can be turned off in Settings, per screen.
-4. When Claude needs permission to run something, the mascot asks out loud and shows the command. Answer with
+4. When Claude needs permission to run something, Cody asks (in words if you chose a voice) and shows the command. Answer with
    just **yes** or **no** within a minute; a sentence like "ok, stop" counts as neither. Commands too long to show
-   in full must be approved in the terminal. The terminal prompt stays open too; whichever answers first wins.
-5. Ask for a screenshot: *"take a screenshot and send it to my WhatsApp"*. Claude takes it on the computer (you
-   approve the tool like any other), and the picture pops up on the phone with **Share** and **Save**. Tap Share and
+   in full must be approved in the terminal (so must anything over 500 characters, most new files included; Claude Code
+   2.1.211 or later). The terminal prompt stays open too; whichever answers first wins. **What needs permission is up to
+   Claude Code, not to Cody:** in *auto* mode, where recent versions start, most things run without a question; in
+   *manual* mode Claude asks before most edits and commands you have not already allowed. Shift+Tab in the voice session's
+   window switches, for that session.
+5. Ask for a screenshot: *"take a screenshot and send it to my WhatsApp"*. Claude takes it on the computer (your
+   permission settings decide whether it asks), and the picture pops up on the phone with **Share** and **Save**. Tap Share and
    pick WhatsApp, or any other app. Claude only gets an id, never the picture, and nothing is uploaded anywhere
-   except where you share it. Screenshots happen only when you ask: there is no periodic capture.
-6. In a hurry: *"Cody, take a screenshot"* (or *"Cody, printa"*), nothing else in the sentence. Cody takes it on
+   except where you share it. Cody takes none on a schedule.
+6. In a hurry: *"Cody, take a screenshot"* (or *"Cody, printa"*): any sentence of up to six words that says so. Cody takes it on
    the spot, with a shutter click, and the picture pops up with Share: no round trip through Claude, no voice
    session needed. The saying is the asking: the picture goes to the page you asked from, nowhere else.
 
 The voice session lets Cody's harmless tools run without asking (reply, timers, memory, pointing). The two that
-capture your screen, `screenshot` and `look`, always ask first, by voice too (the quick "take a screenshot" is
-the exception: there, your words are the permission).
+capture your screen, `screenshot` and `look`, Cody never approves ahead: in manual mode Claude Code asks, unless a rule of
+yours allows them; in auto mode its own check decides. Denying `mcp__cody__screenshot` and `mcp__cody__look` in Claude
+Code's permissions stops those two tools, not the quick "take a screenshot": there your words are the permission, and
+nothing turns it off.
 
 **Scenes on request, and scenes of Cody's own.** *"Cody, put your headphones on"*, *"show the party for a
 minute"*, *"heart eyes!"*: Claude calls the `scene` tool and the page shows it for a while (30 seconds unless you
@@ -309,14 +375,30 @@ most. Nothing of this ever touches the files of your project.
 
 **Your other MCP servers work by voice too.** The voice session is a normal Claude Code session with Cody's channel
 added, so whatever you already connected to Claude Code (Airtable, a calendar, your smart home) is there: *"Cody,
-what is on my roadmap this week?"*. Cody pre-approves only its own harmless tools; a tool from another server asks
-permission like always, and you answer **yes** or **no** out loud.
+what is on my roadmap this week?"*. Cody pre-approves only its own harmless tools; a tool from another server follows
+your permission settings like always, and when Claude asks, you answer **yes** or **no** out loud.
 
-**Your other Claude sessions, too.** *"Cody, tell my other session to run the tests when it is done."* Claude
-Code can message the other Claude sessions open on the same computer (the ones in the Claude Desktop app
-included), and the voice session is no exception: the words arrive in that conversation as a message, and the
-Claude there decides what to do with them. Nothing of this leaves your computer; Cody only carries your voice to
-the session that does the sending.
+### Your other Claude sessions
+
+*"Cody, tell the payments session to run the tests when it is done."* The voice session is an ordinary Claude Code session,
+so it can list your other Claude Code sessions running on the computer (not across WSL or a container), local ones in the
+Claude Desktop app's Code tab included, and message one. This is Claude Code's own
+[messaging between sessions](https://code.claude.com/docs/en/cross-session-messaging); Cody brings the voice.
+
+- **What the list shows:** their names, which are busy and at times their folders, not what is written in them. The Claude
+  there can answer a message with what it knows. Claude Desktop's ordinary chats are not in it.
+- **What arrives:** Claude writes the message from what you asked, and it lands marked as coming from another session,
+  never as if you had typed it. It approves nothing, and the receiver's own permissions decide: manual mode asks there for
+  what you have not allowed, auto mode may just act. That session's settings can also hold or refuse it.
+- **What it does not do itself:** open, close, rename, archive or stop the conversations of the Claude Desktop app.
+- **It does not ask first,** in any mode, so anyone who can talk to the voice session can put a message into the others. To
+  stop sending, deny `SendMessage` and `ListAgents` in Claude Code's permissions; to stop receiving, set
+  `crossSessionInbound` to `refuse` in the other session's settings.
+- **Where it travels:** on the same computer, straight from one session to the other; with Remote Control on, it can also
+  reach your sessions elsewhere, through Anthropic's servers. Each Claude reads it like any prompt, so its text reaches
+  Anthropic under your account, as usual.
+
+It needs a recent Claude Code: 2.1.248 or later is safe on any system.
 
 ### Timers and reminders
 
@@ -334,20 +416,20 @@ clock.
 *"My name is Ana"*, *"remember that I like short answers"*, *"forget my address"*
 
 Claude saves short facts with Cody's `remember` tool and gets them back at the start of every voice session, so Cody
-doesn't forget your name. They stay in `memory.json` in Cody's data folder, on your computer only: no account, no
-cloud, no sync. Delete the file to make Cody forget everything. At most 40 facts.
+doesn't forget your name. They are kept in `memory.json` in Cody's data folder: no account, no sync, no cloud of
+Cody's own (Claude gets them with the first thing you say). Delete the file to make Cody forget everything. At most 40 facts.
 
 ### Cody on your computer screen (Windows)
 
 *"Cody, where is the export button?"*
 
-Claude takes a look at your screen (the `look` tool, which asks your permission), finds the spot, and a mini Cody
+Claude takes a look at your screen (the `look` tool, under your permission settings), finds the spot, and a mini Cody
 flies there and points at it with a little speech bubble: *"Right here! Click Export"*. Meanwhile the mascot on the
 phone turns and points the same way. The mini Cody is a see-through window you can click through; it never takes
 the focus and leaves after eight seconds.
 
 Unlike `screenshot`, **`look` does send the picture to Claude**, scaled down, as part of the conversation: that is
-how Claude finds the button. It only happens when you ask about something on the screen. To forbid it, deny
+how Claude finds the button. Claude is told to use it only when you ask about something on the screen. To forbid it, deny
 `mcp__cody__look` in Claude Code's permissions. Pointing is Windows only for now (macOS and Linux: PRs welcome).
 
 Speech recognition uses your browser's Web Speech API. Chrome on Android and on the desktop works best. In Chrome,
@@ -364,7 +446,7 @@ python cody.py --install-hooks
 ```
 
 That adds three small hooks (`UserPromptSubmit`, `Stop` and `Notification`) to your Claude Code user settings,
-`~/.claude/settings.json`, keeping a backup at `settings.json.cody-backup` and everything else you have there. New
+`~/.claude/settings.json`, keeping a dated backup beside it and everything else you have there. New
 sessions pick them up. `python cody.py --uninstall-hooks` removes them.
 
 Each hook writes one line to `events.jsonl` in Cody's data folder: the time, the kind of event and the first
@@ -398,9 +480,8 @@ Turn on **Read my important Windows notifications** in Settings (Windows asks yo
 Notifications) and Cody knocks on the screen and says the app and the title of the important ones: messages,
 mail, calendar and calls (WhatsApp, Telegram, Teams, Slack, Outlook, Mail, Calendar, Phone Link and the like, or
 your own list in `notification_apps` in config.json), or any toast with an urgent word in the title. Cody reads
-the title only, never the body; the same one is said once, and at most one every 15 seconds. The title never
-leaves the computer: with the device's voice or Cody's sounds it is spoken locally, and with ElevenLabs only the
-app's name is sent (*"Something new on Outlook."*), the title stays in the caption. Off by default.
+the title only, never the body; the same one is said once, and at most one every 15 seconds. The title goes to your own Cody pages and app, and an online browser voice, if that is your device's, gets it too; with
+ElevenLabs only the app's name is sent (*"Something new on Outlook."*), the title stays in the caption. Off by default.
 
 ### Four ways to sound
 
@@ -449,8 +530,8 @@ phone mic ──Web Speech──> POST /api/voice ──> voice channel (MCP) �
 mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool) <───────┘
 ```
 
-- **Activity**: the server reads the tail of Claude Code's own transcripts. Only the tool name (and whether it
-  edited a source file) reaches the page: never commands, file paths or conversation text.
+- **Activity**: the server reads the tail of Claude Code's own transcripts. Tool names, failures, code edits, session ids and times reach the page: never commands, file paths or conversation
+text.
 - **Voice channel**: `cody/channel.py` is a tiny MCP server that Claude Code starts. It pushes what you said into
   the session and keeps Claude's short reply for the mascot. Its other tools (`cody/abilities.py`) set timers,
   save facts, look at the screen and send the mini Cody (`cody/overlay.py`, plain tkinter) to point.
@@ -462,22 +543,23 @@ mascot speaks <── phone voice or ElevenLabs <── short reply (reply tool)
 
 ## Privacy and security
 
-- No telemetry. Cody never sends anything to its author (the full list of what goes where is in
+- No telemetry. Cody never sends anything to its author (what goes where is in
   [PRIVACY.md](../PRIVACY.md)). The update check is off by default; on, it asks GitHub once a day for the latest
   version number. Timers, memory and hook events stay in the data folder on
   your computer. What does leave it, as part of using Claude and the voice you chose: the saved facts reach Claude
   with the first thing you say in each voice session, and with an ElevenLabs voice the timer labels are spoken by
   ElevenLabs when they ring.
-- Screenshots are taken only on request, kept in memory (the latest three) and never written to disk on Windows
-  (macOS and Linux use a temp file that is deleted right away). The `screenshot` picture goes to your phone only;
-  the `look` picture goes to Claude, so it travels like anything else in your Claude Code conversation. Both ask
-  first. If your screen may show things that must not leave the computer, deny `mcp__cody__screenshot` and
-  `mcp__cody__look` in Claude Code's permissions.
+- Screenshots are taken when you ask or when Claude calls the tool. Cody keeps the latest few in memory, not on disk
+  (macOS and Linux: a temp file, deleted at once); Claude Code may save `look` pictures with its session. The `screenshot`
+  picture goes to your open Cody pages; the `look` picture goes to Claude, so it travels like anything else in your Claude Code conversation. Neither is approved
+  ahead by Cody; your Claude Code settings decide whether they ask. If your screen may show things that must not leave the
+  computer, deny `mcp__cody__screenshot` and `mcp__cody__look` there, and mind that the quick "take a screenshot" asks
+  no one.
 - The server binds to `127.0.0.1`. Every request needs an allowed `Host` header, every `/api` route needs a random
   token that changes on each start, and cross-site requests are refused. Requests through Tailscale Funnel are
-  always refused; set `allowed_logins` to keep the rest of your tailnet out.
-- Trust model: anyone who can load the page can talk to your Claude session. That means programs on this computer
-  and, without `allowed_logins`, every device in your tailnet. Voice messages are capped at
+  always refused, and by default only your own Tailscale login gets in (on a tagged machine, set `allowed_logins`).
+- Trust model: anyone who can load the page can talk to your Claude session. That means programs on this computer,
+  your own Tailscale login and, on a tagged machine without `allowed_logins`, every device in your tailnet. Voice messages are capped at
   20 a minute.
 - The voice channel listens on `127.0.0.1` only and needs a secret that lives in a file readable only by you.
 - Outside connections: your browser's speech service, and ElevenLabs only if you configure a voice. three.js and the

@@ -1,8 +1,8 @@
 # Play Store listing (draft)
 
 The texts for the Google Play listing, in the two languages the app speaks. Limits: the short description is 80
-characters at most, the full description 4,000. Both are written like a brochure on purpose, the way the README's
-"The pitch" section is; everything in them is something the app does today. The listing also needs the privacy
+characters at most, the full description 4,000. Both are written like a brochure on purpose, the way the manual's
+"Everything it does" section is. The listing also needs the privacy
 policy URL (PRIVACY.md on GitHub), the foreground service declaration and the reviewer note from `docs/BACON-TODO.md`.
 
 ## App name
@@ -25,9 +25,9 @@ when a long task is done, and falls asleep when Claude is closed.
 COMMAND CLAUDE CODE BY VOICE
 Say "Cody" and ask. Your words land in a real Claude Code session on your computer, with your files and your tools,
 and the mascot answers out loud in two sentences. Ask quick questions about your code, have Claude change it ("add a
-dark mode toggle to the settings page"), and approve what it wants to run with a spoken yes or no. Any MCP server
-you already connected to Claude Code answers through Cody too. And a word for another conversation ("tell my other
-session to run the tests") lands in that Claude session, open on the same computer, Claude Desktop included.
+dark mode toggle to the settings page"), and answer yes or no out loud when it asks. Any MCP server
+you already connected to Claude Code answers through Cody too. And Claude can message another Claude Code
+session running on the same computer ("tell my other session to run the tests").
 
 A HEADS-UP, EVEN WITH THE APP CLOSED
 When a long task finishes or Claude is waiting for your permission, your phone buzzes with Cody's face and the words,
@@ -43,7 +43,7 @@ send it to my WhatsApp." Scenes and skins.
 
 YOURS, ON YOUR NETWORK
 Cody runs on your computer and uses your own Claude Code subscription: no API key, no extra bill. The phone reaches it
-through your own private Tailscale network, never the public internet. Nothing is sent to the author.
+through your own private Tailscale network; Cody is not published. Nothing is sent to the author.
 
 WHAT YOU NEED
 Cody running on your computer (free, open source, github.com/baconshow/cody; Windows installer or Python) and the
@@ -68,10 +68,10 @@ falha, solta confete quando uma tarefa longa termina e dorme quando o Claude fec
 COMANDE O CLAUDE CODE POR VOZ
 Diga "Cody" e peça. Suas palavras entram numa sessão de verdade do Claude Code no seu computador, com os seus
 arquivos e as suas ferramentas, e o mascote responde em voz alta, em duas frases. Tire dúvidas rápidas sobre o seu
-código, peça mudanças ("adiciona um modo escuro na tela de configurações") e aprove o que ele quer rodar com um
-"sim" ou "não" falado. Qualquer servidor MCP que você já conectou ao Claude Code responde pelo Cody também. E um
-recado para outra conversa ("avisa a minha outra sessão para rodar os testes") chega naquela sessão do Claude,
-aberta no mesmo computador, Claude Desktop incluído.
+código, peça mudanças ("adiciona um modo escuro na tela de configurações") e responda "sim" ou "não" em voz alta
+quando ele perguntar. Qualquer servidor MCP que você já conectou ao Claude Code responde pelo Cody também. E um
+recado para outra conversa ("avisa a minha outra sessão para rodar os testes") é passado para aquela sessão do
+Claude Code, rodando no mesmo computador.
 
 AVISOS, MESMO COM O APP FECHADO
 Quando uma tarefa longa termina ou o Claude está esperando a sua permissão, o celular vibra com a cara do Cody e as
@@ -87,7 +87,7 @@ e manda pro meu WhatsApp." Cenas e skins.
 
 SEU, NA SUA REDE
 O Cody roda no seu computador e usa a sua própria assinatura do Claude Code: sem chave de API, sem conta extra. O
-celular chega até ele pela sua rede privada do Tailscale, nunca pela internet pública. Nada é enviado ao autor.
+celular chega até ele pela sua rede privada do Tailscale; o Cody não fica publicado. Nada é enviado ao autor.
 
 O QUE VOCÊ PRECISA
 O Cody rodando no computador (grátis, código aberto, github.com/baconshow/cody; instalador para Windows ou Python) e
@@ -114,8 +114,9 @@ code on request and tells your phone when Claude needs you. Unofficial fan proje
 
 ## Data safety (draft answers, to check against the form's own questions)
 
-- **Does the app collect or share any of the required user data types?** No data reaches the developer or any
-  third party: no account, no ads, no analytics, no crash reporting. The app talks to one place, the computer the
+- **Does the app collect or share any of the required user data types?** No data reaches the developer: no
+  account, no ads, no analytics, no crash reporting. Speech goes to Chrome's service (Google); words and
+  pictures, to the user's own Claude (Anthropic). The app talks to one place, the computer the
   user paired, over the user's own Tailscale network (HTTPS through Tailscale serve). What it receives from there
   (a heads-up's words, a mood) is shown on the phone and kept only as the last heads-up for the widget.
 - **Voice**: the speech recognition is Chrome's own (the page runs in Chrome as a Trusted Web Activity); the app
