@@ -23,6 +23,7 @@ from pathlib import Path
 
 from cody import hooks, screen, timers, uploads, usage
 from cody.channel import channel_file
+from cody.desktop import copy_image
 
 MAX_TEXT = 500
 # "Cody, printa": a screenshot on the spot, without the round trip through Claude (the saying is the asking). Short
@@ -30,9 +31,13 @@ MAX_TEXT = 500
 PRINT_WORDS = re.compile(r"\b(printa|tira(r)?\s+(um\s+|uma\s+)?print|print\s+da\s+tela|captura\s+de\s+tela|screen\s?shot"
                          r"|print\s*screen|capture\s+(the\s+|my\s+)?screen|picture\s+of\s+(the|my)\s+screen)\b", re.I)
 PRINT_MAX_WORDS = 6
+# "don't take a screenshot", "não tira print", "what is a screenshot": not a request for one
+NOT_PRINT = re.compile(r"\b(don'?t|do\s+not|never|what\s+is|não|nao|nunca|nem|o\s+que\s+é)\b", re.I)
 QUICK_TEXT = {
-    "en": {"print_done": "Screenshot taken. Tap share to send it.", "print_failed": "I could not take the screenshot."},
-    "pt-BR": {"print_done": "Print tirado. Toca em compartilhar para mandar.", "print_failed": "Não consegui tirar o print."},
+    "en": {"print_done": "Screenshot taken. Tap share to send it.", "print_failed": "I could not take the screenshot.",
+           "print_clipboard": "Screenshot taken, and it is on your clipboard: paste it anywhere, or tap share."},
+    "pt-BR": {"print_done": "Print tirado. Toca em compartilhar para mandar.", "print_failed": "Não consegui tirar o print.",
+              "print_clipboard": "Print tirado e já na área de transferência: cola onde quiser, ou toca em compartilhar."},
 }
 MAX_QUICK_IMAGES = 5
 # what the voice session is told when a picture arrives from the phone (the clip): where it is, so Claude opens it
@@ -102,7 +107,8 @@ def validate_text(text) -> str:
 
 def is_print_command(text: str) -> bool:
     """A short sentence asking for a screenshot and nothing else."""
-    return len(text.split()) <= PRINT_MAX_WORDS and PRINT_WORDS.search(text) is not None
+    return (len(text.split()) <= PRINT_MAX_WORDS and PRINT_WORDS.search(text) is not None
+            and NOT_PRINT.search(text) is None)
 
 
 def quick_print(language: str = "en", capture=screen.capture) -> dict:
@@ -117,7 +123,11 @@ def quick_print(language: str = "en", capture=screen.capture) -> dict:
         _quick_images[image_id] = png
         while len(_quick_images) > MAX_QUICK_IMAGES:
             _quick_images.popitem(last=False)
-    return {"request_id": "", "quick": {"text": texts["print_done"], "image": image_id}}
+    try:
+        copied = copy_image(png)              # on the computer's clipboard too, ready to paste (Windows)
+    except OSError:
+        copied = False
+    return {"request_id": "", "quick": {"text": texts["print_clipboard" if copied else "print_done"], "image": image_id}}
 
 
 def say(body: dict, path: Path | None = None, language: str = "en", capture=screen.capture) -> dict:

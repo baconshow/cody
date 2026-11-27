@@ -9,7 +9,8 @@ for you. The MCP config is written with json.dumps to the data folder, readable 
 session only: no other session loads the channel. CODY_VOICE=1 tells Cody's hooks (cody/hooks.py) that this is the
 voice session, where the mascot already does the talking.
 
-The harmless tools run without asking (reply, timers, memory, pointing); screenshot and look are never pre-approved.
+The harmless tools run without asking (reply, timers, memory, pointing, opening an app from a fixed list);
+screenshot and look are never pre-approved.
 """
 from __future__ import annotations
 
@@ -24,7 +25,7 @@ from cody.store import data_dir, write_private
 
 ROOT = Path(__file__).resolve().parent.parent
 CLI_NAME = "cody-cli.exe"                 # the console build next to Cody.exe in the Windows app
-SAFE_TOOLS = ("reply", "timer", "remember", "forget", "point")
+SAFE_TOOLS = ("reply", "timer", "remember", "forget", "point", "open_app")
 MCP_FILE = "voice.mcp.json"
 CLAUDE_MISSING = "Claude Code was not found. Install it (https://code.claude.com) and try again."
 

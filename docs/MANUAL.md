@@ -549,8 +549,10 @@ text.
   your computer. What does leave it, as part of using Claude and the voice you chose: the saved facts reach Claude
   with the first thing you say in each voice session, and with an ElevenLabs voice the timer labels are spoken by
   ElevenLabs when they ring.
-- Screenshots are taken when you ask or when Claude calls the tool. Cody keeps the latest few in memory, not on disk
-  (macOS and Linux: a temp file, deleted at once); Claude Code may save `look` pictures with its session. The `screenshot`
+- Screenshots are taken when you ask or when Claude calls the tool. Cody keeps the latest few in memory and puts the
+  picture on the clipboard (Windows; its clipboard history and sync keep it too, if you turned them on). A file is written
+  only when Claude is asked to hand one on: the latest five, in `screenshots` in Cody's data folder (macOS and Linux:
+  a temp file for the capture, deleted at once); Claude Code may save `look` pictures with its session. The `screenshot`
   picture goes to your open Cody pages; the `look` picture goes to Claude, so it travels like anything else in your Claude Code conversation. Neither is approved
   ahead by Cody; your Claude Code settings decide whether they ask. If your screen may show things that must not leave the
   computer, deny `mcp__cody__screenshot` and `mcp__cody__look` there, and mind that the quick "take a screenshot" asks

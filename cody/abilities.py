@@ -7,6 +7,7 @@
     scene      shows one of the mascot's scenes for a while because you asked ("put your headphones on")
     custom_scene   writes a scene of Claude's own making, data only, checked field by field (cody/custom.py);
                undo removes the newest one
+    open_app   opens an everyday app right away (calculator, paint, notepad, files, settings, task manager)
 
 Each tool is a JSON schema plus a handler that returns an MCP tool result. Texts in English and Portuguese, like the
 channel's; the tool descriptions carry the details, so the channel's instructions stay short.
@@ -17,8 +18,10 @@ import base64
 from datetime import datetime
 
 import json
+import subprocess
 from pathlib import Path
 
+from cody import desktop
 from cody import timers as timer_module
 from cody.custom import CustomScenes
 from cody.memory import MIN_QUERY, Memory, clean_fact
@@ -84,6 +87,13 @@ TEXTS = {
         "invalid": "The scene was refused: {errors}", "undone": "Removed the custom scene \"{id}\".",
         "nothing_undo": "There is no custom scene to remove.", "listed": "Custom scenes: {ids}.",
         "no_custom": "No custom scenes yet.",
+        "open_app": "Opens an everyday app on the user's computer right away, when they ask (\"open the "
+                    "calculator\"): calculator, paint, notepad, files (the file explorer), settings, task_manager. "
+                    "Then reply. For any other app, on Windows run Start-Process with its name once.",
+        "opened": "Opened {name}. Now reply.",
+        "unknown_app": "Not on the list ({names}): on Windows, run Start-Process with the app's name instead.",
+        "app_unsupported": "That app cannot be opened this way on this system.",
+        "app_failed": "The app could not be opened on this computer.",
     },
     "pt-BR": {
         "timer": "Cronômetros e lembretes que tocam no celular do usuário, como um timer de cozinha. action \"set\" "
@@ -144,6 +154,14 @@ TEXTS = {
         "invalid": "A cena foi recusada: {errors}", "undone": "Removi a cena personalizada \"{id}\".",
         "nothing_undo": "Não há cena personalizada para remover.", "listed": "Cenas personalizadas: {ids}.",
         "no_custom": "Ainda não há cena personalizada.",
+        "open_app": "Abre na hora um app do dia a dia no computador do usuário, quando ele pedir (\"abre a "
+                    "calculadora\"): calculator, paint, notepad, files (o explorador de arquivos), settings, "
+                    "task_manager. Depois responda. Para outro app, no Windows rode Start-Process com o nome dele "
+                    "uma vez.",
+        "opened": "Abri {name}. Agora responda.",
+        "unknown_app": "Não está na lista ({names}): no Windows, rode Start-Process com o nome do app.",
+        "app_unsupported": "Esse app não abre por aqui neste sistema.",
+        "app_failed": "Não deu para abrir o app neste computador.",
     },
 }
 
@@ -191,13 +209,17 @@ def schemas(texts: dict, scene_ids: list[str] = ()) -> list[dict]:
             "properties": {"action": {"type": "string", "enum": ["create", "undo", "list"]},
                            "scene": {"type": "object", "description": "create: the scene as data"},
                            "id": {**string, "description": "undo: which one (default: the newest)"}}}},
+        {"name": "open_app", "description": texts["open_app"], "inputSchema": {
+            "type": "object", "required": ["name"],
+            "properties": {"name": {"type": "string", "enum": list(desktop.APPS)}}}},
     ]
 
 
 class Abilities:
     def __init__(self, lang: str = "en", store=None, memory: Memory | None = None, pointer: Pointer | None = None,
-                 now=None, custom: CustomScenes | None = None, scene_ids: list[str] | None = None):
+                 now=None, custom: CustomScenes | None = None, scene_ids: list[str] | None = None, opener=None):
         self._texts = TEXTS.get(lang, TEXTS["en"])
+        self._opener = opener or desktop.open_app
         self._custom = custom or CustomScenes()
         self._scene_ids = list(scene_ids) if scene_ids is not None else builtin_scene_ids()
         self._store = store or timer_module.TimerStore()
@@ -209,11 +231,12 @@ class Abilities:
         return schemas(self._texts, self._scene_ids)
 
     def handles(self, name) -> bool:
-        return name in ("timer", "remember", "forget", "look", "point", "scene", "custom_scene")
+        return name in ("timer", "remember", "forget", "look", "point", "scene", "custom_scene", "open_app")
 
     def call(self, name: str, arguments: dict) -> dict:
         handler = {"timer": self._timer, "remember": self._remember, "forget": self._forget, "look": self._look,
-                   "point": self._point, "scene": self._scene, "custom_scene": self._custom_scene}[name]
+                   "point": self._point, "scene": self._scene, "custom_scene": self._custom_scene,
+                   "open_app": self._open_app}[name]
         try:
             return handler(arguments if isinstance(arguments, dict) else {})
         except OSError:                      # a file held open or damaged: a tool error, never a dead channel
@@ -323,3 +346,16 @@ class Abilities:
             return _text(t["invalid"].format(errors="; ".join(errors)), error=True)
         self._custom.want(scene["id"])                 # it shows right away, whatever its trigger
         return _text(t["created"].format(id=scene["id"]))
+
+    # ---- apps ----------------------------------------------------------------------------------------------------
+    def _open_app(self, a: dict) -> dict:
+        t = self._texts
+        try:
+            name = self._opener(a.get("name"))
+        except ValueError as error:
+            if str(error) == "unknown":
+                return _text(t["unknown_app"].format(names=", ".join(desktop.APPS)), error=True)
+            return _text(t["app_unsupported"], error=True)
+        except (OSError, subprocess.SubprocessError):
+            return _text(t["app_failed"], error=True)
+        return _text(t["opened"].format(name=name))

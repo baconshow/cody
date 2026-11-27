@@ -3,7 +3,7 @@
 Short version: **Cody sends nothing to its author.** No account, no analytics, no tracking.
 
 Kept on your computer: timers, memory, custom scenes, hook events (time, kind and the first characters of a session id),
-settings, the ElevenLabs key, screenshots (in memory), the latest 50 pictures sent with the clip. From Claude Code's transcripts
+settings, the ElevenLabs key, screenshots (in memory and on the clipboard; the latest five as files, only when Claude was asked to hand one on), the latest 50 pictures sent with the clip. From Claude Code's transcripts
 the page learns tool names, failures, code edits, session ids and times: never commands, paths, output or conversation
 text. For the headphones,
 on Windows, Cody asks the system whether any player is playing: one yes or no, never the song, the artist or the
