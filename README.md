@@ -220,8 +220,9 @@ things, a mini Cody that points at the button you asked about (Windows), and a c
 
 ### Heads-up from your other sessions
 
-Turn these on in Settings. A long task finishes, or Claude waits for you, in any Claude Code session: Cody hops, knocks
-on the screen and says so (with the Android app and its switch, the phone buzzes too). Your plan's usage, said out loud.
+Turn these on in Settings. A long task finishes in another Claude Code session: Cody hops and says so. Claude waits for
+you there: Cody knocks on the screen. That shows wherever Cody's page is in view (with the Android app and its switch,
+the phone buzzes too, app closed or not). Your plan's usage, said out loud.
 Cody typing along when you type to Claude. Your important Windows notifications, read aloud.
 [More](docs/MANUAL.md#heads-up-from-your-other-claude-code-sessions)
 
