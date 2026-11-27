@@ -20,10 +20,26 @@ class PrintCommandTest(unittest.TestCase):
                      "print the invoice", "o que faz o print no python", "imprime isso", "printer"):
             self.assertFalse(voice.is_print_command(text), text)
 
+    def test_saying_no_to_a_screenshot_is_not_asking_for_one(self):
+        for text in ("don't take a screenshot", "do not take a screenshot", "never screenshot", "what is a screenshot",
+                     "não tira print", "nao tira print", "nem tira print", "o que é print da tela"):
+            self.assertFalse(voice.is_print_command(text), text)
+
 
 class QuickPrintTest(unittest.TestCase):
     def setUp(self):
         voice._quick_images.clear()
+        self.copied = []
+        patcher = mock.patch.object(voice, "copy_image", lambda png: self.copied.append(png) or False)
+        patcher.start()
+        self.addCleanup(patcher.stop)          # never the real clipboard in a test
+
+    def test_on_the_clipboard_too_and_said(self):
+        with mock.patch.object(voice, "copy_image", lambda png: True):
+            answer = voice.quick_print("pt-BR", capture=lambda: PNG)
+        self.assertEqual(answer["quick"]["text"], voice.QUICK_TEXT["pt-BR"]["print_clipboard"])
+        voice.quick_print(capture=lambda: PNG)
+        self.assertEqual(self.copied, [PNG])
 
     def test_the_picture_is_kept_here_and_served_by_image(self):
         answer = voice.say({"text": "tira um print"}, Path("no-channel.json"), language="pt-BR", capture=lambda: PNG)

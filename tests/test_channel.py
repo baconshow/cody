@@ -35,6 +35,7 @@ class ChannelTest(unittest.TestCase):
         self.channel = self.make(lambda line: self.sent.append(json.loads(line)))
 
     def make(self, write=lambda line: None, **options) -> Channel:
+        options.setdefault("clipboard", lambda png: False)     # never the real clipboard in a test
         return Channel(write, abilities=isolated(self.tmp.name), **options)
 
     def test_initialize_declares_the_channel_and_the_permission_relay(self):
@@ -124,7 +125,8 @@ class ChannelTest(unittest.TestCase):
         channel = self.make(capture=lambda: b"\x89PNG fake")
         tools = channel.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/list"})["result"]["tools"]
         self.assertEqual([tool["name"] for tool in tools],
-                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point", "scene", "custom_scene"])
+                         ["reply", "screenshot", "timer", "remember", "forget", "look", "point", "scene", "custom_scene",
+                          "open_app"])
         self.channel = channel
         result = self.call("screenshot")
         text = result["content"][0]["text"]
@@ -134,6 +136,33 @@ class ChannelTest(unittest.TestCase):
         self.assertEqual(channel.image(image_id), b"\x89PNG fake")
         self.call("reply", {"request_id": "1", "say": "It is on your phone.", "image": image_id})
         self.assertEqual(channel.replies(0)[-1]["image"], image_id)
+
+    def test_screenshot_lands_on_the_clipboard_and_says_so(self):
+        copied = []
+        self.channel = self.make(capture=lambda: b"\x89PNG c", clipboard=lambda png: copied.append(png) or True)
+        text = self.call("screenshot")["content"][0]["text"]
+        self.assertEqual(copied, [b"\x89PNG c"])
+        self.assertIn("clipboard", text)
+        self.assertNotIn("Saved as", text, "no file unless asked")
+
+    def test_no_clipboard_note_when_the_copy_failed(self):
+        self.channel = self.make(capture=lambda: b"\x89PNG c", clipboard=lambda png: False)
+        self.assertNotIn("clipboard", self.call("screenshot")["content"][0]["text"])
+
+    def test_save_writes_a_file_and_hands_claude_its_path(self):
+        shots = Path(self.tmp.name) / "shots"
+        self.channel = self.make(capture=lambda: b"\x89PNG saved", shots=shots)
+        text = self.call("screenshot", {"save": True})["content"][0]["text"]
+        path = Path(re.search(r"Saved as (.+?\.png)", text).group(1))
+        self.assertEqual(path.parent, shots)
+        self.assertEqual(path.read_bytes(), b"\x89PNG saved")
+        self.assertIsNotNone(re.search(r'image="([^"]+)"', text), "still goes to the phone too")
+
+    def test_save_must_be_true_not_just_truthy(self):
+        shots = Path(self.tmp.name) / "shots"
+        self.channel = self.make(capture=lambda: b"\x89PNG", shots=shots)
+        self.call("screenshot", {"save": "yes"})
+        self.assertFalse(shots.exists())
 
     def test_reply_with_an_unknown_image_is_an_error(self):
         result = self.call("reply", {"request_id": "1", "say": "Here.", "image": "nope"})
@@ -258,7 +287,7 @@ class ImageRouteTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.channel = Channel(lambda line: None, capture=lambda: b"\x89PNG\r\n\x1a\nfake",
-                               abilities=isolated(self.tmp.name))
+                               abilities=isolated(self.tmp.name), clipboard=lambda png: False)
         self.http = create_http(self.channel, "s3cret")
         threading.Thread(target=self.http.serve_forever, daemon=True).start()
         self.path = Path(self.tmp.name) / "channel.json"

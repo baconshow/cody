@@ -98,9 +98,9 @@
   its own address (`#settings/phone`, `#status`). On a phone lying down it fills the screen (a back arrow, the
   list on the left, the checks in three columns); on the computer it is the drawer, the list across the top. New
   look for every drawer: cards, pill buttons with the one thing to do next filled in orange, the system's own
-  font (Roboto on Android). The light in the corner is a pill with its words; beside Status's title, how many
+  font (Roboto on Android). The light in the corner is a pill with its words; at the bottom of Status, how many
   checks ask for a look. The private address has a Copy button.
-- The sleeping Z is one piece, and after a shake Cody swears (`&#$*%@!`). Thinking, Cody holds a front leg up, and
+- The sleeping Z is one piece, and after a shake Cody swears (`&#$*%@!`). Thinking, Cody taps a front foot, and
   the thought is one block with three dots, in front of its face.
 - The keyboard is a real one (number row, Tab, Caps, Enter, two Shifts, space bar, numeric keypad), laid out from
   Cody's seat; its hands land on the keys instead of going through them, and the key under the hand lights up.

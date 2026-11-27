@@ -685,7 +685,7 @@ computer the same content in a side panel of 480.
   forward to the keys, across to knock), so the cups now sit on the sides of the head just behind that slab, a
   little higher than the arms so they show from the front, and nothing has to move. `"lift"` and `armBusy` went
   away with them; a test checks every cup stays behind the arms' slab.
-- Claude's spark on each cup, as the maintainer asked: the outline traced from his picture (walking its edge,
+- Claude's spark on each cup, as the maintainer asked: the outline traced from a picture (walking its edge,
   then simplified to 90 points), pressed out as a plate; the shapes' point limit went from 48 to 96 for it.
 - The coffee mug, the last blocky thing beside the face, is a lathe with a lip and coffee inside and a ring for a
   handle; the steam stays as it was.
@@ -747,7 +747,7 @@ computer the same content in a side panel of 480.
   a diff, Cody asking before it runs a command) beside the three things that matter; a grid of six pictures of the
   real page (`docs/media/home/`, made from the page with reduced motion so each scene is whole); then install in
   three steps. The long manual stays below, open, so every link into it keeps working.
-- **For kids: apps by talking.** The maintainer made Cody so his kids could build things by talking. It is told
+- **For kids: apps by talking.** The maintainer made Cody with their kids in mind, to build things by talking. It is told
   as toys, games and experiments, not apps for production, with the guardrails Claude Code already has (the
   session's folder, Cody asking before a command, the permission settings) and the account in the adult's hands.
   No names in the repository.
@@ -756,3 +756,29 @@ computer the same content in a side panel of 480.
   button for `CodySetup.exe` (`releases/latest/download`, live once the release has it) and one for the download
   page (`site/`, on GitHub Pages after the merge), the grid, the kids, install in three steps and a few lines per
   topic. The full text moved, unchanged, to `docs/MANUAL.md`, and each short section links to its part there.
+
+## 2026-11-24 · What the page may promise
+
+- The maintainer asked for the page to say that Cody reaches the conversations in Claude Desktop. Before writing it, every
+  claim on the page was checked against the code, the sources of the Short and Claude Code's documentation, then four
+  reviewers tried to refute the correction itself. What was published and is corrected here:
+  - *"It asks before it runs anything"*, *"Cody asks out loud before Claude runs a command"*, *"`screenshot` and `look`
+    always ask"*. Cody passes no permission mode, recent Claude Code starts in auto mode, and there most things run
+    without a question; the quick "take a screenshot" asks no one in any mode.
+  - The kids' folder is where Claude starts, not a fence, and the Windows app starts in the home folder.
+  - The kids section had a child talking to Claude. The consumer terms ask for an adult account used by its owner alone, so
+    now the adult talks and the child invents, and the details are in the manual.
+  - Another session *"picks it up as if you had typed it there"* and *"nothing of this leaves your computer"*: the message
+    is marked as coming from another session and approves nothing, and its text reaches Anthropic like any prompt.
+  - *"Every request needs a token"* (every API request does), and a privacy table that left out the pictures, the
+    remembered facts and the microphone of the wake word.
+- **What it may say about Claude Desktop:** that Claude, in the voice session, can list the running Claude Code sessions
+  (the Code tab's local ones included) and message one. Not "controls": the messaging does not open, close, rename or
+  archive them. The Short's "Claude Desktop included" means those.
+- **What it may not say yet:** that Cody changes Claude Desktop's theme. No scene of the Short shows it (the dark mode there
+  is added to the user's own project, and the mustache is a scene of Cody's). A Code tab session can write a mod with new
+  colors, and one saved in the personal skills folder loads in new sessions there; by voice it has not been tried.
+- **The entries of 2026-11-20 (night) say three things that were not so.** The grid was not "six pictures of the real page"
+  (two are composed, one puts three captures side by side). The text did not move "unchanged": the introduction, two
+  examples and the kids' details had been left out, and are back in the manual. And old links to README sections have to
+  be pointed at the manual one by one.

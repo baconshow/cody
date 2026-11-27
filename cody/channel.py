@@ -73,7 +73,11 @@ TEXTS = {
             "command in your terminal' and show the command; say 'the file path is on the screen'. No lists or "
             "markdown in `say`; speak numbers the way people say them. The details stay here in the terminal. If you "
             "need a decision, ask in one sentence. To send a screenshot anywhere ('send a screenshot to my WhatsApp'), "
-            "call screenshot, then reply with its image id: it shows up on the phone with a Share button. Other "
+            "call screenshot, then reply with its image id: it shows up on the phone with a Share button. The "
+            "screenshot is on the computer's clipboard too: if that was all they asked, say it is ready to paste. To "
+            "hand it to another session or put it in a folder, call screenshot with save true and pass on the path it "
+            "returns. Never write a screenshot script of your own. To open an app, call open_app; for one not on its "
+            "list, on Windows run Start-Process with the app's name once, without searching first. Other "
             "tools: timer (timers and reminders that ring on the phone), remember and forget (facts kept between "
             "voice sessions), look and point (see the screen when asked where something is, then point at it), scene "
             "(show one of the mascot's scenes when asked: 'put your headphones on') and custom_scene (a scene of "
@@ -83,11 +87,15 @@ TEXTS = {
         "tool": "Replies through the desk mascot: `say` is spoken out loud (at most two sentences, no links, paths or "
                 "commands); `show` (optional) appears on the screen to tap and copy; `image` (optional) is a "
                 "screenshot id from the screenshot tool, shown on the phone with a Share button.",
-        "screenshot_tool": "Takes a screenshot of the user's computer for their phone, only when they ask. Returns an "
-                           "image id to pass to reply; you do not see the picture. You cannot send it anywhere "
-                           "yourself: the user taps Share on the phone and picks WhatsApp or any app, so do not try "
-                           "other ways; say something like 'the screenshot is on your phone, tap share'.",
+        "screenshot_tool": "Takes a screenshot of the user's computer, only when they ask, in about a second. It goes "
+                           "to their phone (pass the image id it returns to reply) and onto the computer's clipboard, "
+                           "ready to paste (Windows). You do not see the picture. To a phone app like WhatsApp: the "
+                           "user taps Share on the phone, so say 'the screenshot is on your phone, tap share'. To "
+                           "another Claude session or a folder: save true, and the result has the file's path to "
+                           "pass on.",
         "screenshot_done": "Screenshot taken. Now call reply with image=\"{id}\".",
+        "screenshot_clipboard": " It is on the clipboard, ready to paste.",
+        "screenshot_saved": " Saved as {path}: pass this path on, or copy the file where they asked.",
         "screenshot_failed": "The screenshot could not be taken on this computer.",
         "unknown_image": "Unknown image id: take the screenshot again.",
         "spoken": "spoken by the mascot", "shown": " and shown on screen", "empty": "empty `say`: nothing was spoken",
@@ -110,7 +118,11 @@ TEXTS = {
             "na fala; troque nome técnico em inglês por palavra em português quando houver, e fale números como se "
             "fala. O detalhe fica aqui no terminal. Se precisar de uma decisão, pergunte em uma frase. Para mandar um "
             "print ('manda um print pro meu WhatsApp'), chame screenshot e responda com o id da imagem: ela aparece "
-            "no celular com um botão de compartilhar. Outras ferramentas: timer (cronômetros e lembretes que tocam no "
+            "no celular com um botão de compartilhar. O print também fica na área de transferência do computador: se "
+            "o pedido era só isso, diga que está pronto para colar. Para passar a outra sessão ou pôr numa pasta, "
+            "chame screenshot com save true e repasse o caminho que ele devolve. Nunca escreva um script de print "
+            "seu. Para abrir um app, chame open_app; para um que não está na lista, no Windows rode Start-Process "
+            "com o nome do app uma vez, sem pesquisar antes. Outras ferramentas: timer (cronômetros e lembretes que tocam no "
             "celular), remember e forget (fatos guardados entre sessões de voz), look e point (ver a tela quando "
             "perguntarem onde algo está, e apontar), scene (mostrar uma cena do mascote quando pedirem: 'põe os "
             "fones') e custom_scene (uma cena sua, como dados, quando pedirem; 'desfaz' remove). A primeira "
@@ -119,12 +131,15 @@ TEXTS = {
         "tool": "Responde pelo mascote de mesa: `say` é dito em voz alta (até duas frases, sem link, caminho nem "
                 "comando); `show` (opcional) aparece na tela para tocar e copiar; `image` (opcional) é o id de um "
                 "print da ferramenta screenshot, mostrado no celular com um botão de compartilhar.",
-        "screenshot_tool": "Tira um print da tela do computador do usuário para o celular dele, só quando pedirem. "
-                           "Devolve um id de imagem para passar ao reply; você não vê a imagem. Você não consegue "
-                           "enviar sozinho: o usuário toca em compartilhar no celular e escolhe o WhatsApp ou outro "
-                           "app, então não tente outros caminhos; diga algo como 'o print está no seu celular, toca "
-                           "em compartilhar'.",
+        "screenshot_tool": "Tira um print da tela do computador do usuário, só quando pedirem, em cerca de um "
+                           "segundo. Vai para o celular (passe ao reply o id de imagem que ele devolve) e para a área "
+                           "de transferência do computador, pronto para colar (Windows). Você não vê a imagem. Para um "
+                           "app do celular como o WhatsApp: o usuário toca em compartilhar, então diga 'o print está "
+                           "no seu celular, toca em compartilhar'. Para outra sessão do Claude ou uma pasta: save "
+                           "true, e o resultado traz o caminho do arquivo para repassar.",
         "screenshot_done": "Print tirado. Agora chame reply com image=\"{id}\".",
+        "screenshot_clipboard": " Está na área de transferência, pronto para colar.",
+        "screenshot_saved": " Salvo em {path}: repasse esse caminho, ou copie o arquivo para onde pediram.",
         "screenshot_failed": "Não deu para tirar o print neste computador.",
         "unknown_image": "Id de imagem desconhecido: tire o print de novo.",
         "spoken": "falado pelo mascote", "shown": " e mostrado na tela", "empty": "`say` vazio: nada foi dito",
@@ -208,8 +223,17 @@ def screenshot_tool(texts: dict) -> dict:
     return {
         "name": "screenshot",
         "description": texts["screenshot_tool"],
-        "inputSchema": {"type": "object", "properties": {}},
+        "inputSchema": {"type": "object", "properties": {
+            "save": {"type": "boolean", "description": "Also save it as a PNG file and get its path (default false)"}}},
     }
+
+
+def _copy_image(png: bytes) -> bool:
+    from cody.desktop import copy_image  # imported on use, like the capture
+    try:
+        return copy_image(png)
+    except OSError:
+        return False
 
 
 def local_clock(now: datetime | None = None) -> str:
@@ -223,11 +247,14 @@ def local_clock(now: datetime | None = None) -> str:
 class Channel:
     """The channel state and the MCP side. `write` takes bytes (stdout; a list in the tests)."""
 
-    def __init__(self, write, lang: str = "en", capture=None, abilities: Abilities | None = None, clock=None):
+    def __init__(self, write, lang: str = "en", capture=None, abilities: Abilities | None = None, clock=None,
+                 clipboard=None, shots: Path | None = None):
         self._write = write
         self._lang = lang if lang in TEXTS else "en"
         self._texts = TEXTS[self._lang]
         self._capture = capture or _capture_screen
+        self._clipboard = clipboard or _copy_image
+        self._shots = shots                           # where save=true screenshots go (default: the data folder)
         self._clock = clock or (lambda: datetime.now().astimezone())
         self.abilities = abilities or Abilities(self._lang)
         # a new id on each start: the phone notices the voice session restarted (the reply count starts over)
@@ -284,8 +311,9 @@ class Channel:
         with self._lock:
             return self._images.get(image_id)
 
-    def _screenshot(self) -> dict:
-        """The screenshot tool: the PNG stays here, for the phone; Claude only gets its id, never the picture."""
+    def _screenshot(self, arguments: dict) -> dict:
+        """The screenshot tool: the PNG stays here for the phone and goes onto the clipboard; with save, into a file
+        whose path Claude can pass on. Claude never gets the picture itself."""
         try:
             png = self._capture()
         except Exception as error:  # noqa: BLE001 - any capture failure becomes a tool error
@@ -296,8 +324,18 @@ class Channel:
             self._images[image_id] = png
             for old in list(self._images)[:-MAX_IMAGES]:
                 del self._images[old]
+        text = self._texts["screenshot_done"].format(id=image_id)
+        if self._clipboard(png):
+            text += self._texts["screenshot_clipboard"]
+        if isinstance(arguments, dict) and arguments.get("save") is True:
+            from cody.desktop import save_screenshot
+            try:
+                path = save_screenshot(png, self._shots or data_dir() / "screenshots")
+                text += self._texts["screenshot_saved"].format(path=path)
+            except OSError as error:
+                log(f"screenshot not saved: {type(error).__name__}")
         log("screenshot taken")
-        return {"content": [{"type": "text", "text": self._texts["screenshot_done"].format(id=image_id)}]}
+        return {"content": [{"type": "text", "text": text}]}
 
     def ask_permission(self, params: dict) -> None:
         """notifications/claude/channel/permission_request: the mascot asks and shows what is about to run."""
@@ -379,7 +417,7 @@ class Channel:
         elif method == "tools/call" and params.get("name") == "reply":
             result = self._reply(params.get("arguments") or {})
         elif method == "tools/call" and params.get("name") == "screenshot":
-            result = self._screenshot()
+            result = self._screenshot(params.get("arguments") or {})
         elif method == "tools/call" and self.abilities.handles(params.get("name")):
             log(f"tool {params['name']}")
             arguments = params.get("arguments") or {}

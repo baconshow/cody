@@ -123,7 +123,7 @@ def prepare(config: dict, ask=None, again: bool = False, run=subprocess.run, sta
                 if tailscale(["serve", "--bg", f"--https={https}", str(config["port"])], run) is not None:
                     hosts = served(serve_status(run), config["port"])
                 else:
-                    notes.append("tailscale serve did not work: see the README, \"Put it on your phone\".")
+                    notes.append("tailscale serve did not work: see \"Put it on your phone\" in docs/MANUAL.md.")
             elif https:
                 declined.add("tailscale")
         config["extra_hosts"] = list(dict.fromkeys([*config["extra_hosts"], *hosts]))
